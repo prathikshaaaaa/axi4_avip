@@ -158,8 +158,8 @@ class axi4_scoreboard extends uvm_scoreboard;
   //--------------------------------------------------------------------------------------------
   // Slave address configuration
   //--------------------------------------------------------------------------------------------
-  bit[ADDR_WIDTH-1:0] SLAVE_START_ADDR[];
-  bit[ADDR_WIDTH-1:0] SLAVE_END_ADDR[];
+  bit[ADDRESS_WIDTH-1:0] SLAVE_START_ADDR[];
+  bit[ADDRESS_WIDTH-1:0] SLAVE_END_ADDR[];
 
   //--------------------------------------------------------------------------------------------
   // Helper variables
@@ -179,7 +179,7 @@ class axi4_scoreboard extends uvm_scoreboard;
   extern virtual function void build_phase(uvm_phase phase);
   extern virtual function void connect_phase(uvm_phase phase);
   extern virtual task run_phase(uvm_phase phase);
-  extern virtual function int get_slave_index(logic[ADDR_WIDTH-1:0] addr);
+  extern virtual function int get_slave_index(logic[ADDRESS_WIDTH-1:0] addr);
   extern virtual function void ref_model_write(axi4_master_tx m_tx, int slave_idx, int master_idx);
   extern virtual function void ref_model_read(axi4_master_tx m_tx, int slave_idx);
   extern virtual function void check_write_rr_arbitration(int slave_id, int granted_master);
@@ -295,7 +295,7 @@ endfunction : connect_phase
 // Function: get_slave_index
 // Determines which slave should handle a given address
 //--------------------------------------------------------------------------------------------
-function int axi4_scoreboard::get_slave_index(logic[ADDR_WIDTH-1:0] addr);
+function int axi4_scoreboard::get_slave_index(logic[ADDRESS_WIDTH-1:0] addr);
   for(int i = 0; i < NO_OF_SLAVES; i++) begin
     if(addr >= SLAVE_START_ADDR[i] && addr <= SLAVE_END_ADDR[i]) begin
       return i;
