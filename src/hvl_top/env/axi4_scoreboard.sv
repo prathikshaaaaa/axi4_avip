@@ -1554,3 +1554,4 @@ function void axi4_scoreboard::report_phase(uvm_phase phase);
   end
   `uvm_info("REPORT", "========== END OF SCOREBOARD REPORT ==========", UVM_LOW)
 endfunction : report_phase
+`endif
