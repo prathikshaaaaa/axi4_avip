@@ -1008,7 +1008,7 @@ task axi4_scoreboard::run_phase(uvm_phase phase);
         `uvm_info("SLV_RD_DATA", 
                  $sformatf("S[%0d] RID=0x%0h RDATA[0]=0x%0h RLAST=%0b RRESP=%0s", 
                           s_idx, s_read_data_tx.rid, s_read_data_tx.rdata[0], 
-                          s_read_data_tx.rlast, s_read_data_tx.rresp[0].name()), 
+                          s_read_data_tx.rlast, s_read_data_tx.rresp.name()), 
                  UVM_HIGH)
       end
     join_none
@@ -1034,7 +1034,7 @@ task axi4_scoreboard::run_phase(uvm_phase phase);
         `uvm_info("MSTR_RD_DATA", 
                  $sformatf("M[%0d] RID=0x%0h RDATA[0]=0x%0h RLAST=%0b RRESP=%0s", 
                           m_idx, m_read_data_tx.arid, m_read_data_tx.rdata[0], 
-                          m_read_data_tx.rlast, m_read_data_tx.rresp[0].name()), 
+                          m_read_data_tx.rlast, m_read_data_tx.rresp.name()), 
                  UVM_MEDIUM)
         
         // Find the slave this read went to
@@ -1397,7 +1397,7 @@ task axi4_scoreboard::axi4_read_data_comparison(
   end
   
   // RRESP
-  byte_data_cmp_verified_rresp_count += act_tx.rresp.size();
+  byte_data_cmp_verified_rresp_count ++;
   
 endtask : axi4_read_data_comparison
 
