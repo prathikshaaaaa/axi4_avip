@@ -50,8 +50,8 @@ module hdl_top;
   ) axi_interconnect (
     .aclk      (aclk),
     .aresetn  (aresetn),
-    .master_if(axiMasterInterface.axiMasterInterconnectMP),
-    .slave_if (axiSlaveInterface.axiSlaveInterconnectMP)
+    .master_if(master_if),
+    .slave_if (slave_if)
   );
 
   genvar i;
@@ -73,7 +73,7 @@ module hdl_top;
   endgenerate
 
 
-  initial begin
+  /*initial begin
     for (int m=0; m<NO_OF_MASTERS; m++) begin
       uvm_config_db#(virtual axi4_if)::set(null, $sformatf("*master_agent[%0d]*", m), "vif", master_if[m]);
     end
@@ -81,7 +81,7 @@ module hdl_top;
     for (int s=0; s<NO_OF_SLAVES; s++) begin
       uvm_config_db#(virtual axi4_if)::set(null, $sformatf("*slave_agent[%0d]*", s), "vif", slave_if[s]);
     end
-  end
+  end*/
 
 endmodule : hdl_top
 
