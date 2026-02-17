@@ -115,7 +115,7 @@ module axi_cache_controller #(
   //====================================================================
   // MSHR STRUCTURE 
   //====================================================================
-  typedef struct packed {
+  typedef struct{
     logic                     valid;
     logic                     is_write;
     logic                     done;
@@ -731,7 +731,7 @@ module axi_cache_controller #(
     else begin
       for (int i = 0; i < NUM_MSHR; i++) begin
         if (mshr[i].valid && mshr[i].is_write) begin
-          int m = mshr[i].master;
+          automatic int m = mshr[i].master;
 
           if (wr_data_valid_g[m] && (m == w_owner)) begin
             automatic logic [$clog2(WORDS_PER_LINE)-1:0] base;
@@ -853,9 +853,11 @@ module axi_cache_controller #(
     s_bready  = '1;
 
     if (wb_active) begin
-      int sid = mshr[wb_mshr_id].slave;
-      int idx = mshr[wb_mshr_id].index;
-      int way = mshr[wb_mshr_id].way;
+      int sid, idx, way;
+
+      sid = mshr[wb_mshr_id].slave;
+      idx = mshr[wb_mshr_id].index;
+      way = mshr[wb_mshr_id].way;
 
       case (wb_state)
 
@@ -945,7 +947,8 @@ module axi_cache_controller #(
     else begin
       for (int s = 0; s < NO_OF_SLAVES; s++) begin
         if (active_r_valid[s]) begin
-          int i = active_r_mshr[s];
+          int i;
+          i = active_r_mshr[s];
           
           if (mshr[i].valid && s_rvalid[s] && s_rid[s] == mshr[i].axi_id) begin
 
@@ -1018,7 +1021,8 @@ module axi_cache_controller #(
   // 1) MSHR COMPLETION PRIORITY
   for (int i = 0; i < NUM_MSHR; i++) begin
     if (mshr[i].valid && mshr[i].done && !mshr[i].is_write) begin
-      int m = mshr[i].master;
+      int m;
+      m = mshr[i].master;
 
       rd_data_valid[m] = 1'b1;
       rd_data_last[m]  = 1'b1;
@@ -1037,7 +1041,9 @@ module axi_cache_controller #(
 
   // 2) READ HIT ONLY IF NO MSHR DONE
   for (int m = 0; m < NO_OF_MASTERS; m++) begin
-    bit mshr_done_for_m = 1'b0;
+    bit mshr_done_for_m;
+
+    mshr_done_for_m = 1'b0;
 
     for (int i = 0; i < NUM_MSHR; i++) begin
       if (mshr[i].valid && mshr[i].done && mshr[i].master == m)
@@ -1068,7 +1074,8 @@ module axi_cache_controller #(
     // Priority: MSHR-based writes
     for (int i = 0; i < NUM_MSHR; i++) begin
       if (mshr[i].valid && mshr[i].done && mshr[i].is_write) begin
-        int m = mshr[i].master;
+        int m;
+        m = mshr[i].master;
         wr_complete[m]   = 1'b1;
         wr_resp_valid[m] = 1'b1;
         wr_resp[m]       = mshr[i].resp_code;
@@ -1105,7 +1112,8 @@ module axi_cache_controller #(
     end
     else begin
       for (int i = 0; i < NUM_MSHR; i++) begin
-        int m = mshr[i].master;
+        int m;
+        m = mshr[i].master;
 
         if (mshr[i].done &&
             ((mshr[i].is_write && wr_resp_valid[m]) ||
