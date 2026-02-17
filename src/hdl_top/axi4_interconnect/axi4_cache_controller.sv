@@ -27,7 +27,7 @@ module axi_cache_controller #(
   output logic                            rd_cache_miss  [NO_OF_MASTERS],
   output logic [DATA_WIDTH-1:0]           rd_cache_data  [NO_OF_MASTERS],
   output logic                            rd_data_valid  [NO_OF_MASTERS],
-  output logic [ID_WIDTH-1:0]             rd_data_id     [NO_OF_MASTERS], // fix..
+  output logic [ID_WIDTH-1:0]             rd_data_id     [NO_OF_MASTERS], 
   output logic                            rd_data_last   [NO_OF_MASTERS],
   output logic [1:0]                      rd_resp        [NO_OF_MASTERS],
 
@@ -113,7 +113,7 @@ module axi_cache_controller #(
   localparam int WORD_OFFSET_BITS = $clog2(WORDS_PER_LINE);
   
   //====================================================================
-  // MSHR STRUCTURE (FIX ISSUE #4 - Multi-beat write buffer)
+  // MSHR STRUCTURE 
   //====================================================================
   typedef struct packed {
     logic                     valid;
@@ -380,7 +380,7 @@ module axi_cache_controller #(
   endgenerate
 
   //==========================================================================
-  // READ HIT/MISS DETECTION (FIX: block during write hit + refill)
+  // READ HIT/MISS DETECTION 
   //==========================================================================
   
   function automatic bit line_under_refill(
@@ -501,7 +501,7 @@ module axi_cache_controller #(
   endgenerate
   
   //==========================================================================
-  // WRITE REQUEST READY (FIX ISSUE #5 - Block during WB)
+  // WRITE REQUEST READY 
   //==========================================================================
   always_comb begin
     for (int m = 0; m < NO_OF_MASTERS; m++) begin
@@ -531,7 +531,7 @@ module axi_cache_controller #(
   end
 
   //==========================================================================
-  // WRITE OWNERSHIP LOCK (FIX: release only after completion)
+  // WRITE OWNERSHIP LOCK 
   //==========================================================================
   always_ff @(posedge aclk or negedge aresetn) begin
     if (!aresetn) begin
@@ -722,7 +722,7 @@ module axi_cache_controller #(
   end
 
   //==========================================================================
-  // WRITE-MISS DATA CAPTURE (FIX: bounds check)
+  // WRITE-MISS DATA CAPTURE 
   //==========================================================================
   always_ff @(posedge aclk or negedge aresetn) begin
     if (!aresetn) begin
@@ -755,7 +755,7 @@ module axi_cache_controller #(
   end
 
   //==========================================================================
-  // WRITE-BACK FSM (FIX ISSUE #1 - Check BRESP)
+  // WRITE-BACK FSM 
   //==========================================================================
   always_ff @(posedge aclk or negedge aresetn) begin
     if (!aresetn) begin
@@ -802,7 +802,7 @@ module axi_cache_controller #(
         WB_RESP: begin
           if (s_bvalid[mshr[wb_mshr_id].slave]) begin
             
-            // *** FIX ISSUE #1: Check BRESP ***
+            //  Check BRESP 
             if (s_bresp[mshr[wb_mshr_id].slave] == 2'b00) begin
               // Successful writeback
               dirty_array[mshr[wb_mshr_id].index]
@@ -909,7 +909,7 @@ module axi_cache_controller #(
   end
 
   //==========================================================================
-  // AR SENT FLAG UPDATE (FIX: guard active_r overwrite)
+  // AR SENT FLAG UPDATE
   //==========================================================================
   always_ff @(posedge aclk or negedge aresetn) begin
     if (!aresetn) begin
@@ -936,7 +936,7 @@ module axi_cache_controller #(
   end
 
   //==========================================================================
-  // AXI READ DATA CHANNEL (FIX ISSUE #2 - Single MSHR per slave)
+  // AXI READ DATA CHANNEL
   //==========================================================================
   always_ff @(posedge aclk or negedge aresetn) begin
     if (!aresetn) begin
@@ -1004,7 +1004,7 @@ module axi_cache_controller #(
   end
 
   //==========================================================================
-  // READ RESPONSE ROUTING (FIX: hit vs miss arbitration)
+  // READ RESPONSE ROUTING 
   //==========================================================================
   always_comb begin
   for (int m = 0; m < NO_OF_MASTERS; m++) begin
@@ -1120,7 +1120,7 @@ module axi_cache_controller #(
   end
 
   //==========================================================================
-  // CACHE MAINTENANCE FSM (FIX ISSUE #7)
+  // CACHE MAINTENANCE FSM 
   //==========================================================================
   function automatic bit line_has_active_mshr(
     input logic [INDEX_BITS-1:0] idx,
@@ -1207,7 +1207,7 @@ module axi_cache_controller #(
   end
 
   //==========================================================================
-  // PERFORMANCE COUNTERS (FIX ISSUE #3 - Count on accept)
+  // PERFORMANCE COUNTERS 
   //==========================================================================
   always_ff @(posedge aclk or negedge aresetn) begin
     if (!aresetn) begin
