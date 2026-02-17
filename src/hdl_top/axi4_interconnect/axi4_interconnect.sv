@@ -31,7 +31,7 @@ module axi_interconnect_cache
   // SIGNAL DECLARATIONS
   //==========================================================================
   
-  // --- Signals from Masters (Read Path - Pratiksha) ---
+  // --- Signals from Masters ---
   logic [NO_OF_MASTERS-1:0]        m_arvalid;
   logic [NO_OF_MASTERS-1:0]        m_arready;
   logic [ADDR_WIDTH-1:0]           m_araddr  [NO_OF_MASTERS];
@@ -47,7 +47,7 @@ module axi_interconnect_cache
   logic [1:0]                      m_rresp   [NO_OF_MASTERS];
   logic [NO_OF_MASTERS-1:0]        m_rlast;
   
-  // --- Signals from Masters (Write Path - Tejas) ---
+  // --- Signals from Masters  ---
   logic [NO_OF_MASTERS-1:0]        m_awvalid;
   logic [NO_OF_MASTERS-1:0]        m_awready;
   logic [ADDR_WIDTH-1:0]           m_awaddr  [NO_OF_MASTERS];
@@ -67,7 +67,7 @@ module axi_interconnect_cache
   logic [ID_WIDTH-1:0]             m_bid     [NO_OF_MASTERS];
   logic [1:0]                      m_bresp   [NO_OF_MASTERS];
   
-  // --- Signals to Slaves (from Cache Controller - Sathwik) ---
+  // --- Signals to Slaves  ---
   logic [NO_OF_SLAVES-1:0]         s_arvalid;
   logic [NO_OF_SLAVES-1:0]         s_arready;
   logic [ADDR_WIDTH-1:0]           s_araddr  [NO_OF_SLAVES];
@@ -106,7 +106,7 @@ module axi_interconnect_cache
   // INTERFACE SIGNALS BETWEEN MODULES
   //==========================================================================
   
-  // --- Read Path (Pratiksha) to Cache (Sathwik) Interface ---
+  // --- Read Path to Cache Interface ---
   logic                            rd_req_valid   [NO_OF_MASTERS];
   logic [ADDR_WIDTH-1:0]           rd_req_addr    [NO_OF_MASTERS];
   logic [ID_WIDTH-1:0]             rd_req_id      [NO_OF_MASTERS];
@@ -123,7 +123,7 @@ module axi_interconnect_cache
   logic                            rd_data_last   [NO_OF_MASTERS];
   logic [1:0]                      rd_resp        [NO_OF_MASTERS];
   
-  // --- Write Path (Tejas) to Cache (Sathwik) Interface ---
+  // --- Write Path to Cache Interface ---
   logic                            cache_addr_valid [NO_OF_MASTERS];
   logic [ADDR_WIDTH-1:0]           cache_addr       [NO_OF_MASTERS];
   logic [ID_WIDTH-1:0]             cache_id         [NO_OF_MASTERS];
@@ -148,7 +148,7 @@ module axi_interconnect_cache
   //==========================================================================
   
   // -------------------------------------------------------------------------
-  // READ PATH MODULE (Pratiksha's Work)
+  // READ PATH MODULE 
   // -------------------------------------------------------------------------
   axi_read_path #(
     .NO_OF_MASTERS  (NO_OF_MASTERS),
@@ -176,7 +176,7 @@ module axi_interconnect_cache
     .m_rresp        (m_rresp),
     .m_rlast        (m_rlast),
     
-    // Interface to Cache (Sathwik's module)
+    // Interface to Cache
     .rd_req_valid   (rd_req_valid),
     .rd_req_addr    (rd_req_addr),
     .rd_req_id      (rd_req_id),
@@ -194,7 +194,7 @@ module axi_interconnect_cache
   );
   
   // -------------------------------------------------------------------------
-  // WRITE PATH MODULE (Tejas's Work)
+  // WRITE PATH MODULE 
   // -------------------------------------------------------------------------
   axi_write_path #(
     .NO_OF_MASTERS  (NO_OF_MASTERS),
@@ -226,7 +226,7 @@ module axi_interconnect_cache
     .m_bid          (m_bid),
     .m_bresp        (m_bresp),
     
-    // Interface to Cache (Sathwik's module)
+    // Interface to Cache 
     .cache_addr_valid (cache_addr_valid),
     .cache_addr       (cache_addr),
     .cache_id         (cache_id),
@@ -248,7 +248,7 @@ module axi_interconnect_cache
   );
   
   // -------------------------------------------------------------------------
-  // CACHE CONTROLLER MODULE (Sathwik's Work)
+  // CACHE CONTROLLER MODULE 
   // -------------------------------------------------------------------------
   axi_cache_controller #(
     .NO_OF_MASTERS    (NO_OF_MASTERS),
@@ -264,7 +264,7 @@ module axi_interconnect_cache
     .aclk             (aclk),
     .aresetn          (aresetn),
     
-    // Read interface from Pratiksha's module
+    // Read interface
     .rd_req_valid     (rd_req_valid),
     .rd_req_addr      (rd_req_addr),
     .rd_req_id        (rd_req_id),
@@ -281,7 +281,7 @@ module axi_interconnect_cache
     .rd_data_last     (rd_data_last),
     .rd_resp          (rd_resp),
     
-    // Write interface from Tejas's module
+    // Write interface 
     .wr_req_valid     (cache_addr_valid),
     .wr_req_addr      (cache_addr),
     .wr_req_id        (cache_id),
