@@ -1,6 +1,8 @@
 `include "axi4_write_path.sv"
 `include "axi4_read_path.sv"
 `include "axi4_cache_controller.sv"
+//`include "../../globals/axi4_globals_pkg.sv"
+//import axi4_globals_pkg::*;
 
 module axi_interconnect_cache
 (
