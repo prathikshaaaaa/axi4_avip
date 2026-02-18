@@ -61,6 +61,10 @@ package axi4_globals_pkg;
   //Indicates the length of the address write and read channels
   parameter int LENGTH = 8;
 
+  // CACHE PARAMETERS
+  parameter int CACHE_LINE_SIZE = 64;
+  parameter int NUM_SETS = 64;
+
   //Variable: OUTSTANDING_FIFO_DEPTH
   //Indicates the fifo depth of outstanding transaction
   parameter int OUTSTANDING_FIFO_DEPTH = 16;
