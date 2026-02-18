@@ -1,8 +1,8 @@
 `include "axi4_write_path.sv"
 `include "axi4_read_path.sv"
 `include "axi4_cache_controller.sv"
-//`include "../../globals/axi4_globals_pkg.sv"
-//import axi4_globals_pkg::*;
+`include "../../globals/axi4_globals_pkg.sv"
+import axi4_globals_pkg::*;
 
 module axi_interconnect_cache
 (
@@ -253,101 +253,91 @@ module axi_interconnect_cache
   // CACHE CONTROLLER MODULE 
   // -------------------------------------------------------------------------
   axi_cache_controller #(
-    .NO_OF_MASTERS    (NO_OF_MASTERS),
-    .NO_OF_SLAVES     (NO_OF_SLAVES),
-    .ADDR_WIDTH       (ADDR_WIDTH),
-    .DATA_WIDTH       (DATA_WIDTH),
-    .ID_WIDTH         (ID_WIDTH),
-    .CACHE_LINE_SIZE  (CACHE_LINE_SIZE),
-    .NUM_SETS         (NUM_SETS),
-    .ASSOCIATIVITY    (ASSOCIATIVITY),
-    .NUM_MSHR         (NUM_MSHR)
+      .NO_OF_MASTERS   (NO_OF_MASTERS),
+      .NO_OF_SLAVES    (NO_OF_SLAVES),
+      .ADDR_WIDTH      (ADDR_WIDTH),
+      .DATA_WIDTH      (DATA_WIDTH),
+      .ID_WIDTH        (ID_WIDTH),
+      .CACHE_LINE_SIZE (CACHE_LINE_SIZE),
+      .NUM_SETS        (NUM_SETS),
+      .ASSOCIATIVITY   (ASSOCIATIVITY),
+      .NUM_MSHR        (NUM_MSHR)
   ) u_cache_controller (
-    .aclk             (aclk),
-    .aresetn          (aresetn),
-    
-    // Read interface
-    .rd_req_valid     (rd_req_valid),
-    .rd_req_addr      (rd_req_addr),
-    .rd_req_id        (rd_req_id),
-    .rd_req_len       (rd_req_len),
-    .rd_req_size      (rd_req_size),
-    .rd_req_burst     (rd_req_burst),
-    
-    .rd_ready         (rd_ready),
-    .rd_cache_hit     (rd_cache_hit),
-    .rd_cache_miss    (rd_cache_miss),
-    .rd_cache_data    (rd_cache_data),
-    .rd_data_valid    (rd_data_valid),
-    .rd_data_id       (rd_data_id),
-    .rd_data_last     (rd_data_last),
-    .rd_resp          (rd_resp),
-    
-    // Write interface 
-    .wr_req_valid     (cache_addr_valid),
-    .wr_req_addr      (cache_addr),
-    .wr_req_id        (cache_id),
-    .wr_req_len       (cache_len),
-    .wr_req_size      (cache_size),
-    .wr_req_burst     (cache_burst),
-    
-    .wr_data_valid    (cache_data_valid),
-    .wr_data          (cache_data),
-    .wr_strb          (cache_strb),
-    .wr_data_last     (cache_data_last),
-    
-    .wr_req_ready     (),  // Not used in write path
-    .wr_cache_hit     (cache_hit),
-    .wr_cache_miss    (cache_miss),
-    .wr_complete      (cache_complete),
-    .wr_resp_valid    (cache_resp_valid),
-    .wr_resp          (cache_resp),
-    
-    // Cache maintenance interface (tie-off if not used)
-    .cache_flush_req     (1'b0),
-    .cache_inv_req       (1'b0),
-    .cache_flush_inv_req (1'b0),
-    .cache_maint_addr    ('0),
-    .cache_maint_by_addr (1'b0),
-    .cache_maint_busy    (),
-    .cache_maint_done    (),
-    
-    // Slave interfaces (for cache misses and writebacks)
-    .s_arvalid        (s_arvalid),
-    .s_arready        (s_arready),
-    .s_araddr         (s_araddr),
-    .s_arid           (s_arid),
-    .s_arlen          (s_arlen),
-    .s_arsize         (s_arsize),
-    .s_arburst        (s_arburst),
-    
-    .s_rvalid         (s_rvalid),
-    .s_rready         (s_rready),
-    .s_rdata          (s_rdata),
-    .s_rid            (s_rid),
-    .s_rresp          (s_rresp),
-    .s_rlast          (s_rlast),
-    
-    .s_awvalid        (s_awvalid),
-    .s_awready        (s_awready),
-    .s_awaddr         (s_awaddr),
-    .s_awid           (s_awid),
-    .s_awlen          (s_awlen),
-    .s_awsize         (s_awsize),
-    .s_awburst        (s_awburst),
-    
-    .s_wvalid         (s_wvalid),
-    .s_wready         (s_wready),
-    .s_wdata          (s_wdata),
-    .s_wstrb          (s_wstrb),
-    .s_wlast          (s_wlast),
-    
-    .s_bvalid         (s_bvalid),
-    .s_bready         (s_bready),
-    .s_bid            (s_bid),
-    .s_bresp          (s_bresp)
+      .aclk            (aclk),
+      .aresetn         (aresetn),
+
+      // ---------------- Read Interface ----------------
+      .rd_req_valid    (rd_req_valid),
+      .rd_req_addr     (rd_req_addr),
+      .rd_req_id       (rd_req_id),
+      .rd_req_len      (rd_req_len),
+      .rd_req_size     (rd_req_size),
+      .rd_req_burst    (rd_req_burst),
+
+      .rd_ready        (rd_ready),
+      .rd_cache_hit    (rd_cache_hit),
+      .rd_cache_miss   (rd_cache_miss),
+      .rd_cache_data   (rd_cache_data),
+      .rd_data_valid   (rd_data_valid),
+      .rd_data_id      (rd_data_id),
+      .rd_data_last    (rd_data_last),
+      .rd_resp         (rd_resp),
+
+      // ---------------- Write Interface ----------------
+      .wr_req_valid    (cache_addr_valid),
+      .wr_req_addr     (cache_addr),
+      .wr_req_id       (cache_id),
+      .wr_req_len      (cache_len),
+      .wr_req_size     (cache_size),
+      .wr_req_burst    (cache_burst),
+
+      .wr_data_valid   (cache_data_valid),
+      .wr_data         (cache_data),
+      .wr_strb         (cache_strb),
+      .wr_data_last    (cache_data_last),
+
+      .wr_req_ready    (),  // Not used
+      .wr_cache_hit    (cache_hit),
+      .wr_cache_miss   (cache_miss),
+      .wr_complete     (cache_complete),
+      .wr_resp_valid   (cache_resp_valid),
+      .wr_resp         (cache_resp),
+
+      // ---------------- AXI Slave Interface ----------------
+      .s_arvalid       (s_arvalid),
+      .s_arready       (s_arready),
+      .s_araddr        (s_araddr),
+      .s_arid          (s_arid),
+      .s_arlen         (s_arlen),
+      .s_arsize        (s_arsize),
+      .s_arburst       (s_arburst),
+
+      .s_rvalid        (s_rvalid),
+      .s_rready        (s_rready),
+      .s_rdata         (s_rdata),
+      .s_rid           (s_rid),
+      .s_rresp         (s_rresp),
+      .s_rlast         (s_rlast),
+
+      .s_awvalid       (s_awvalid),
+      .s_awready       (s_awready),
+      .s_awaddr        (s_awaddr),
+      .s_awid          (s_awid),
+      .s_awlen         (s_awlen),
+      .s_awsize        (s_awsize),
+      .s_awburst       (s_awburst),
+
+      .s_wvalid        (s_wvalid),
+      .s_wready        (s_wready),
+      .s_wdata         (s_wdata),
+      .s_wstrb         (s_wstrb),
+      .s_wlast         (s_wlast),
+
+      .s_bvalid        (s_bvalid),
+      .s_bready        (s_bready),
+      .s_bresp         (s_bresp)
   );
-  
+
   //==========================================================================
   // CONNECT INTERNAL SIGNALS TO INTERFACE PORTS
   //==========================================================================

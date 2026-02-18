@@ -4,151 +4,144 @@ module axi_cache_controller #(
 
   parameter int ADDR_WIDTH = 32,
   parameter int DATA_WIDTH = 64,
-  parameter int ID_WIDTH   = 4,
+  parameter int ID_WIDTH = 4,
 
   parameter int CACHE_LINE_SIZE = 64, // bytes
-  parameter int NUM_SETS        = 64,
+  parameter int NUM_SETS = 64,
   parameter int ASSOCIATIVITY   = 4 ,
-  parameter int NUM_MSHR        = 2
+  parameter int NUM_MSHR  = 2
 )(
   input  logic aclk,
   input  logic aresetn,
 
   // ---------------- Read interface ----------------
-  input  logic                            rd_req_valid   [NO_OF_MASTERS],
-  input  logic [ADDR_WIDTH-1:0]           rd_req_addr    [NO_OF_MASTERS],
-  input  logic [ID_WIDTH-1:0]             rd_req_id      [NO_OF_MASTERS],
-  input  logic [7:0]                      rd_req_len     [NO_OF_MASTERS],
-  input  logic [2:0]                      rd_req_size    [NO_OF_MASTERS],
-  input  logic [1:0]                      rd_req_burst   [NO_OF_MASTERS],
-  
-  output logic                            rd_ready       [NO_OF_MASTERS],
-  output logic                            rd_cache_hit   [NO_OF_MASTERS],
-  output logic                            rd_cache_miss  [NO_OF_MASTERS],
-  output logic [DATA_WIDTH-1:0]           rd_cache_data  [NO_OF_MASTERS],
-  output logic                            rd_data_valid  [NO_OF_MASTERS],
-  output logic [ID_WIDTH-1:0]             rd_data_id     [NO_OF_MASTERS], 
-  output logic                            rd_data_last   [NO_OF_MASTERS],
-  output logic [1:0]                      rd_resp        [NO_OF_MASTERS],
+  input  logic rd_req_valid [NO_OF_MASTERS],
+  input  logic [ADDR_WIDTH-1:0] rd_req_addr [NO_OF_MASTERS],
+  input  logic [ID_WIDTH-1:0]   rd_req_id [NO_OF_MASTERS],
+  input  logic [7:0] rd_req_len[NO_OF_MASTERS],
+  input  logic [2:0]  rd_req_size [NO_OF_MASTERS],
+  input  logic [1:0] rd_req_burst [NO_OF_MASTERS],
 
-  // ---------------- Write interface ----------------
-  input  logic                            wr_req_valid   [NO_OF_MASTERS],
-  input  logic [ADDR_WIDTH-1:0]           wr_req_addr    [NO_OF_MASTERS],
-  input  logic [ID_WIDTH-1:0]             wr_req_id      [NO_OF_MASTERS],
-  input  logic [7:0]                      wr_req_len     [NO_OF_MASTERS],
-  input  logic [2:0]                      wr_req_size    [NO_OF_MASTERS],
-  input  logic [1:0]                      wr_req_burst   [NO_OF_MASTERS],
+  output logic rd_ready [NO_OF_MASTERS],
+  output logic rd_cache_hit [NO_OF_MASTERS],
+  output logic rd_cache_miss [NO_OF_MASTERS],
+  output logic [DATA_WIDTH-1:0] rd_cache_data  [NO_OF_MASTERS],
+  output logic rd_data_valid [NO_OF_MASTERS],
+  output logic [ID_WIDTH-1:0] rd_data_id [NO_OF_MASTERS], 
+  output logic rd_data_last   [NO_OF_MASTERS],
+  output logic [1:0] rd_resp [NO_OF_MASTERS],
 
-  input  logic                            wr_data_valid  [NO_OF_MASTERS],
-  input  logic [DATA_WIDTH-1:0]           wr_data        [NO_OF_MASTERS],
-  input  logic [(DATA_WIDTH/8)-1:0]       wr_strb        [NO_OF_MASTERS],
-  input  logic                            wr_data_last   [NO_OF_MASTERS],
+ //----------------Writeinterface----------------
+  input logic wr_req_valid [NO_OF_MASTERS],
+  input logic [ADDR_WIDTH-1:0] wr_req_addr [NO_OF_MASTERS],
+  input logic [ID_WIDTH-1:0] wr_req_id [NO_OF_MASTERS],
+  input logic [7:0] wr_req_len [NO_OF_MASTERS],
+  input logic [2:0] wr_req_size [NO_OF_MASTERS],
+  input logic [1:0] wr_req_burst [NO_OF_MASTERS],
+  input logic wr_data_valid [NO_OF_MASTERS],
+  input logic [DATA_WIDTH-1:0] wr_data [NO_OF_MASTERS],
+  input logic [(DATA_WIDTH/8)-1:0] wr_strb [NO_OF_MASTERS],
+  input logic wr_data_last [NO_OF_MASTERS],
+  output logic wr_req_ready [NO_OF_MASTERS],
+  output logic wr_cache_hit [NO_OF_MASTERS],
+  output logic wr_cache_miss [NO_OF_MASTERS],
+  output logic wr_complete [NO_OF_MASTERS],
+  output logic wr_resp_valid [NO_OF_MASTERS],
+  output logic [1:0] wr_resp [NO_OF_MASTERS],
 
-  output logic                            wr_req_ready   [NO_OF_MASTERS],
-  output logic                            wr_cache_hit   [NO_OF_MASTERS],
-  output logic                            wr_cache_miss  [NO_OF_MASTERS],
-  output logic                            wr_complete    [NO_OF_MASTERS],
-  output logic                            wr_resp_valid  [NO_OF_MASTERS],
-  output logic [1:0]                      wr_resp        [NO_OF_MASTERS],
+//----------------AXISlaveinterface----------------
+  output logic [NO_OF_SLAVES-1:0] s_arvalid,
+  input logic [NO_OF_SLAVES-1:0] s_arready,
+  output logic [ADDR_WIDTH-1:0] s_araddr [NO_OF_SLAVES],
+  output logic [ID_WIDTH-1:0] s_arid [NO_OF_SLAVES],
+  output logic [7:0] s_arlen [NO_OF_SLAVES],
+  output logic [2:0] s_arsize [NO_OF_SLAVES],
+  output logic [1:0] s_arburst [NO_OF_SLAVES],
+  input logic [NO_OF_SLAVES-1:0] s_rvalid,
+  output logic [NO_OF_SLAVES-1:0] s_rready,
+  input logic [DATA_WIDTH-1:0] s_rdata [NO_OF_SLAVES],
+  input logic [ID_WIDTH-1:0] s_rid [NO_OF_SLAVES],
+  input logic [NO_OF_SLAVES-1:0] s_rlast,
+  input logic [1:0] s_rresp [NO_OF_SLAVES],
+  output logic [NO_OF_SLAVES-1:0] s_awvalid,
+  input logic [NO_OF_SLAVES-1:0] s_awready,
+  output logic [ADDR_WIDTH-1:0] s_awaddr [NO_OF_SLAVES],
+  output logic [ID_WIDTH-1:0] s_awid [NO_OF_SLAVES],
+  output logic [7:0] s_awlen [NO_OF_SLAVES],
+  output logic [2:0] s_awsize [NO_OF_SLAVES],
+  output logic [1:0] s_awburst [NO_OF_SLAVES],
+  output logic [NO_OF_SLAVES-1:0] s_wvalid,
+  input logic [NO_OF_SLAVES-1:0] s_wready,
+  output logic [DATA_WIDTH-1:0] s_wdata [NO_OF_SLAVES],
+  output logic [(DATA_WIDTH/8)-1:0] s_wstrb [NO_OF_SLAVES],
+  output logic [NO_OF_SLAVES-1:0] s_wlast,
+  input logic [NO_OF_SLAVES-1:0] s_bvalid,
+  output logic [NO_OF_SLAVES-1:0] s_bready,
+  input logic [1:0] s_bresp [NO_OF_SLAVES],
+ );
 
-  // ---------------- AXI Slave interface ----------------
-  output logic [NO_OF_SLAVES-1:0]         s_arvalid,
-  input  logic [NO_OF_SLAVES-1:0]         s_arready,
-  output logic [ADDR_WIDTH-1:0]           s_araddr  [NO_OF_SLAVES],
-  output logic [ID_WIDTH-1:0]             s_arid    [NO_OF_SLAVES],
-  output logic [7:0]                      s_arlen   [NO_OF_SLAVES],
-  output logic [2:0]                      s_arsize  [NO_OF_SLAVES],
-  output logic [1:0]                      s_arburst [NO_OF_SLAVES],
-
-  input  logic [NO_OF_SLAVES-1:0]         s_rvalid,
-  output logic [NO_OF_SLAVES-1:0]         s_rready,
-  input  logic [DATA_WIDTH-1:0]           s_rdata   [NO_OF_SLAVES],
-  input  logic [ID_WIDTH-1:0]             s_rid     [NO_OF_SLAVES],
-  input  logic [NO_OF_SLAVES-1:0]         s_rlast,
-  input  logic [1:0]                      s_rresp   [NO_OF_SLAVES],
-
-  output logic [NO_OF_SLAVES-1:0]         s_awvalid,
-  input  logic [NO_OF_SLAVES-1:0]         s_awready,
-  output logic [ADDR_WIDTH-1:0]           s_awaddr  [NO_OF_SLAVES],
-  output logic [ID_WIDTH-1:0]             s_awid    [NO_OF_SLAVES],
-  output logic [7:0]                      s_awlen   [NO_OF_SLAVES],
-  output logic [2:0]                      s_awsize  [NO_OF_SLAVES],
-  output logic [1:0]                      s_awburst [NO_OF_SLAVES],
-
-  output logic [NO_OF_SLAVES-1:0]         s_wvalid,
-  input  logic [NO_OF_SLAVES-1:0]         s_wready,
-  output logic [DATA_WIDTH-1:0]           s_wdata   [NO_OF_SLAVES],
-  output logic [(DATA_WIDTH/8)-1:0]       s_wstrb   [NO_OF_SLAVES],
-  output logic [NO_OF_SLAVES-1:0]         s_wlast,
-
-  input  logic [NO_OF_SLAVES-1:0]         s_bvalid,
-  output logic [NO_OF_SLAVES-1:0]         s_bready,
-  input  logic [1:0]                      s_bresp   [NO_OF_SLAVES]
-);
-  
-  //==========================================================================
-  // DERIVED CACHE PARAMETERS
-  //==========================================================================
+  //cache parameters
   localparam int OFFSET_BITS = $clog2(CACHE_LINE_SIZE);
   localparam int INDEX_BITS  = $clog2(NUM_SETS);
   localparam int TAG_BITS    = ADDR_WIDTH - OFFSET_BITS - INDEX_BITS;
   localparam int WORDS_PER_LINE = CACHE_LINE_SIZE / (DATA_WIDTH / 8);
   localparam int WORD_OFFSET_BITS = $clog2(WORDS_PER_LINE);
-  
-  //====================================================================
-  // MSHR STRUCTURE 
-  //====================================================================
+
+  //mshr_structure
   typedef struct{
-    logic                     valid;
-    logic                     is_write;
-    logic                     done;
+    logic valid;
+    logic is_write;
+    logic done;
     logic [$clog2(NO_OF_MASTERS)-1:0] master;
-    logic [ADDR_WIDTH-1:0]    addr;
-    logic [INDEX_BITS-1:0]    index;
-    logic [TAG_BITS-1:0]      tag;
+    logic [ADDR_WIDTH-1:0] addr;
+    logic [INDEX_BITS-1:0] index;
+    logic [TAG_BITS-1:0] tag;
     logic [$clog2(ASSOCIATIVITY)-1:0] way;
-    logic [$clog2(NO_OF_SLAVES)-1:0]  slave;
+    logic [$clog2(NO_OF_SLAVES)-1:0] slave;
     logic [$clog2(WORDS_PER_LINE)-1:0] beat;
-    logic [ID_WIDTH-1:0]      axi_id;
-    logic                     needs_writeback;
-    
-    //  Full line write buffer 
-    logic [DATA_WIDTH-1:0]            wdata_buf [WORDS_PER_LINE];
-    logic [(DATA_WIDTH/8)-1:0]        wstrb_buf [WORDS_PER_LINE];
+    logic [ID_WIDTH-1:0] axi_id;
+    logic needs_writeback;
+
+    //Full line write buffer
+    logic [DATA_WIDTH-1:0] wdata_buf [WORDS_PER_LINE];
+    logic [(DATA_WIDTH/8)-1:0] wstrb_buf [WORDS_PER_LINE];
     logic [$clog2(WORDS_PER_LINE)-1:0] wbeat_count;
-    
-    logic [1:0]               resp_code;
-    logic                     ar_sent;
-    logic                     wb_done;
-    logic                     wb_error;  // Writeback failed
+
+    logic [1:0] resp_code;
+    logic ar_sent;
+    logic wb_done;
+    logic wb_error;  // Writeback failed
   } mshr_t;
-  
-  mshr_t mshr [NUM_MSHR];
- 
-  // R-channel MSHR per slave 
+
+  mshr_t mshr[NUM_MSHR];
+
+  //  Track active R-channel MSHR per slave
   logic [$clog2(NUM_MSHR)-1:0] active_r_mshr [NO_OF_SLAVES];
-  logic                        active_r_valid [NO_OF_SLAVES];
-  
+  logic active_r_valid [NO_OF_SLAVES];
+
   // Read address decode signals
-  logic [TAG_BITS-1:0]   rd_tag      [NO_OF_MASTERS];
-  logic [INDEX_BITS-1:0] rd_index    [NO_OF_MASTERS];
+  logic [TAG_BITS-1:0] rd_tag [NO_OF_MASTERS];
+  logic [INDEX_BITS-1:0] rd_index [NO_OF_MASTERS];
   logic [$clog2(WORDS_PER_LINE)-1:0] rd_word_idx [NO_OF_MASTERS];
   logic [$clog2(ASSOCIATIVITY)-1:0] rd_hit_way [NO_OF_MASTERS];
-  
+
   // Write address decode signals
-  logic [TAG_BITS-1:0]               wr_tag         [NO_OF_MASTERS];
-  logic [INDEX_BITS-1:0]             wr_index       [NO_OF_MASTERS];
-  logic [$clog2(WORDS_PER_LINE)-1:0] wr_word_idx    [NO_OF_MASTERS];
-  logic [$clog2(ASSOCIATIVITY)-1:0]  wr_hit_way     [NO_OF_MASTERS];
-  logic                              wr_hit_counted [NO_OF_MASTERS];
+  logic [TAG_BITS-1:0] wr_tag [NO_OF_MASTERS];
+  logic [INDEX_BITS-1:0] wr_index [NO_OF_MASTERS];
+  logic [$clog2(WORDS_PER_LINE)-1:0] wr_word_idx [NO_OF_MASTERS];
+  logic [$clog2(ASSOCIATIVITY)-1:0]  wr_hit_way [NO_OF_MASTERS];
 
   // Write data ownership
-  logic                          w_locked;
+  logic w_locked;
   logic [$clog2(NO_OF_MASTERS)-1:0] w_owner;
-  
-  //==========================================================================
+
+  // Gated write signals
+  logic wr_data_valid_g [NO_OF_MASTERS];
+  logic wr_data_last_g  [NO_OF_MASTERS];
+  logic [DATA_WIDTH-1:0] wr_data_g [NO_OF_MASTERS];
+  logic [(DATA_WIDTH/8)-1:0] wr_strb_g [NO_OF_MASTERS];
+
   // WRITE-BACK FSM
-  //==========================================================================
   typedef enum logic [1:0] {
     WB_IDLE,
     WB_AW,
@@ -161,21 +154,20 @@ module axi_cache_controller #(
   logic [$clog2(NUM_MSHR)-1:0] wb_mshr_id;
   logic [$clog2(WORDS_PER_LINE)-1:0] wb_beat;
   
-  //==========================================================================
+  //mshr full
+  logic mshr_full;
+
   // CACHE MEMORY STRUCTURE
-  //==========================================================================
   logic [TAG_BITS-1:0] tag_array [NUM_SETS][ASSOCIATIVITY];
   logic [DATA_WIDTH-1:0] data_array [NUM_SETS][ASSOCIATIVITY][WORDS_PER_LINE];
   logic valid_array [NUM_SETS][ASSOCIATIVITY];
   logic dirty_array [NUM_SETS][ASSOCIATIVITY];
   logic [7:0] lru_counter [NUM_SETS][ASSOCIATIVITY];
-  
+
   integer s, w;
   genvar m;
 
-  //==========================================================================
   // ADDRESS BREAKDOWN FUNCTIONS
-  //==========================================================================
   function automatic logic [TAG_BITS-1:0] get_tag(
     input logic [ADDR_WIDTH-1:0] addr
   );
@@ -202,9 +194,7 @@ module axi_cache_controller #(
     return byte_offset[OFFSET_BITS-1 : $clog2(DATA_WIDTH/8)];
   endfunction
 
-  //==========================================================================
   // SLAVE ADDRESS DECODE
-  //==========================================================================
   function automatic logic [$clog2(NO_OF_SLAVES)-1:0] decode_slave(
     input logic [ADDR_WIDTH-1:0] addr
   );
@@ -216,37 +206,34 @@ module axi_cache_controller #(
       sid = (NO_OF_SLAVES - 1);
     return sid;
   endfunction
-  
-  //==========================================================================
+
   // VICTIM WAY SELECTION (LRU)
-  //==========================================================================
   function automatic logic [$clog2(ASSOCIATIVITY)-1:0] find_victim_way(
     input logic [INDEX_BITS-1:0] idx
   );
-    logic [7:0] min_lru;
+    logic [7:0] max_lru;
     logic [$clog2(ASSOCIATIVITY)-1:0] victim_way;
-    
+
     for (int w = 0; w < ASSOCIATIVITY; w++) begin
       if (!valid_array[idx][w])
         return w[$clog2(ASSOCIATIVITY)-1:0];
     end
-    
-    min_lru = lru_counter[idx][0];
+
+    max_lru = lru_counter[idx][0];
     victim_way = 0;
-    
+
     for (int w = 1; w < ASSOCIATIVITY; w++) begin
-      if (lru_counter[idx][w] < min_lru) begin
-        min_lru = lru_counter[idx][w];
+      if (lru_counter[idx][w] > max_lru) begin
+        max_lru = lru_counter[idx][w];
         victim_way = w[$clog2(ASSOCIATIVITY)-1:0];
       end
     end
-    
+
     return victim_way;
   endfunction
 
-  //==========================================================================
+
   // MSHR FULL CHECK
-  //==========================================================================
   always_comb begin
     mshr_full = 1'b1;
     for (int i = 0; i < NUM_MSHR; i++) begin
@@ -254,14 +241,15 @@ module axi_cache_controller #(
         mshr_full = 1'b0;
     end
   end
-  
-  //==========================================================================
+
+
   // READ READY SIGNAL
-  //==========================================================================
   always_comb begin
     for (int m = 0; m < NO_OF_MASTERS; m++) begin
+      rd_ready[m] = 1'b0;
+      
       if (rd_cache_hit[m]) begin
-        rd_ready[m] = 1'b1;
+          rd_ready[m] = 1'b1;
       end
       else begin
         bit conflict;
@@ -279,9 +267,8 @@ module axi_cache_controller #(
     end
   end
 
-  //==========================================================================
+
   // RESET LOGIC
-  //==========================================================================
   always_ff @(posedge aclk or negedge aresetn) begin
     if (!aresetn) begin
       for (s = 0; s < NUM_SETS; s++) begin
@@ -292,7 +279,7 @@ module axi_cache_controller #(
           lru_counter[s][w] <= '0;
         end
       end
-      
+
       for (int i = 0; i < NUM_MSHR; i++) begin
         mshr[i].valid    <= 1'b0;
         mshr[i].done     <= 1'b0;
@@ -300,20 +287,18 @@ module axi_cache_controller #(
         mshr[i].wb_done  <= 1'b0;
         mshr[i].wb_error <= 1'b0;
       end
-      
+
       for (int s = 0; s < NO_OF_SLAVES; s++) begin
         active_r_valid[s] <= 1'b0;
       end
-      
+
       wb_state  <= WB_IDLE;
       wb_active <= 1'b0;
       w_locked  <= 1'b0;
-      
-      cache_maint_busy <= 1'b0;
-      cache_maint_done <= 1'b0;
-    end
+
+     end
   end
-  
+
   //==========================================================================
   // READ ADDRESS DECODE
   //==========================================================================
@@ -330,7 +315,7 @@ module axi_cache_controller #(
   //==========================================================================
   // READ HIT/MISS DETECTION 
   //==========================================================================
-  
+
   function automatic bit line_under_refill(
     input logic [INDEX_BITS-1:0] idx,
     input logic [TAG_BITS-1:0]   tag
@@ -344,9 +329,9 @@ module axi_cache_controller #(
     end
     return 1'b0;
   endfunction
-  
+
   generate
-    for (genvar m = 0; m < NO_OF_MASTERS; m++) begin : G_RD_HIT_MISS
+    for (genvar m = 0; m < NO_OF_MASTERS; m++) begin 
       always_comb begin
         rd_cache_hit[m]  = 1'b0;
         rd_cache_miss[m] = 1'b0;
@@ -356,10 +341,10 @@ module axi_cache_controller #(
           for (int w = 0; w < ASSOCIATIVITY; w++) begin
             if (valid_array[rd_index[m]][w] &&
                 tag_array[rd_index[m]][w] == rd_tag[m] &&
+
                 // block read hit if line is under refill
                 !line_under_refill(rd_index[m], rd_tag[m])) begin
 
-              // block read hit if write-hit updating same line
               if (!(w_locked &&
                     wr_cache_hit[w_owner] &&
                     wr_index[w_owner] == rd_index[m] &&
@@ -375,10 +360,8 @@ module axi_cache_controller #(
       end
     end
   endgenerate
-  
-  //==========================================================================
-  // LRU UPDATE 
-  //==========================================================================
+
+  // LRU UPDATE
   always_ff @(posedge aclk or negedge aresetn) begin
     if (!aresetn) begin
       // Handled in main reset
@@ -395,8 +378,8 @@ module axi_cache_controller #(
           lru_counter[rd_index[m]][rd_hit_way[m]] <= 8'h00;
         end
       end
-      
-      // Write hit LRU update (Only on LAST)
+
+      // Write hit LRU update 
       for (int m = 0; m < NO_OF_MASTERS; m++) begin
         if (wr_cache_hit[m] && wr_data_last_g[m] && (m == w_owner)) begin
           for (int w = 0; w < ASSOCIATIVITY; w++) begin
@@ -410,11 +393,10 @@ module axi_cache_controller #(
     end
   end
 
-  //==========================================================================
+
   // WRITE ADDRESS DECODE
-  //==========================================================================
   generate
-    for (m = 0; m < NO_OF_MASTERS; m++) begin : G_WR_ADDR_DECODE
+    for (m = 0; m < NO_OF_MASTERS; m++) begin
       always_comb begin
         wr_tag[m]      = get_tag(wr_req_addr[m]);
         wr_index[m]    = get_index(wr_req_addr[m]);
@@ -422,12 +404,10 @@ module axi_cache_controller #(
       end
     end
   endgenerate
-  
-  //==========================================================================
+
   // WRITE HIT/MISS DETECTION
-  //==========================================================================
   generate
-    for (m = 0; m < NO_OF_MASTERS; m++) begin : G_WR_HIT_MISS
+    for (m = 0; m < NO_OF_MASTERS; m++) begin
       always_comb begin
         wr_cache_hit[m]  = 1'b0;
         wr_cache_miss[m] = 1'b0;
@@ -445,18 +425,14 @@ module axi_cache_controller #(
           wr_cache_miss[m] = ~wr_cache_hit[m];
         end
       end
-    end 
+    end
   endgenerate
-  
-  //==========================================================================
+
+
   // WRITE REQUEST READY 
-  //==========================================================================
   always_comb begin
     for (int m = 0; m < NO_OF_MASTERS; m++) begin
       wr_req_ready[m] = 1'b0;
-
-      if (wb_active)
-        continue;
 
       if (wr_cache_hit[m]) begin
         wr_req_ready[m] = 1'b1;
@@ -497,14 +473,34 @@ module axi_cache_controller #(
           end
         end
       end
-      
+
       // Release ONLY when write is fully completed
       if (w_locked && wr_complete[w_owner]) begin
         w_locked <= 1'b0;
       end
     end
   end
-  
+
+  //==========================================================================
+  // GATED WRITE SIGNALS
+  //==========================================================================
+  always_comb begin
+    for (int m = 0; m < NO_OF_MASTERS; m++) begin
+      if (w_locked && (w_owner == m)) begin
+        wr_data_valid_g[m] = wr_data_valid[m];
+        wr_data_last_g[m]  = wr_data_last[m];
+        wr_data_g[m]       = wr_data[m];
+        wr_strb_g[m]       = wr_strb[m];
+      end
+      else begin
+        wr_data_valid_g[m] = 1'b0;
+        wr_data_last_g[m]  = 1'b0;
+        wr_data_g[m]       = '0;
+        wr_strb_g[m]       = '0;
+      end
+    end
+  end
+
   //==========================================================================
   // WRITE-HIT DATA UPDATE
   //==========================================================================
@@ -539,11 +535,11 @@ module axi_cache_controller #(
     else begin
       bit allocated;
       allocated = 1'b0;
-      
+
       // PRIORITY 1: READ MISS
       for (int m = 0; m < NO_OF_MASTERS; m++) begin
         if (rd_req_valid[m] && rd_cache_miss[m] && !allocated && !mshr_full) begin
-          
+
           bit conflict;
           conflict = 1'b0;
           for (int j = 0; j < NUM_MSHR; j++) begin
@@ -580,7 +576,7 @@ module axi_cache_controller #(
                 mshr[i].needs_writeback <=
                   valid_array[rd_index[m]][vway] &&
                   dirty_array[rd_index[m]][vway];
-                  
+
                 allocated = 1'b1;
               end
             end
@@ -591,7 +587,7 @@ module axi_cache_controller #(
       // PRIORITY 2: WRITE MISS
       for (int m = 0; m < NO_OF_MASTERS; m++) begin
         if (wr_req_valid[m] && wr_cache_miss[m] && !allocated && !mshr_full) begin
-          
+
           bit conflict;
           conflict = 1'b0;
           for (int j = 0; j < NUM_MSHR; j++) begin
@@ -634,7 +630,7 @@ module axi_cache_controller #(
                   mshr[i].wdata_buf[wb] <= '0;
                   mshr[i].wstrb_buf[wb] <= '0;
                 end
-                  
+
                 allocated = 1'b1;
               end
             end
@@ -654,12 +650,13 @@ module axi_cache_controller #(
     else begin
       for (int i = 0; i < NUM_MSHR; i++) begin
         if (mshr[i].valid && mshr[i].is_write) begin
-          automatic int m = mshr[i].master;
+          int m;
+          m = mshr[i].master;
 
           if (wr_data_valid_g[m] && (m == w_owner)) begin
             automatic logic [$clog2(WORDS_PER_LINE)-1:0] base;
             automatic logic [$clog2(WORDS_PER_LINE)-1:0] widx;
-  
+
             base = get_word_index(mshr[i].addr);
             widx = base + mshr[i].wbeat_count;
 
@@ -668,13 +665,13 @@ module axi_cache_controller #(
               mshr[i].wdata_buf[widx] <= wr_data_g[m];
               mshr[i].wstrb_buf[widx] <= wr_strb_g[m];
             end
-  
+
             if (!wr_data_last_g[m])
               mshr[i].wbeat_count <= mshr[i].wbeat_count + 1;
           end
         end
       end
-    end 
+    end
   end
 
   //==========================================================================
@@ -724,8 +721,8 @@ module axi_cache_controller #(
 
         WB_RESP: begin
           if (s_bvalid[mshr[wb_mshr_id].slave]) begin
-            
-            //  Check BRESP 
+
+          
             if (s_bresp[mshr[wb_mshr_id].slave] == 2'b00) begin
               // Successful writeback
               dirty_array[mshr[wb_mshr_id].index]
@@ -735,15 +732,16 @@ module axi_cache_controller #(
               mshr[wb_mshr_id].wb_done <= 1'b1;
               mshr[wb_mshr_id].wb_error <= 1'b0;
               
-              perf_writeback_count <= perf_writeback_count + 1;
             end
             else begin
               // Writeback ERROR - keep dirty, mark error
               mshr[wb_mshr_id].wb_done  <= 1'b1;
               mshr[wb_mshr_id].wb_error <= 1'b1;
               mshr[wb_mshr_id].resp_code <= s_bresp[mshr[wb_mshr_id].slave];
+
               
-              perf_wb_error_count <= perf_wb_error_count + 1;
+              // Do NOT clear dirty or needs_writeback
+              // Line remains dirty for potential retry
             end
 
             wb_state  <= WB_IDLE;
@@ -753,7 +751,7 @@ module axi_cache_controller #(
       endcase
     end
   end
-  
+
   //==========================================================================
   // WRITE-BACK AXI SIGNALS
   //==========================================================================
@@ -773,7 +771,7 @@ module axi_cache_controller #(
     s_bready  = '1;
 
     if (wb_active) begin
-      int sid, idx, way;
+      int sid,idx,way;
 
       sid = mshr[wb_mshr_id].slave;
       idx = mshr[wb_mshr_id].index;
@@ -850,7 +848,7 @@ module axi_cache_controller #(
           active_r_valid[mshr[i].slave] <= 1'b1;
           active_r_mshr[mshr[i].slave]  <= i[$clog2(NUM_MSHR)-1:0];
         end
- 
+
         if (!mshr[i].valid)
           mshr[i].ar_sent <= 1'b0;
       end
@@ -869,12 +867,12 @@ module axi_cache_controller #(
         if (active_r_valid[s]) begin
           int i;
           i = active_r_mshr[s];
-          
+
           if (mshr[i].valid && s_rvalid[s] && s_rid[s] == mshr[i].axi_id) begin
 
             data_array[mshr[i].index][mshr[i].way][mshr[i].beat]
               <= s_rdata[s];
-    
+
             mshr[i].beat <= mshr[i].beat + 1'b1;
 
             if (s_rresp[s] != 2'b00) begin
@@ -882,7 +880,7 @@ module axi_cache_controller #(
             end
 
             if (s_rlast[s]) begin
-              
+
               if (mshr[i].resp_code == 2'b00) begin
                 tag_array[mshr[i].index][mshr[i].way]   <= mshr[i].tag;
                 valid_array[mshr[i].index][mshr[i].way] <= 1'b1;
@@ -912,7 +910,7 @@ module axi_cache_controller #(
       end
     end
   end
-  
+
   //==========================================================================
   // AXI READ READY
   //==========================================================================
@@ -927,7 +925,7 @@ module axi_cache_controller #(
   end
 
   //==========================================================================
-  // READ RESPONSE ROUTING 
+  // READ RESPONSE ROUTING (FIX: hit vs miss arbitration)
   //==========================================================================
   always_comb begin
   for (int m = 0; m < NO_OF_MASTERS; m++) begin
@@ -1033,7 +1031,7 @@ module axi_cache_controller #(
     else begin
       for (int i = 0; i < NUM_MSHR; i++) begin
         int m;
-        m = mshr[i].master;
+        m= mshr[i].master;
 
         if (mshr[i].done &&
             ((mshr[i].is_write && wr_resp_valid[m]) ||
@@ -1047,4 +1045,4 @@ module axi_cache_controller #(
     end
   end
 
-endmodule
+ endmodule
