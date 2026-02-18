@@ -51,15 +51,6 @@ module axi_cache_controller #(
   output logic                            wr_resp_valid  [NO_OF_MASTERS],
   output logic [1:0]                      wr_resp        [NO_OF_MASTERS],
 
-  // ---------------- Cache Maintenance Interface ----------------
-  input  logic                            cache_flush_req,      // Flush all dirty lines
-  input  logic                            cache_inv_req,        
-  input  logic                            cache_flush_inv_req,
-  input  logic [ADDR_WIDTH-1:0]           cache_maint_addr,     
-  input  logic                            cache_maint_by_addr,  
-  output logic                            cache_maint_busy,
-  output logic                            cache_maint_done,
-
   // ---------------- AXI Slave interface ----------------
   output logic [NO_OF_SLAVES-1:0]         s_arvalid,
   input  logic [NO_OF_SLAVES-1:0]         s_arready,
@@ -269,10 +260,7 @@ module axi_cache_controller #(
   //==========================================================================
   always_comb begin
     for (int m = 0; m < NO_OF_MASTERS; m++) begin
-      if (maint_state != MAINT_IDLE) begin
-        rd_ready[m] = 1'b0;
-      end
-      else if (rd_cache_hit[m]) begin
+      if (rd_cache_hit[m]) begin
         rd_ready[m] = 1'b1;
       end
       else begin
@@ -321,7 +309,6 @@ module axi_cache_controller #(
       wb_active <= 1'b0;
       w_locked  <= 1'b0;
       
-      maint_state <= MAINT_IDLE;
       cache_maint_busy <= 1'b0;
       cache_maint_done <= 1'b0;
       
@@ -372,7 +359,7 @@ module axi_cache_controller #(
         rd_cache_miss[m] = 1'b0;
         rd_hit_way[m]    = '0;
 
-        if (rd_req_valid[m] && maint_state == MAINT_IDLE) begin
+        if (rd_req_valid[m]) begin
           for (int w = 0; w < ASSOCIATIVITY; w++) begin
             if (valid_array[rd_index[m]][w] &&
                 tag_array[rd_index[m]][w] == rd_tag[m] &&
@@ -453,7 +440,7 @@ module axi_cache_controller #(
         wr_cache_miss[m] = 1'b0;
         wr_hit_way[m]    = '0;
 
-        if (wr_req_valid[m] && maint_state == MAINT_IDLE && !wb_active) begin
+        if (wr_req_valid[m] && !wb_active) begin
           for (int w = 0; w < ASSOCIATIVITY; w++) begin
             if (valid_array[wr_index[m]][w] &&
                 tag_array[wr_index[m]][w] == wr_tag[m]) begin
@@ -475,7 +462,7 @@ module axi_cache_controller #(
     for (int m = 0; m < NO_OF_MASTERS; m++) begin
       wr_req_ready[m] = 1'b0;
 
-      if (maint_state != MAINT_IDLE || wb_active)
+      if (wb_active)
         continue;
 
       if (wr_cache_hit[m]) begin
@@ -559,12 +546,7 @@ module axi_cache_controller #(
     else begin
       bit allocated;
       allocated = 1'b0;
-
-      // Block allocation during maintenance
-      if (maint_state != MAINT_IDLE) begin
-        allocated = 1'b1; // Prevent any allocation
-      end
-
+      
       // PRIORITY 1: READ MISS
       for (int m = 0; m < NO_OF_MASTERS; m++) begin
         if (rd_req_valid[m] && rd_cache_miss[m] && !allocated && !mshr_full) begin
