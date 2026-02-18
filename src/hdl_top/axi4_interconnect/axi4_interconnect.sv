@@ -7,10 +7,10 @@ module axi_interconnect_cache
   input  logic aclk,
   input  logic aresetn,
   
-  // Master interfaces (from CPU/DMA masters)
+  // Master interface
   axi_if.axiMasterInterconnectMP master_if [NO_OF_MASTERS],
   
-  // Slave interfaces (to memory/peripherals)
+  // Slave interfaces
   axi_if.axiSlaveInterconnectMP  slave_if  [NO_OF_SLAVES]
 );
 
