@@ -112,7 +112,8 @@ module axi_write_path #(
   logic [master_id_w-1:0] aw_granted_master;
   logic [master_id_w-1:0] aw_rr_ptr;
   logic [NO_OF_MASTERS-1:0] aw_grant;   // one-hot signal
-  
+  logic sb_full [NO_OF_MASTERS];  //used by arbitration
+
   // Round-robin arbitration
   always_ff @(posedge aclk or negedge aresetn) 
     begin
@@ -153,7 +154,8 @@ module axi_write_path #(
         begin
          for (int k=0;k<NO_OF_MASTERS;k++) 
            begin
-            int idx = (aw_rr_ptr + k) % NO_OF_MASTERS;
+             int idx;
+             idx = (aw_rr_ptr + k) % NO_OF_MASTERS;
              if (m_awvalid[idx] && !sb_full[idx]) 
                begin  
                 aw_grant[idx] = 1'b1;
@@ -274,7 +276,7 @@ module axi_write_path #(
   logic [$clog2(MAX_OUTSTANDING)-1:0] sb_wr_ptr [NO_OF_MASTERS];   //points to free slot
   logic [$clog2(MAX_OUTSTANDING)-1:0] sb_count [NO_OF_MASTERS];    //returns number of entries
   logic [$clog2(MAX_OUTSTANDING)-1:0] rob_retire_idx [NO_OF_MASTERS];  //to clear entry and give response 
-  logic sb_full [NO_OF_MASTERS];  //used by arbitration
+  //logic sb_full [NO_OF_MASTERS];  //used by arbitration
 
   generate
     for (m=0;m<NO_OF_MASTERS;m++) 

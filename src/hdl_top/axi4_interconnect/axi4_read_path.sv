@@ -83,7 +83,8 @@ module axi_read_path #(
     ar_grant = '0;
     if(!ar_arb_busy) begin
       for(int k=0;k<NO_OF_MASTERS;k++) begin
-        int idx = (ar_rr_ptr+k)%NO_OF_MASTERS;
+        int idx; 
+        idx = (ar_rr_ptr+k)%NO_OF_MASTERS;
         if(m_arvalid[idx] && !rd_sb_full[idx]) begin
           ar_grant[idx] = 1'b1;
           break;
@@ -92,7 +93,7 @@ module axi_read_path #(
     end
   end
   generate
-    for(m=0;m<NO_OF_MASTERS;m++) begin : G_AR_FORWARD
+    for(genvar m=0;m<NO_OF_MASTERS;m++) begin : G_AR_FORWARD
       always_comb begin
         if(ar_grant[m] || (ar_arb_busy && ar_granted_master==MID_W'(m))) begin
           rd_req_valid[m] = m_arvalid[m] && rd_ready[m]; 
@@ -115,12 +116,12 @@ module axi_read_path #(
     end
   endgenerate
   generate
-    for(m=0;m<NO_OF_MASTERS;m++) begin : G_SCOREBOARD
+    for(genvar m=0;m<NO_OF_MASTERS;m++) begin : G_SCOREBOARD
       always_ff @(posedge aclk or negedge aresetn) begin
         if(!aresetn) begin
           rd_sb_wr_ptr[m] <= '0;
-          rd_sb_rd_ptr[m] <= '0';
-          rd_sb_count[m]  <= '0';
+          rd_sb_rd_ptr[m] <= '0;
+          rd_sb_count[m]  <= '0;
           for(int i=0;i<MAX_OUTSTANDING;i++)
             rd_scoreboard[m][i] <= '0;
         end else begin
@@ -152,7 +153,7 @@ module axi_read_path #(
     end
   endgenerate
   generate
-    for(m=0;m<NO_OF_MASTERS;m++) begin : G_ROB
+    for(genvar m=0;m<NO_OF_MASTERS;m++) begin : G_ROB
       always_comb begin
         m_rvalid[m]=1'b0;
         m_rdata[m]='0;
