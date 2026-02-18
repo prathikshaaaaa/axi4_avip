@@ -53,10 +53,10 @@ module axi_cache_controller #(
 
   // ---------------- Cache Maintenance Interface ----------------
   input  logic                            cache_flush_req,      // Flush all dirty lines
-  input  logic                            cache_inv_req,        // Invalidate all lines
-  input  logic                            cache_flush_inv_req,  // Flush + Invalidate
-  input  logic [ADDR_WIDTH-1:0]           cache_maint_addr,     // Address for targeted ops
-  input  logic                            cache_maint_by_addr,  // 1=use addr, 0=flush all
+  input  logic                            cache_inv_req,        
+  input  logic                            cache_flush_inv_req,
+  input  logic [ADDR_WIDTH-1:0]           cache_maint_addr,     
+  input  logic                            cache_maint_by_addr,  
   output logic                            cache_maint_busy,
   output logic                            cache_maint_done,
 
@@ -92,15 +92,7 @@ module axi_cache_controller #(
 
   input  logic [NO_OF_SLAVES-1:0]         s_bvalid,
   output logic [NO_OF_SLAVES-1:0]         s_bready,
-  input  logic [1:0]                      s_bresp   [NO_OF_SLAVES],
-
-  // ---------------- Performance Counters ----------------
-  output logic [31:0]                     perf_rd_hit_count,
-  output logic [31:0]                     perf_rd_miss_count,
-  output logic [31:0]                     perf_wr_hit_count,
-  output logic [31:0]                     perf_wr_miss_count,
-  output logic [31:0]                     perf_writeback_count,
-  output logic [31:0]                     perf_wb_error_count
+  input  logic [1:0]                      s_bresp   [NO_OF_SLAVES]
 );
   
   //==========================================================================
@@ -129,7 +121,7 @@ module axi_cache_controller #(
     logic [ID_WIDTH-1:0]      axi_id;
     logic                     needs_writeback;
     
-    //  Full line write buffer ***
+    //  Full line write buffer 
     logic [DATA_WIDTH-1:0]            wdata_buf [WORDS_PER_LINE];
     logic [(DATA_WIDTH/8)-1:0]        wstrb_buf [WORDS_PER_LINE];
     logic [$clog2(WORDS_PER_LINE)-1:0] wbeat_count;
@@ -142,7 +134,7 @@ module axi_cache_controller #(
   
   mshr_t mshr [NUM_MSHR];
  
-  //  Track active R-channel MSHR per slave 
+  // R-channel MSHR per slave 
   logic [$clog2(NUM_MSHR)-1:0] active_r_mshr [NO_OF_SLAVES];
   logic                        active_r_valid [NO_OF_SLAVES];
   
@@ -163,12 +155,6 @@ module axi_cache_controller #(
   logic                          w_locked;
   logic [$clog2(NO_OF_MASTERS)-1:0] w_owner;
   
-  // Gated write signals
-  logic wr_data_valid_g [NO_OF_MASTERS];
-  logic wr_data_last_g  [NO_OF_MASTERS];
-  logic [DATA_WIDTH-1:0] wr_data_g [NO_OF_MASTERS];
-  logic [(DATA_WIDTH/8)-1:0] wr_strb_g [NO_OF_MASTERS];
-  
   //==========================================================================
   // WRITE-BACK FSM
   //==========================================================================
@@ -183,24 +169,6 @@ module axi_cache_controller #(
   logic wb_active;
   logic [$clog2(NUM_MSHR)-1:0] wb_mshr_id;
   logic [$clog2(WORDS_PER_LINE)-1:0] wb_beat;
-  
-  //==========================================================================
-  // CACHE MAINTENANCE FSM 
-  //==========================================================================
-  typedef enum logic [2:0] {
-    MAINT_IDLE,
-    MAINT_SCAN,
-    MAINT_FLUSH_WAIT,
-    MAINT_DONE
-  } maint_state_t;
-  
-  maint_state_t maint_state;
-  logic [$clog2(NUM_SETS)-1:0] maint_set_idx;
-  logic [$clog2(ASSOCIATIVITY)-1:0] maint_way_idx;
-  logic maint_flush_mode;
-  logic maint_inv_mode;
-  
-  logic mshr_full;
   
   //==========================================================================
   // CACHE MEMORY STRUCTURE
@@ -558,26 +526,6 @@ module axi_cache_controller #(
   end
   
   //==========================================================================
-  // GATED WRITE SIGNALS
-  //==========================================================================
-  always_comb begin
-    for (int m = 0; m < NO_OF_MASTERS; m++) begin
-      if (w_locked && (w_owner == m)) begin
-        wr_data_valid_g[m] = wr_data_valid[m];
-        wr_data_last_g[m]  = wr_data_last[m];
-        wr_data_g[m]       = wr_data[m];
-        wr_strb_g[m]       = wr_strb[m];
-      end
-      else begin
-        wr_data_valid_g[m] = 1'b0;
-        wr_data_last_g[m]  = 1'b0;
-        wr_data_g[m]       = '0;
-        wr_strb_g[m]       = '0;
-      end
-    end
-  end
-  
-  //==========================================================================
   // WRITE-HIT DATA UPDATE
   //==========================================================================
   always_ff @(posedge aclk or negedge aresetn) begin
@@ -821,9 +769,6 @@ module axi_cache_controller #(
               mshr[wb_mshr_id].resp_code <= s_bresp[mshr[wb_mshr_id].slave];
               
               perf_wb_error_count <= perf_wb_error_count + 1;
-              
-              // Do NOT clear dirty or needs_writeback
-              // Line remains dirty for potential retry
             end
 
             wb_state  <= WB_IDLE;
@@ -1122,142 +1067,6 @@ module axi_cache_controller #(
           mshr[i].done     <= 1'b0;
           mshr[i].ar_sent  <= 1'b0;
           mshr[i].wb_done  <= 1'b0;
-        end
-      end
-    end
-  end
-
-  //==========================================================================
-  // CACHE MAINTENANCE FSM 
-  //==========================================================================
-  function automatic bit line_has_active_mshr(
-    input logic [INDEX_BITS-1:0] idx,
-    input logic [$clog2(ASSOCIATIVITY)-1:0] way
-  );
-    for (int i = 0; i < NUM_MSHR; i++) begin
-      if (mshr[i].valid &&
-          mshr[i].index == idx &&
-          mshr[i].way   == way)
-        return 1'b1;
-    end
-    return 1'b0;
-  endfunction
-  
-  always_ff @(posedge aclk or negedge aresetn) begin
-    if (!aresetn) begin
-      maint_state <= MAINT_IDLE;
-      maint_set_idx <= '0;
-      maint_way_idx <= '0;
-      cache_maint_busy <= 1'b0;
-      cache_maint_done <= 1'b0;
-      maint_flush_mode <= 1'b0;
-      maint_inv_mode   <= 1'b0;
-    end
-    else begin
-      cache_maint_done <= 1'b0;
-      
-      case (maint_state)
-        
-        MAINT_IDLE: begin
-          cache_maint_busy <= 1'b0;
-          
-          if (cache_flush_req || cache_inv_req || cache_flush_inv_req) begin
-            maint_state <= MAINT_SCAN;
-            cache_maint_busy <= 1'b1;
-            maint_set_idx <= '0;
-            maint_way_idx <= '0;
-            
-            maint_flush_mode <= cache_flush_req || cache_flush_inv_req;
-            maint_inv_mode   <= cache_inv_req || cache_flush_inv_req;
-          end
-        end
-        
-        MAINT_SCAN: begin
-          // Skip lines with active MSHR
-          if (!line_has_active_mshr(maint_set_idx, maint_way_idx)) begin
-
-           // Flush handling
-           if (maint_flush_mode &&
-              valid_array[maint_set_idx][maint_way_idx] &&
-              dirty_array[maint_set_idx][maint_way_idx]) begin
-              // temporary safe behavior: just block (no drop)
-              // real WB can be added later
-           end
-
-           // Invalidate handling
-           if (maint_inv_mode) begin
-             valid_array[maint_set_idx][maint_way_idx] <= 1'b0;
-             dirty_array[maint_set_idx][maint_way_idx] <= 1'b0;
-           end
-         end
-
-         // Advance way/set
-         if (maint_way_idx == ASSOCIATIVITY-1) begin
-           maint_way_idx <= '0;
-           if (maint_set_idx == NUM_SETS-1)
-             maint_state <= MAINT_DONE;
-           else
-             maint_set_idx <= maint_set_idx + 1;
-         end
-         else begin
-            maint_way_idx <= maint_way_idx + 1;
-         end
-        end
-        
-        MAINT_DONE: begin
-          cache_maint_done <= 1'b1;
-          cache_maint_busy <= 1'b0;
-          maint_state <= MAINT_IDLE;
-        end
-        
-      endcase
-    end
-  end
-
-  //==========================================================================
-  // PERFORMANCE COUNTERS 
-  //==========================================================================
-  always_ff @(posedge aclk or negedge aresetn) begin
-    if (!aresetn) begin
-      for (int m = 0; m < NO_OF_MASTERS; m++)
-      wr_hit_counted[m] <= 1'b0;
-    end
-    else begin
-      // -> Read hit counter - count on ready & valid
-      for (int m = 0; m < NO_OF_MASTERS; m++) begin
-        if (rd_req_valid[m] && rd_ready[m] && rd_cache_hit[m]) begin
-          perf_rd_hit_count <= perf_rd_hit_count + 1;
-        end
-      end
-      
-      // -> Read miss counter - count on ready & valid
-      for (int m = 0; m < NO_OF_MASTERS; m++) begin
-        if (rd_req_valid[m] && rd_ready[m] && rd_cache_miss[m]) begin
-          perf_rd_miss_count <= perf_rd_miss_count + 1;
-        end
-      end
-      
-      // -> Write hit counter - count on ready & valid
-      //                      - count once per transaction
-    for (int m = 0; m < NO_OF_MASTERS; m++) begin
-        if (!wr_hit_counted[m] &&
-          wr_req_valid[m] &&
-          wr_req_ready[m] &&
-          wr_cache_hit[m]) begin
-            perf_wr_hit_count <= perf_wr_hit_count + 1;
-            wr_hit_counted[m] <= 1'b1;
-        end
-
-        // clear when transaction completes
-        if (wr_complete[m])
-           wr_hit_counted[m] <= 1'b0;
-        
-      end
-      
-      // -> Write miss counter - count on ready & valid
-      for (int m = 0; m < NO_OF_MASTERS; m++) begin
-        if (wr_req_valid[m] && wr_req_ready[m] && wr_cache_miss[m]) begin
-          perf_wr_miss_count <= perf_wr_miss_count + 1;
         end
       end
     end
