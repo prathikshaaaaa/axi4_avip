@@ -343,15 +343,7 @@ module axi_interconnect_cache
     .s_bvalid         (s_bvalid),
     .s_bready         (s_bready),
     .s_bid            (s_bid),
-    .s_bresp          (s_bresp),
-    
-    // Performance counters (not connected in top level)
-    .perf_rd_hit_count      (),
-    .perf_rd_miss_count     (),
-    .perf_wr_hit_count      (),
-    .perf_wr_miss_count     (),
-    .perf_writeback_count   (),
-    .perf_wb_error_count    ()
+    .s_bresp          (s_bresp)
   );
   
   //==========================================================================
