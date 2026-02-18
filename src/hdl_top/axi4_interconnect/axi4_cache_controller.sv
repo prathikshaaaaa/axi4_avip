@@ -311,13 +311,6 @@ module axi_cache_controller #(
       
       cache_maint_busy <= 1'b0;
       cache_maint_done <= 1'b0;
-      
-      perf_rd_hit_count     <= '0;
-      perf_rd_miss_count    <= '0;
-      perf_wr_hit_count     <= '0;
-      perf_wr_miss_count    <= '0;
-      perf_writeback_count  <= '0;
-      perf_wb_error_count   <= '0;
     end
   end
   
