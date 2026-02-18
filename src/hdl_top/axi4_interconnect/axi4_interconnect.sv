@@ -2,20 +2,23 @@
 `include "axi4_read_path.sv"
 `include "axi4_cache_controller.sv"
 `include "../../globals/axi4_globals_pkg.sv"
+
 import axi4_globals_pkg::*;
 
-module axi_interconnect_cache
-(
+module axi_interconnect_cache#(
+    parameter int NO_OF_MASTERS = axi4_globals_pkg::NO_OF_MASTERS,
+    parameter int NO_OF_SLAVES  = axi4_globals_pkg::NO_OF_SLAVES
+)(
   input  logic aclk,
   input  logic aresetn,
 
   // Master interface
-  axi_if.axiMasterInterconnectMP master_if [NO_OF_MASTERS],
+  axi4_if.axiMasterInterconnectMP master_if [NO_OF_MASTERS],
 
   // Slave interfaces
-  axi_if.axiSlaveInterconnectMP  slave_if  [NO_OF_SLAVES]
+  axi4_if.axiSlaveInterconnectMP  slave_if  [NO_OF_SLAVES]
 );
-
+  
   //==========================================================================
   // LOCAL PARAMETERS
   //==========================================================================
@@ -36,7 +39,7 @@ module axi_interconnect_cache
   // --- Signals from Masters ---
   logic [NO_OF_MASTERS-1:0]        m_arvalid;
   logic [NO_OF_MASTERS-1:0]        m_arready;
-  logic [ADDRESS_WIDTH-1:0]           m_araddr  [NO_OF_MASTERS];
+  logic [ADDRESS_WIDTH-1:0]        m_araddr  [NO_OF_MASTERS];
   logic [ID_WIDTH-1:0]             m_arid    [NO_OF_MASTERS];
   logic [7:0]                      m_arlen   [NO_OF_MASTERS];
   logic [2:0]                      m_arsize  [NO_OF_MASTERS];
@@ -203,7 +206,7 @@ module axi_interconnect_cache
     .ADDRESS_WIDTH     (ADDRESS_WIDTH),
     .DATA_WIDTH     (DATA_WIDTH),
     .ID_WIDTH       (ID_WIDTH),
-    .MAX_OUTSTANDING(MAX_OUTSTANDING)
+    .MAX_OUTSTANDING(OUTSTANDING_FIFO_DEPTH)
   ) u_write_path (
     .aclk           (aclk),
     .aresetn        (aresetn),
