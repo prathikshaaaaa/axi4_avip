@@ -77,7 +77,7 @@ module axi_cache_controller #(
   output logic [NO_OF_SLAVES-1:0] s_wlast,
   input logic [NO_OF_SLAVES-1:0] s_bvalid,
   output logic [NO_OF_SLAVES-1:0] s_bready,
-  input logic [1:0] s_bresp [NO_OF_SLAVES],
+  input logic [1:0] s_bresp [NO_OF_SLAVES]
  );
 
   //cache parameters
