@@ -154,10 +154,10 @@ module axi_interconnect_cache
   // -------------------------------------------------------------------------
   axi_read_path #(
     .NO_OF_MASTERS  (NO_OF_MASTERS),
-    .ADDRESS_WIDTH     (ADDRESS_WIDTH),
+    .ADDRESS_WIDTH  (ADDRESS_WIDTH),
     .DATA_WIDTH     (DATA_WIDTH),
     .ID_WIDTH       (ID_WIDTH),
-    .MAX_OUTSTANDING(MAX_OUTSTANDING)
+    .MAX_OUTSTANDING(OUTSTANDING_FIFO_DEPTH)
   ) u_read_path (
     .aclk           (aclk),
     .aresetn        (aresetn),
