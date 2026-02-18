@@ -356,10 +356,10 @@ module axi_cache_controller #(
           for (int w = 0; w < ASSOCIATIVITY; w++) begin
             if (valid_array[rd_index[m]][w] &&
                 tag_array[rd_index[m]][w] == rd_tag[m] &&
-                // FIX-8: block read hit if line is under refill
+                // block read hit if line is under refill
                 !line_under_refill(rd_index[m], rd_tag[m])) begin
 
-              // FIX-5: block read hit if write-hit updating same line
+              // block read hit if write-hit updating same line
               if (!(w_locked &&
                     wr_cache_hit[w_owner] &&
                     wr_index[w_owner] == rd_index[m] &&
@@ -396,7 +396,7 @@ module axi_cache_controller #(
         end
       end
       
-      // Write hit LRU update (FIX ISSUE #6 - Only on LAST)
+      // Write hit LRU update (Only on LAST)
       for (int m = 0; m < NO_OF_MASTERS; m++) begin
         if (wr_cache_hit[m] && wr_data_last_g[m] && (m == w_owner)) begin
           for (int w = 0; w < ASSOCIATIVITY; w++) begin
@@ -497,7 +497,7 @@ module axi_cache_controller #(
           end
         end
       end
-
+      
       // Release ONLY when write is fully completed
       if (w_locked && wr_complete[w_owner]) begin
         w_locked <= 1'b0;
