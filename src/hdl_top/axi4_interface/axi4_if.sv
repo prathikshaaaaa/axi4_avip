@@ -65,7 +65,7 @@ interface axi4_if(input aclk, input aresetn);
 //====================================================
 // Master modport: drives AW/AR/W, samples R/B
 modport axiMasterInterconnectMP (
-  input  awready, wready, bvalid, arready, rvalid, rdata, rresp, rid, rlast,
+  input  awready, wready, bvalid, arready, rvalid, rdata, rresp, rid, rlast, bid, bresp,
   output awid, awaddr, awlen, awsize, awburst, awlock, awcache, awprot,
          awqos, awregion, awuser, awvalid,
          wdata, wstrb, wlast, wuser, wvalid,
@@ -85,7 +85,7 @@ modport axiSlaveInterconnectMP (
          bready, rready,
   output awready, wready, bvalid,
          arready,
-         rvalid, rdata, rresp, rid, rlast
+         rvalid, rdata, rresp, rid, rlast, bresp, bid
 );
   
 
