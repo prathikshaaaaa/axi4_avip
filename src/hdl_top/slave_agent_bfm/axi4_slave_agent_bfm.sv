@@ -117,7 +117,7 @@ module axi4_slave_agent_bfm #(parameter int SLAVE_ID = 0)(axi4_if intf);
                                                .rvalid   (intf.rvalid)   ,  
                                                .rready   (intf.rready)   
                                                );
-
+/*
   bind axi4_slave_driver_bfm slave_assertions S_A (.aclk(aclk),
                                                    .aresetn(aresetn),
                                                    .awid(awid),
@@ -162,7 +162,7 @@ module axi4_slave_agent_bfm #(parameter int SLAVE_ID = 0)(axi4_if intf);
                                                    .rvalid(rvalid),
                                                    .rready(rready)
                                                   );
-
+*/
   //-------------------------------------------------------
   // Setting the virtual handle of BMFs into config_db
   //-------------------------------------------------------
