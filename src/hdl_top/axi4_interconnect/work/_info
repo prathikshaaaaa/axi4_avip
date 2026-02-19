@@ -1,0 +1,58 @@
+m255
+K4
+z2
+13
+!s112 1.1
+!i10d 8192
+!i10e 25
+!i10f 100
+cModel Technology
+Z0 d/fetools/work_area/frontend/Batch_10/tejaspoojary/axi4_avip_project/axi4_avip/src/hdl_top/axi4_interconnect
+vaxi_read_path
+Z1 DXx6 sv_std 3 std 0 22 AD7iAPLo6nTIKk<N0eo=D3
+Z2 !s110 1771414516
+!i10b 1
+!s100 l^hNm3oTULAU>1o=o9TC>3
+I<NcBJ0d7@f7CG_:@ebHc:1
+Z3 VDg1SIo80bB@j0V0VzS_@n1
+Z4 !s105 axi4_interconnect_sv_unit
+S1
+R0
+Z5 w1771414156
+8axi4_read_path.sv
+Faxi4_read_path.sv
+L0 1
+Z6 OE;L;10.6c;65
+r1
+!s85 0
+31
+Z7 !s108 1771414516.000000
+!s107 axi4_cache_controller.sv|axi4_read_path.sv|axi4_write_path.sv|axi4_interconnect.sv|
+Z8 !s90 axi4_interconnect.sv|
+!i113 0
+Z9 o-L mtiAvm -L mtiRnm -L mtiOvm -L mtiUvm -L mtiUPF -L infact
+Z10 tCvgOpt 0
+vaxi_write_path
+R1
+R2
+!i10b 1
+!s100 lBB_OFMFkHT5[TlbYV1i81
+I^V5cW[=38oZ1JWA9XzL1e1
+R3
+R4
+S1
+R0
+R5
+8axi4_write_path.sv
+Faxi4_write_path.sv
+L0 1
+R6
+r1
+!s85 0
+31
+R7
+Z11 !s107 axi4_cache_controller.sv|axi4_read_path.sv|axi4_write_path.sv|axi4_interconnect.sv|
+R8
+!i113 0
+R9
+R10

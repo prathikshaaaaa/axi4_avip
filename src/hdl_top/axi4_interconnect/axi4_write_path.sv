@@ -1,6 +1,6 @@
 module axi_write_path #(
   parameter int NO_OF_MASTERS=4,
-  parameter int ADDR_WIDTH=32,
+  parameter int ADDRESS_WIDTH=32,
   parameter int DATA_WIDTH=64,
   parameter int ID_WIDTH=4,           // assuming one bit for each master
   parameter int MAX_OUTSTANDING=4     // max outstanding txns per master
@@ -11,7 +11,7 @@ module axi_write_path #(
   // Master AW channel
   input  logic [NO_OF_MASTERS-1:0] m_awvalid,
   output logic [NO_OF_MASTERS-1:0] m_awready,
-  input  logic [ADDR_WIDTH-1:0] m_awaddr[NO_OF_MASTERS],
+  input  logic [ADDRESS_WIDTH-1:0] m_awaddr[NO_OF_MASTERS],
   input  logic [ID_WIDTH-1:0] m_awid [NO_OF_MASTERS],
   input  logic [7:0] m_awlen [NO_OF_MASTERS],
   input  logic [2:0] m_awsize [NO_OF_MASTERS],
@@ -32,7 +32,7 @@ module axi_write_path #(
   
   // Interface to Cache (for forwarding purpose)
   output logic cache_addr_valid [NO_OF_MASTERS],
-  output logic [ADDR_WIDTH-1:0] cache_addr [NO_OF_MASTERS],
+  output logic [ADDRESS_WIDTH-1:0] cache_addr [NO_OF_MASTERS],
   output logic [ID_WIDTH-1:0] cache_id [NO_OF_MASTERS],
   output logic [7:0] cache_len [NO_OF_MASTERS],
   output logic [2:0] cache_size [NO_OF_MASTERS],
@@ -56,7 +56,7 @@ module axi_write_path #(
 
   //driven by Task 2(AW forward)
   logic wr_req_valid [NO_OF_MASTERS];
-  logic [ADDR_WIDTH-1:0] wr_req_addr [NO_OF_MASTERS];
+  logic [ADDRESS_WIDTH-1:0] wr_req_addr [NO_OF_MASTERS];
   logic [ID_WIDTH-1:0] cache_id_fwd [NO_OF_MASTERS];  
   logic [7:0] wr_req_len [NO_OF_MASTERS];
   logic [2:0] wr_req_size [NO_OF_MASTERS];

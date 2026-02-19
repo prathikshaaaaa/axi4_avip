@@ -1,6 +1,6 @@
 module axi_read_path #(
   parameter int NO_OF_MASTERS   = 4,
-  parameter int ADDR_WIDTH      = 32,
+  parameter int ADDRESS_WIDTH      = 32,
   parameter int DATA_WIDTH      = 64,
   parameter int ID_WIDTH        = 4,
   parameter int MAX_OUTSTANDING = 4
@@ -9,7 +9,7 @@ module axi_read_path #(
   input  logic aresetn,
   input  logic [NO_OF_MASTERS-1:0]         m_arvalid,
   output logic [NO_OF_MASTERS-1:0]         m_arready,
-  input  logic [ADDR_WIDTH-1:0]            m_araddr      [NO_OF_MASTERS],
+  input  logic [ADDRESS_WIDTH-1:0]            m_araddr      [NO_OF_MASTERS],
   input  logic [ID_WIDTH-1:0]              m_arid        [NO_OF_MASTERS],
   input  logic [7:0]                       m_arlen       [NO_OF_MASTERS],
   input  logic [2:0]                       m_arsize      [NO_OF_MASTERS],
@@ -22,7 +22,7 @@ module axi_read_path #(
   output logic [1:0]                       m_rresp       [NO_OF_MASTERS],
   output logic [NO_OF_MASTERS-1:0]         m_rlast,
   output logic                             rd_req_valid  [NO_OF_MASTERS],
-  output logic [ADDR_WIDTH-1:0]            rd_req_addr   [NO_OF_MASTERS],
+  output logic [ADDRESS_WIDTH-1:0]            rd_req_addr   [NO_OF_MASTERS],
   output logic [ID_WIDTH-1:0]              rd_req_id     [NO_OF_MASTERS],
   output logic [7:0]                       rd_req_len    [NO_OF_MASTERS],
   output logic [2:0]                       rd_req_size   [NO_OF_MASTERS],

@@ -46,7 +46,9 @@ module hdl_top;
   //----------------------------------
   axi_interconnect_cache #(
     .NO_OF_MASTERS(NO_OF_MASTERS),
-    .NO_OF_SLAVES (NO_OF_SLAVES)
+    .NO_OF_SLAVES (NO_OF_SLAVES),
+    .ADDRESS_WIDTH(ADDRESS_WIDTH),
+    .ID_WIDTH(ID_WIDTH)
   ) axi_interconnect (
     .aclk      (aclk),
     .aresetn  (aresetn),

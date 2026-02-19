@@ -7,7 +7,9 @@ import axi4_globals_pkg::*;
 
 module axi_interconnect_cache#(
     parameter int NO_OF_MASTERS = axi4_globals_pkg::NO_OF_MASTERS,
-    parameter int NO_OF_SLAVES  = axi4_globals_pkg::NO_OF_SLAVES
+    parameter int NO_OF_SLAVES  = axi4_globals_pkg::NO_OF_SLAVES,
+    parameter int ADDRESS_WIDTH = axi4_globals_pkg::ADDRESS_WIDTH,
+    parameter int ID_WIDTH = axi4_globals_pkg::ID_WIDTH
 )(
   input  logic aclk,
   input  logic aresetn,
@@ -203,7 +205,7 @@ module axi_interconnect_cache#(
   // -------------------------------------------------------------------------
   axi_write_path #(
     .NO_OF_MASTERS  (NO_OF_MASTERS),
-    .ADDRESS_WIDTH     (ADDRESS_WIDTH),
+    .ADDRESS_WIDTH  (ADDRESS_WIDTH),
     .DATA_WIDTH     (DATA_WIDTH),
     .ID_WIDTH       (ID_WIDTH),
     .MAX_OUTSTANDING(OUTSTANDING_FIFO_DEPTH)

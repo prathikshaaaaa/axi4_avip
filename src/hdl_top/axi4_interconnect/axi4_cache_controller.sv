@@ -2,7 +2,7 @@ module axi_cache_controller #(
   parameter int NO_OF_MASTERS = 4,
   parameter int NO_OF_SLAVES  = 2,
 
-  parameter int ADDR_WIDTH = 32,
+  parameter int ADDRESS_WIDTH = 32,
   parameter int DATA_WIDTH = 64,
   parameter int ID_WIDTH = 4,
 
@@ -16,7 +16,7 @@ module axi_cache_controller #(
 
   // ---------------- Read interface ----------------
   input  logic rd_req_valid [NO_OF_MASTERS],
-  input  logic [ADDR_WIDTH-1:0] rd_req_addr [NO_OF_MASTERS],
+  input  logic [ADDRESS_WIDTH-1:0] rd_req_addr [NO_OF_MASTERS],
   input  logic [ID_WIDTH-1:0]   rd_req_id [NO_OF_MASTERS],
   input  logic [7:0] rd_req_len[NO_OF_MASTERS],
   input  logic [2:0]  rd_req_size [NO_OF_MASTERS],
@@ -33,7 +33,7 @@ module axi_cache_controller #(
 
  //----------------Writeinterface----------------
   input logic wr_req_valid [NO_OF_MASTERS],
-  input logic [ADDR_WIDTH-1:0] wr_req_addr [NO_OF_MASTERS],
+  input logic [ADDRESS_WIDTH-1:0] wr_req_addr [NO_OF_MASTERS],
   input logic [ID_WIDTH-1:0] wr_req_id [NO_OF_MASTERS],
   input logic [7:0] wr_req_len [NO_OF_MASTERS],
   input logic [2:0] wr_req_size [NO_OF_MASTERS],
@@ -52,7 +52,7 @@ module axi_cache_controller #(
 //----------------AXISlaveinterface----------------
   output logic [NO_OF_SLAVES-1:0] s_arvalid,
   input logic [NO_OF_SLAVES-1:0] s_arready,
-  output logic [ADDR_WIDTH-1:0] s_araddr [NO_OF_SLAVES],
+  output logic [ADDRESS_WIDTH-1:0] s_araddr [NO_OF_SLAVES],
   output logic [ID_WIDTH-1:0] s_arid [NO_OF_SLAVES],
   output logic [7:0] s_arlen [NO_OF_SLAVES],
   output logic [2:0] s_arsize [NO_OF_SLAVES],
@@ -65,7 +65,7 @@ module axi_cache_controller #(
   input logic [1:0] s_rresp [NO_OF_SLAVES],
   output logic [NO_OF_SLAVES-1:0] s_awvalid,
   input logic [NO_OF_SLAVES-1:0] s_awready,
-  output logic [ADDR_WIDTH-1:0] s_awaddr [NO_OF_SLAVES],
+  output logic [ADDRESS_WIDTH-1:0] s_awaddr [NO_OF_SLAVES],
   output logic [ID_WIDTH-1:0] s_awid [NO_OF_SLAVES],
   output logic [7:0] s_awlen [NO_OF_SLAVES],
   output logic [2:0] s_awsize [NO_OF_SLAVES],
@@ -83,7 +83,7 @@ module axi_cache_controller #(
   //cache parameters
   localparam int OFFSET_BITS = $clog2(CACHE_LINE_SIZE);
   localparam int INDEX_BITS  = $clog2(NUM_SETS);
-  localparam int TAG_BITS    = ADDR_WIDTH - OFFSET_BITS - INDEX_BITS;
+  localparam int TAG_BITS    = ADDRESS_WIDTH - OFFSET_BITS - INDEX_BITS;
   localparam int WORDS_PER_LINE = CACHE_LINE_SIZE / (DATA_WIDTH / 8);
   localparam int WORD_OFFSET_BITS = $clog2(WORDS_PER_LINE);
 
@@ -93,7 +93,7 @@ module axi_cache_controller #(
     logic is_write;
     logic done;
     logic [$clog2(NO_OF_MASTERS)-1:0] master;
-    logic [ADDR_WIDTH-1:0] addr;
+    logic [ADDRESS_WIDTH-1:0] addr;
     logic [INDEX_BITS-1:0] index;
     logic [TAG_BITS-1:0] tag;
     logic [$clog2(ASSOCIATIVITY)-1:0] way;
@@ -169,25 +169,25 @@ module axi_cache_controller #(
 
   // ADDRESS BREAKDOWN FUNCTIONS
   function automatic logic [TAG_BITS-1:0] get_tag(
-    input logic [ADDR_WIDTH-1:0] addr
+    input logic [ADDRESS_WIDTH-1:0] addr
   );
-    return addr[ADDR_WIDTH-1 : OFFSET_BITS+INDEX_BITS];
+    return addr[ADDRESS_WIDTH-1 : OFFSET_BITS+INDEX_BITS];
   endfunction
 
   function automatic logic [INDEX_BITS-1:0] get_index(
-    input logic [ADDR_WIDTH-1:0] addr
+    input logic [ADDRESS_WIDTH-1:0] addr
   );
     return addr[OFFSET_BITS+INDEX_BITS-1 : OFFSET_BITS];
   endfunction
 
   function automatic logic [OFFSET_BITS-1:0] get_offset(
-    input logic [ADDR_WIDTH-1:0] addr
+    input logic [ADDRESS_WIDTH-1:0] addr
   );
     return addr[OFFSET_BITS-1:0];
   endfunction
 
   function automatic logic [$clog2(WORDS_PER_LINE)-1:0] get_word_index(
-    input logic [ADDR_WIDTH-1:0] addr
+    input logic [ADDRESS_WIDTH-1:0] addr
   );
     logic [OFFSET_BITS-1:0] byte_offset;
     byte_offset = get_offset(addr);
@@ -196,11 +196,11 @@ module axi_cache_controller #(
 
   // SLAVE ADDRESS DECODE
   function automatic logic [$clog2(NO_OF_SLAVES)-1:0] decode_slave(
-    input logic [ADDR_WIDTH-1:0] addr
+    input logic [ADDRESS_WIDTH-1:0] addr
   );
-    logic [ADDR_WIDTH-1:0] region_size;
+    logic [ADDRESS_WIDTH-1:0] region_size;
     logic [$clog2(NO_OF_SLAVES)-1:0] sid;
-    region_size = (1 << ADDR_WIDTH) / NO_OF_SLAVES;
+    region_size = (1 << ADDRESS_WIDTH) / NO_OF_SLAVES;
     sid = addr / region_size;
     if (sid >= NO_OF_SLAVES)
       sid = (NO_OF_SLAVES - 1);
@@ -818,7 +818,7 @@ module axi_cache_controller #(
             (!mshr[i].needs_writeback || mshr[i].wb_done)) begin
 
           s_arvalid[s] = 1'b1;
-          s_araddr[s]  = {mshr[i].addr[ADDR_WIDTH-1:OFFSET_BITS],
+          s_araddr[s]  = {mshr[i].addr[ADDRESS_WIDTH-1:OFFSET_BITS],
                          {OFFSET_BITS{1'b0}}};
           s_arlen[s]   = WORDS_PER_LINE - 1;
           s_arid[s]    = mshr[i].axi_id;
@@ -974,7 +974,7 @@ module axi_cache_controller #(
        rd_resp[m]       = 2'b00;
        rd_data_id[m]    = rd_req_id[m];
        rd_cache_data[m] =
-         data_array[rd_index[m]][rd_hit_way[m]][rd_word_idx[m]];
+       data_array[rd_index[m]][rd_hit_way[m]][rd_word_idx[m]];
     end
    end
   end
