@@ -59,8 +59,8 @@ module hdl_top;
   genvar i;
   generate
     for (i=0; i<NO_OF_MASTERS; i++) begin : MASTER_BFM
-      axi4_master_bfm master_bfm (
-        .master_if(master_if[i])  
+      axi4_master_agent_bfm master_bfm (
+        .intf(master_if[i])  
       );
     end
   endgenerate
@@ -68,8 +68,8 @@ module hdl_top;
   genvar j;
   generate
     for (j=0; j<NO_OF_SLAVES; j++) begin : SLAVE_BFM
-      axi4_slave_bfm slave_bfm (
-        .slave_if(slave_if[j])  
+      axi4_slave_agent_bfm slave_bfm (
+        .intf(slave_if[j])  
       );
     end
   endgenerate
