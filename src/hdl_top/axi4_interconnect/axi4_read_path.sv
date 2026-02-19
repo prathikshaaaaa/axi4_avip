@@ -15,7 +15,6 @@ module axi_read_path #(
   input  logic [2:0]                       m_arsize      [NO_OF_MASTERS],
   input  logic [1:0]                       m_arburst     [NO_OF_MASTERS],
   input  logic [NO_OF_MASTERS-1:0]         m_rready,
-  input  logic                             rd_ready      [NO_OF_MASTERS], 
   output logic [NO_OF_MASTERS-1:0]         m_rvalid,
   output logic [DATA_WIDTH-1:0]            m_rdata       [NO_OF_MASTERS],
   output logic [ID_WIDTH-1:0]              m_rid         [NO_OF_MASTERS],
@@ -27,13 +26,16 @@ module axi_read_path #(
   output logic [7:0]                       rd_req_len    [NO_OF_MASTERS],
   output logic [2:0]                       rd_req_size   [NO_OF_MASTERS],
   output logic [1:0]                       rd_req_burst  [NO_OF_MASTERS],
+  input  logic                             rd_ready      [NO_OF_MASTERS],
   input  logic                             rd_cache_hit  [NO_OF_MASTERS],
   input  logic                             rd_cache_miss [NO_OF_MASTERS],
   input  logic [DATA_WIDTH-1:0]            rd_cache_data [NO_OF_MASTERS],
   input  logic [ID_WIDTH-1:0]              rd_data_id    [NO_OF_MASTERS],
   input  logic                             rd_data_valid [NO_OF_MASTERS],
-  input  logic                             rd_data_last  [NO_OF_MASTERS]
+  input  logic                             rd_data_last  [NO_OF_MASTERS],
+  input  logic [1:0]                       rd_resp        [NO_OF_MASTERS]   
 );
+ 
   localparam int MID_W = $clog2(NO_OF_MASTERS);
   logic ar_arb_busy;
   logic [MID_W-1:0] ar_granted_master;
@@ -45,6 +47,7 @@ module axi_read_path #(
     logic done;
     logic [DATA_WIDTH-1:0] data;
     logic last;
+    logic [1:0] resp;   
   } rd_sb_entry_t;
   rd_sb_entry_t rd_scoreboard [NO_OF_MASTERS][MAX_OUTSTANDING];
   logic [$clog2(MAX_OUTSTANDING)-1:0] rd_sb_wr_ptr [NO_OF_MASTERS];
@@ -53,11 +56,14 @@ module axi_read_path #(
   logic rd_sb_full [NO_OF_MASTERS];
   logic rob_retire [NO_OF_MASTERS];
   logic [$clog2(MAX_OUTSTANDING)-1:0] rob_retire_idx [NO_OF_MASTERS];
+ 
   generate
     for (genvar m=0;m<NO_OF_MASTERS;m++) begin : G_SB_FULL
       assign rd_sb_full[m] = (rd_sb_count[m]==MAX_OUTSTANDING);
     end
   endgenerate
+ 
+ 
   always_ff @(posedge aclk or negedge aresetn) begin
     if(!aresetn) begin
       ar_rr_ptr <= '0;
@@ -79,11 +85,12 @@ module axi_read_path #(
       end
     end
   end
+ 
   always_comb begin
     ar_grant = '0;
     if(!ar_arb_busy) begin
       for(int k=0;k<NO_OF_MASTERS;k++) begin
-        int idx; 
+        int idx;
         idx = (ar_rr_ptr+k)%NO_OF_MASTERS;
         if(m_arvalid[idx] && !rd_sb_full[idx]) begin
           ar_grant[idx] = 1'b1;
@@ -92,6 +99,7 @@ module axi_read_path #(
       end
     end
   end
+ 
   generate
     for(genvar m=0;m<NO_OF_MASTERS;m++) begin : G_AR_FORWARD
       always_comb begin
@@ -115,6 +123,7 @@ module axi_read_path #(
       end
     end
   endgenerate
+ 
   generate
     for(genvar m=0;m<NO_OF_MASTERS;m++) begin : G_SCOREBOARD
       always_ff @(posedge aclk or negedge aresetn) begin
@@ -126,17 +135,18 @@ module axi_read_path #(
             rd_scoreboard[m][i] <= '0;
         end else begin
           if(m_arvalid[m] && m_arready[m]) begin  
-            rd_scoreboard[m][rd_sb_wr_ptr[m]] <= rd_sb_entry_t'{id:m_arid[m], valid:1'b1, done:1'b0, data:'0, last:1'b0};
+            rd_scoreboard[m][rd_sb_wr_ptr[m]] <= rd_sb_entry_t'{id:m_arid[m], valid:1'b1, done:1'b0, data:'0, last:1'b0, resp:2'b00};
             rd_sb_wr_ptr[m] <= (rd_sb_wr_ptr[m]==MAX_OUTSTANDING-1)?'0:rd_sb_wr_ptr[m]+1;
             rd_sb_count[m] <= rd_sb_count[m]+1;
           end
           if(rd_data_valid[m]) begin
             for(int i=0;i<MAX_OUTSTANDING;i++) begin
               if(rd_scoreboard[m][i].valid && !rd_scoreboard[m][i].done &&
-                 rd_scoreboard[m][i].id == rd_data_id[m] /* added-changed */ )
+                 rd_scoreboard[m][i].id == rd_data_id[m])
               begin
                    rd_scoreboard[m][i].data <= rd_cache_data[m];
                    rd_scoreboard[m][i].last <= rd_data_last[m];
+                   rd_scoreboard[m][i].resp <= rd_resp[m];   
                    if(rd_data_last[m])
                      rd_scoreboard[m][i].done <= 1'b1;
                    break;
@@ -152,6 +162,8 @@ module axi_read_path #(
       end
     end
   endgenerate
+ 
+
   generate
     for(genvar m=0;m<NO_OF_MASTERS;m++) begin : G_ROB
       always_comb begin
@@ -174,7 +186,7 @@ module axi_read_path #(
               m_rvalid[m]=1'b1;
               m_rdata[m]=rd_scoreboard[m][i].data;
               m_rid[m]=rd_scoreboard[m][i].id;
-              m_rresp[m]=2'b00;
+              m_rresp[m]=rd_scoreboard[m][i].resp; 
               m_rlast[m]=rd_scoreboard[m][i].last;
               if(m_rready[m] && m_rlast[m]) begin
                 rob_retire[m]=1'b1;
@@ -187,4 +199,5 @@ module axi_read_path #(
       end
     end
   endgenerate
+ 
 endmodule
