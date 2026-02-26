@@ -606,6 +606,7 @@ function void axi4_scoreboard::ref_model_read(axi4_master_tx m_tx, int slave_idx
   
 endfunction : ref_model_read
 
+/*
 //--------------------------------------------------------------------------------------------
 // Task: run_phase
 // Main comparison logic with FIXED arbitration and synchronization
@@ -1085,6 +1086,480 @@ task axi4_scoreboard::run_phase(uvm_phase phase);
       end
     join_none
   end
+  
+  wait fork;
+  
+endtask : run_phase
+*/
+
+//updated run_phase
+//need to instantiate inside scoreboard class as another fifo
+
+bit [ID_WIDTH-1:0] expected_w_channel_awid[int][$];
+
+// Task: run_phase
+// Main comparison logic with FIXED arbitration and synchronization
+//--------------------------------------------------------------------------------------------
+task axi4_scoreboard::run_phase(uvm_phase phase);
+  super.run_phase(phase);
+  
+  //--------------------------------------------------------------------------------------------
+  // WRITE ADDRESS PATH - Master Side
+  // Monitor master write address requests and increment pending request counter
+  //--------------------------------------------------------------------------------------------
+  foreach(axi4_master_write_address_analysis_fifo[i]) begin
+    automatic int m_idx = i;
+    fork
+      forever begin
+        axi4_master_tx m_write_addr_tx;
+        int s_idx;
+        pending_write_transaction_t pending_tx;
+        
+        axi4_master_write_address_analysis_fifo[m_idx].get(m_write_addr_tx);
+        axi4_master_tx_awaddr_count[m_idx]++;
+        total_master_tx_count++;
+        
+        `uvm_info("MSTR_WR_ADDR", 
+                 $sformatf("M[%0d] AWID=0x%0h AWADDR=0x%0h AWLEN=%0d AWSIZE=%0d AWBURST=%0d", 
+                          m_idx, m_write_addr_tx.awid, m_write_addr_tx.awaddr, 
+                          m_write_addr_tx.awlen, m_write_addr_tx.awsize, m_write_addr_tx.awburst), 
+                 UVM_MEDIUM)
+        
+        // Determine target slave based on address
+        s_idx = get_slave_index(m_write_addr_tx.awaddr);
+        
+        if(s_idx != -1) begin
+          // FIXED: Increment pending request counter
+          rr_write_pending_cnt[s_idx][m_idx]++;
+          
+          `uvm_info("WR_PENDING_INC", 
+                   $sformatf("M[%0d]->S[%0d] pending counter: %0d", 
+                            m_idx, s_idx, rr_write_pending_cnt[s_idx][m_idx]), 
+                   UVM_HIGH)
+          
+          // Create pending transaction
+          $cast(pending_tx.tx, m_write_addr_tx.clone());
+          pending_tx.master_id = m_idx;
+          pending_tx.slave_id = s_idx;
+          pending_tx.address_granted = 0;       // NEW: Not yet granted
+          pending_tx.write_data_complete = 0;
+          pending_tx.beats_received = 0;
+          
+          // Store in queue indexed by slave and AWID (for in-order checking)
+          pending_write_txns[s_idx][m_write_addr_tx.awid].push_back(pending_tx);
+          
+          `uvm_info("WR_PENDING", 
+                   $sformatf("M[%0d]->S[%0d] AWID=0x%0h added to pending queue (size=%0d)", 
+                            m_idx, s_idx, m_write_addr_tx.awid, 
+                            pending_write_txns[s_idx][m_write_addr_tx.awid].size()), 
+                   UVM_HIGH)
+        end else begin
+          `uvm_error("ADDR_DECODE", 
+                    $sformatf("M[%0d] AWADDR=0x%0h doesn't map to any slave", 
+                             m_idx, m_write_addr_tx.awaddr))
+        end
+      end
+    join_none
+  end
+  
+  //--------------------------------------------------------------------------------------------
+  // WRITE ADDRESS PATH - Slave Side
+  // Monitor slave write address acceptance and check arbitration
+  //--------------------------------------------------------------------------------------------
+  foreach(axi4_slave_write_address_analysis_fifo[i]) begin
+    automatic int s_idx = i;
+    fork
+      forever begin
+        axi4_slave_tx s_write_addr_tx;
+        pending_write_transaction_t pending_tx;
+        int master_id;
+        bit found;
+        
+        axi4_slave_write_address_analysis_fifo[s_idx].get(s_write_addr_tx);
+        axi4_slave_tx_awaddr_count[s_idx]++;
+        
+        `uvm_info("SLV_WR_ADDR", 
+                 $sformatf("S[%0d] AWID=0x%0h AWADDR=0x%0h AWLEN=%0d", 
+                          s_idx, s_write_addr_tx.awid, s_write_addr_tx.awaddr, 
+                          s_write_addr_tx.awlen), 
+                 UVM_MEDIUM)
+        
+        // Find matching pending transaction (in-order: first in queue with matching ID)
+        found = 0;
+        if(pending_write_txns[s_idx].exists(s_write_addr_tx.awid)) begin
+          if(pending_write_txns[s_idx][s_write_addr_tx.awid].size() > 0) begin
+            // Get first transaction (but don't pop yet - need to wait for all data)
+            pending_tx = pending_write_txns[s_idx][s_write_addr_tx.awid][0];
+            master_id = pending_tx.master_id;
+            found = 1;
+            
+            // Check round-robin arbitration (also decrements counter)
+            check_write_rr_arbitration(s_idx, master_id);
+            
+            // Compare write address
+            axi4_write_address_comparison(pending_tx.tx, s_write_addr_tx, master_id, s_idx);
+            
+            // FIXED: Mark address as granted and trigger event
+            pending_tx.address_granted = 1;
+            pending_write_txns[s_idx][s_write_addr_tx.awid][0] = pending_tx;  // Update the queue
+            
+            //to send W-Data based on AW grant order with AWids
+            expected_w_channel_awid[s_idx].push_back(s_write_addr_tx.awid);
+
+            // Trigger event to signal that address arbitration is complete
+            ->slave_write_addr_granted[s_idx];
+            
+            `uvm_info("WR_ADDR_GRANTED", 
+                     $sformatf("S[%0d] M[%0d] AWID=0x%0h address granted", 
+                              s_idx, master_id, s_write_addr_tx.awid), 
+                     UVM_HIGH)
+          end
+        end
+        
+        if(!found) begin
+          `uvm_error("WR_ADDR_NO_MATCH", 
+                    $sformatf("S[%0d] received AWID=0x%0h but no pending transaction found", 
+                             s_idx, s_write_addr_tx.awid))
+        end
+      end
+    join_none
+  end
+  
+  //--------------------------------------------------------------------------------------------
+  // WRITE DATA PATH - Slave Side
+  // FIXED: Wait for address arbitration before matching write data
+  //--------------------------------------------------------------------------------------------
+  //--------------------------------------------------------------------------------------------
+  // WRITE DATA PATH - Slave Side
+  //--------------------------------------------------------------------------------------------
+  foreach(axi4_slave_write_data_analysis_fifo[i]) begin
+    automatic int s_idx = i;
+    fork
+      forever begin
+        axi4_slave_tx s_write_data_tx;
+        pending_write_transaction_t pending_tx;
+        bit [ID_WIDTH-1:0] active_awid; // Holds the ID of the current W-channel owner
+        
+        axi4_slave_write_data_analysis_fifo[s_idx].get(s_write_data_tx);
+        axi4_slave_tx_wdata_count[s_idx]++;
+        
+        `uvm_info("SLV_WR_DATA", 
+                 $sformatf("S[%0d] WDATA[0]=0x%0h WSTRB=0x%0h WLAST=%0b", 
+                          s_idx, s_write_data_tx.wdata[0], s_write_data_tx.wstrb[0], 
+                          s_write_data_tx.wlast), UVM_HIGH)
+        
+        // Wait until an AW has been granted
+        wait(expected_w_channel_awid[s_idx].size() > 0);
+        
+        // INSTANT LOOKUP: We know exactly which AWID is supposed to send data right now
+        active_awid = expected_w_channel_awid[s_idx][0];
+        
+        if(pending_write_txns[s_idx].exists(active_awid) && 
+           pending_write_txns[s_idx][active_awid].size() > 0) begin
+           
+          // Peek at the transaction
+          pending_tx = pending_write_txns[s_idx][active_awid][0];
+          
+          // Compare write data
+          axi4_write_data_comparison(pending_tx.tx, s_write_data_tx, 
+                                    pending_tx.master_id, s_idx);
+          
+          pending_tx.beats_received++;
+          
+          // Check if this is the last beat
+          if(s_write_data_tx.wlast) begin
+            if(pending_tx.beats_received != (pending_tx.tx.awlen + 1)) begin
+              `uvm_error("WLAST_COUNT", 
+                        $sformatf("S[%0d] M[%0d] WLAST at beat %0d but AWLEN=%0d", 
+                                 s_idx, pending_tx.master_id, 
+                                 pending_tx.beats_received, pending_tx.tx.awlen))
+            end else begin
+              byte_data_cmp_verified_wlast_count++;
+            end
+            
+            pending_tx.write_data_complete = 1;
+            ref_model_write(pending_tx.tx, s_idx, pending_tx.master_id);
+            
+            // BURST COMPLETE: Release the W-channel lock for the next AWID
+            expected_w_channel_awid[s_idx].pop_front();
+          end
+          
+          // Update the pending queue
+          pending_write_txns[s_idx][active_awid][0] = pending_tx;
+          
+        end else begin
+          `uvm_error("WR_DATA_FATAL", 
+                    $sformatf("S[%0d] W-Channel locked to AWID=0x%0h but transaction is missing!", 
+                             s_idx, active_awid))
+        end
+      end
+    join_none
+  end
+  
+  //--------------------------------------------------------------------------------------------
+  // WRITE RESPONSE PATH - Slave Side
+  // Monitor write response and remove completed transactions
+  //--------------------------------------------------------------------------------------------
+  foreach(axi4_slave_write_response_analysis_fifo[i]) begin
+    automatic int s_idx = i;
+    fork
+      forever begin
+        axi4_slave_tx s_write_resp_tx;
+        pending_write_transaction_t pending_tx;
+        bit found;
+        
+        axi4_slave_write_response_analysis_fifo[s_idx].get(s_write_resp_tx);
+        axi4_slave_tx_bresp_count[s_idx]++;
+        total_slave_tx_count++;
+        
+        `uvm_info("SLV_WR_RESP", 
+                 $sformatf("S[%0d] BID=0x%0h BRESP=%0s", 
+                          s_idx, s_write_resp_tx.bid, s_write_resp_tx.bresp.name()), 
+                 UVM_MEDIUM)
+        
+        // Find matching pending transaction by BID (in-order: first in queue)
+        found = 0;
+        if(pending_write_txns[s_idx].exists(s_write_resp_tx.bid)) begin
+          if(pending_write_txns[s_idx][s_write_resp_tx.bid].size() > 0) begin
+            pending_tx = pending_write_txns[s_idx][s_write_resp_tx.bid].pop_front();
+            
+            // Verify address was granted
+            if(!pending_tx.address_granted) begin
+              `uvm_error("BRESP_BEFORE_AW", 
+                        $sformatf("S[%0d] M[%0d] BID=0x%0h received before AW granted", 
+                                 s_idx, pending_tx.master_id, s_write_resp_tx.bid))
+            end
+            
+            // Verify write data was complete before response
+            if(!pending_tx.write_data_complete) begin
+              `uvm_error("BRESP_BEFORE_WLAST", 
+                        $sformatf("S[%0d] M[%0d] BID=0x%0h received before WLAST", 
+                                 s_idx, pending_tx.master_id, s_write_resp_tx.bid))
+            end
+            
+            // Compare write response
+            axi4_write_response_comparison(pending_tx.tx, s_write_resp_tx, 
+                                          pending_tx.master_id, s_idx);
+            
+            `uvm_info("WR_COMPLETE", 
+                     $sformatf("S[%0d] M[%0d] BID=0x%0h write transaction complete", 
+                              s_idx, pending_tx.master_id, s_write_resp_tx.bid), 
+                     UVM_MEDIUM)
+            found = 1;
+          end
+        end
+        
+        if(!found) begin
+          `uvm_error("BRESP_NO_MATCH", 
+                    $sformatf("S[%0d] received BID=0x%0h but no pending transaction", 
+                             s_idx, s_write_resp_tx.bid))
+        end
+      end
+    join_none
+  end
+  
+  //--------------------------------------------------------------------------------------------
+  // READ ADDRESS PATH - Master Side
+  // Monitor master read address requests and increment pending counter
+  //--------------------------------------------------------------------------------------------
+  foreach(axi4_master_read_address_analysis_fifo[i]) begin
+    automatic int m_idx = i;
+    fork
+      forever begin
+        axi4_master_tx m_read_addr_tx;
+        int s_idx;
+        pending_read_transaction_t pending_tx;
+        
+        axi4_master_read_address_analysis_fifo[m_idx].get(m_read_addr_tx);
+        axi4_master_tx_araddr_count[m_idx]++;
+        
+        `uvm_info("MSTR_RD_ADDR", 
+                 $sformatf("M[%0d] ARID=0x%0h ARADDR=0x%0h ARLEN=%0d ARSIZE=%0d ARBURST=%0d", 
+                          m_idx, m_read_addr_tx.arid, m_read_addr_tx.araddr, 
+                          m_read_addr_tx.arlen, m_read_addr_tx.arsize, m_read_addr_tx.arburst), 
+                 UVM_MEDIUM)
+        
+        // Determine target slave
+        s_idx = get_slave_index(m_read_addr_tx.araddr);
+        
+        if(s_idx != -1) begin
+          // FIXED: Increment pending request counter
+          rr_read_pending_cnt[s_idx][m_idx]++;
+          
+          `uvm_info("RD_PENDING_INC", 
+                   $sformatf("M[%0d]->S[%0d] pending counter: %0d", 
+                            m_idx, s_idx, rr_read_pending_cnt[s_idx][m_idx]), 
+                   UVM_HIGH)
+          
+          // Generate expected read data from reference model
+          $cast(pending_tx.tx, m_read_addr_tx.clone());
+          ref_model_read(pending_tx.tx, s_idx);
+          
+          pending_tx.master_id = m_idx;
+          pending_tx.slave_id = s_idx;
+          pending_tx.address_granted = 0;  // NEW: Not yet granted
+          
+          // Store in queue (in-order)
+          pending_read_txns[s_idx][m_read_addr_tx.arid].push_back(pending_tx);
+          
+          `uvm_info("RD_PENDING", 
+                   $sformatf("M[%0d]->S[%0d] ARID=0x%0h added to pending queue (size=%0d)", 
+                            m_idx, s_idx, m_read_addr_tx.arid, 
+                            pending_read_txns[s_idx][m_read_addr_tx.arid].size()), 
+                   UVM_HIGH)
+        end else begin
+          `uvm_error("ADDR_DECODE", 
+                    $sformatf("M[%0d] ARADDR=0x%0h doesn't map to any slave", 
+                             m_idx, m_read_addr_tx.araddr))
+        end
+      end
+    join_none
+  end
+  
+  //--------------------------------------------------------------------------------------------
+  // READ ADDRESS PATH - Slave Side
+  // Monitor slave read address acceptance and check arbitration
+  //--------------------------------------------------------------------------------------------
+  foreach(axi4_slave_read_address_analysis_fifo[i]) begin
+    automatic int s_idx = i;
+    fork
+      forever begin
+        axi4_slave_tx s_read_addr_tx;
+        pending_read_transaction_t pending_tx;
+        int master_id;
+        bit found;
+        
+        axi4_slave_read_address_analysis_fifo[s_idx].get(s_read_addr_tx);
+        axi4_slave_tx_araddr_count[s_idx]++;
+        
+        `uvm_info("SLV_RD_ADDR", 
+                 $sformatf("S[%0d] ARID=0x%0h ARADDR=0x%0h ARLEN=%0d", 
+                          s_idx, s_read_addr_tx.arid, s_read_addr_tx.araddr, 
+                          s_read_addr_tx.arlen), 
+                 UVM_MEDIUM)
+        
+        // Find matching pending transaction (in-order)
+        found = 0;
+        if(pending_read_txns[s_idx].exists(s_read_addr_tx.arid)) begin
+          if(pending_read_txns[s_idx][s_read_addr_tx.arid].size() > 0) begin
+            pending_tx = pending_read_txns[s_idx][s_read_addr_tx.arid][0];
+            master_id = pending_tx.master_id;
+            found = 1;
+            
+            // Check round-robin arbitration for read (also decrements counter)
+            check_read_rr_arbitration(s_idx, master_id);
+            
+            // Compare read address
+            axi4_read_address_comparison(pending_tx.tx, s_read_addr_tx, master_id, s_idx);
+            
+            // FIXED: Mark address as granted and trigger event
+            pending_tx.address_granted = 1;
+            pending_read_txns[s_idx][s_read_addr_tx.arid][0] = pending_tx;  // Update the queue
+            
+            // Trigger event
+            ->slave_read_addr_granted[s_idx];
+            
+            `uvm_info("RD_ADDR_GRANTED", 
+                     $sformatf("S[%0d] M[%0d] ARID=0x%0h address granted", 
+                              s_idx, master_id, s_read_addr_tx.arid), 
+                     UVM_HIGH)
+          end
+        end
+        
+        if(!found) begin
+          `uvm_error("RD_ADDR_NO_MATCH", 
+                    $sformatf("S[%0d] received ARID=0x%0h but no pending transaction", 
+                             s_idx, s_read_addr_tx.arid))
+        end
+      end
+    join_none
+  end
+  
+  //--------------------------------------------------------------------------------------------
+  // READ DATA PATH - Slave Side
+  // Monitor slave read data for counting purposes
+  //--------------------------------------------------------------------------------------------
+  foreach(axi4_slave_read_data_analysis_fifo[i]) begin
+    automatic int s_idx = i;
+    fork
+      forever begin
+        axi4_slave_tx s_read_data_tx;
+        
+        axi4_slave_read_data_analysis_fifo[s_idx].get(s_read_data_tx);
+        axi4_slave_tx_rdata_count[s_idx]++;
+        axi4_slave_tx_rresp_count[s_idx]++;  // Count read response from slave
+        
+        `uvm_info("SLV_RD_DATA", 
+                 $sformatf("S[%0d] RID=0x%0h RDATA[0]=0x%0h RLAST=%0b RRESP=%0s", 
+                          s_idx, s_read_data_tx.rid, s_read_data_tx.rdata[0], 
+                          s_read_data_tx.rlast, s_read_data_tx.rresp.name()), 
+                 UVM_HIGH)
+      end
+    join_none
+  end
+  
+  //--------------------------------------------------------------------------------------------
+  // READ DATA PATH - Master Side
+  // FIXED: Wait for address arbitration before comparing read data, use RLAST for pop_front
+  //--------------------------------------------------------------------------------------------
+  foreach(axi4_master_read_data_analysis_fifo[i]) begin
+  automatic int m_idx = i;
+  fork
+    forever begin
+      axi4_master_tx m_read_data_tx;
+      pending_read_transaction_t pending_tx;
+      int s_idx;
+      bit found = 0;
+ 
+      axi4_master_read_data_analysis_fifo[m_idx].get(m_read_data_tx);
+ 
+      s_idx = get_slave_index(m_read_data_tx.araddr);
+ 
+      if(pending_read_txns[s_idx].exists(m_read_data_tx.arid)) begin
+        if(pending_read_txns[s_idx][m_read_data_tx.arid].size() > 0) begin
+ 
+          pending_tx = pending_read_txns[s_idx][m_read_data_tx.arid][0];
+ 
+          if(pending_tx.address_granted) begin
+ 
+            int beat = pending_tx.beat_idx;
+ 
+            axi4_read_data_comparison_beat(
+              pending_tx.tx,
+              m_read_data_tx,
+              m_idx,
+              s_idx,
+              beat
+            );
+ 
+            pending_tx.beat_idx++;
+ 
+            // Check RLAST correctly
+            if(beat == pending_tx.tx.arlen) begin
+              if(!m_read_data_tx.rlast)
+                `uvm_error("RLAST_ERR","Missing RLAST on last beat")
+ 
+              // POP ONLY NOW
+              pending_read_txns[s_idx][m_read_data_tx.arid].pop_front();
+            end
+            else begin
+              if(m_read_data_tx.rlast)
+                `uvm_error("EARLY_RLAST","RLAST asserted early")
+ 
+              pending_read_txns[s_idx][m_read_data_tx.arid][0] = pending_tx;
+            end
+ 
+            found = 1;
+          end
+        end
+      end
+ 
+      if(!found)
+        `uvm_error("RD_DATA_NO_MATCH","No pending read transaction")
+ 
+    end
+  join_none
+end
   
   wait fork;
   
