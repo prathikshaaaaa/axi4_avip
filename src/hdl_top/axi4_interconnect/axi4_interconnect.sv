@@ -1,439 +1,522 @@
-`include "axi4_write_path.sv"
-`include "axi4_read_path.sv"
-`include "axi4_cache_controller.sv"
-`include "../../globals/axi4_globals_pkg.sv"
-
-import axi4_globals_pkg::*;
-
-module axi_interconnect_cache#(
-    parameter int NO_OF_MASTERS = axi4_globals_pkg::NO_OF_MASTERS,
-    parameter int NO_OF_SLAVES  = axi4_globals_pkg::NO_OF_SLAVES,
-    parameter int ADDRESS_WIDTH = axi4_globals_pkg::ADDRESS_WIDTH,
-    parameter int ID_WIDTH = axi4_globals_pkg::ID_WIDTH
+module axi4_decoder #(
+    parameter  int ID_WIDTH       = 4,
+    parameter  int ADDR_WIDTH     = 32,
+    parameter  int DATA_WIDTH     = 64,
+    parameter  int NO_OF_MASTERS  = 4,
+    parameter  int NO_OF_SLAVES   = 2,
+    parameter  int SLAVE_MEM_SIZE = 12,
+    localparam int MASTER_BITS    = $clog2(NO_OF_MASTERS),
+    localparam int EXT_ID_WIDTH   = ID_WIDTH + MASTER_BITS
 )(
-  input  logic aclk,
-  input  logic aresetn,
+    input  logic aclk,
+    input  logic aresetn,
 
-  // Master interface
-  axi4_if.axiMasterInterconnectMP master_if [NO_OF_MASTERS],
+    input  logic [NO_OF_MASTERS-1:0]      m_awvalid,
+    input  logic [ID_WIDTH-1:0]           m_awid    [NO_OF_MASTERS],
+    input  logic [ADDR_WIDTH-1:0]         m_awaddr  [NO_OF_MASTERS],
+    input  logic [7:0]                    m_awlen   [NO_OF_MASTERS],
+    input  logic [2:0]                    m_awsize  [NO_OF_MASTERS],
+    input  logic [1:0]                    m_awburst [NO_OF_MASTERS],
+    input  logic [3:0]                    m_awcache [NO_OF_MASTERS],
+    input  logic [3:0]                    m_awqos   [NO_OF_MASTERS],
 
-  // Slave interfaces
-  axi4_if.axiSlaveInterconnectMP  slave_if  [NO_OF_SLAVES]
+    input  logic [NO_OF_MASTERS-1:0]      m_wvalid,
+    input  logic [DATA_WIDTH-1:0]         m_wdata   [NO_OF_MASTERS],
+    input  logic [(DATA_WIDTH/8)-1:0]     m_wstrb   [NO_OF_MASTERS],
+    input  logic [NO_OF_MASTERS-1:0]      m_wlast,
+
+    input  logic [NO_OF_MASTERS-1:0]      m_bready,
+
+    input  logic [NO_OF_MASTERS-1:0]      m_arvalid,
+    input  logic [ID_WIDTH-1:0]           m_arid    [NO_OF_MASTERS],
+    input  logic [ADDR_WIDTH-1:0]         m_araddr  [NO_OF_MASTERS],
+    input  logic [7:0]                    m_arlen   [NO_OF_MASTERS],
+    input  logic [2:0]                    m_arsize  [NO_OF_MASTERS],
+    input  logic [1:0]                    m_arburst [NO_OF_MASTERS],
+    input  logic [3:0]                    m_arcache [NO_OF_MASTERS],
+    input  logic [3:0]                    m_arqos   [NO_OF_MASTERS],
+
+    input  logic [NO_OF_MASTERS-1:0]      m_rready,
+
+    output logic [NO_OF_MASTERS-1:0]      m_bvalid,
+    output logic [ID_WIDTH-1:0]           m_bid     [NO_OF_MASTERS],
+    output logic [1:0]                    m_bresp   [NO_OF_MASTERS],
+
+    output logic [NO_OF_MASTERS-1:0]      m_rvalid,
+    output logic [ID_WIDTH-1:0]           m_rid     [NO_OF_MASTERS],
+    output logic [DATA_WIDTH-1:0]         m_rdata   [NO_OF_MASTERS],
+    output logic [1:0]                    m_rresp   [NO_OF_MASTERS],
+    output logic [NO_OF_MASTERS-1:0]      m_rlast,
+
+    output logic [NO_OF_MASTERS-1:0]      m_arready,
+    output logic [NO_OF_MASTERS-1:0]      m_awready,
+    output logic [NO_OF_MASTERS-1:0]      m_wready,
+
+    output logic [NO_OF_SLAVES-1:0]       cache_awvalid,
+    output logic [EXT_ID_WIDTH-1:0]       cache_awid    [NO_OF_SLAVES],
+    output logic [ADDR_WIDTH-1:0]         cache_awaddr  [NO_OF_SLAVES],
+    output logic [7:0]                    cache_awlen   [NO_OF_SLAVES],
+    output logic [2:0]                    cache_awsize  [NO_OF_SLAVES],
+    output logic [1:0]                    cache_awburst [NO_OF_SLAVES],
+    output logic [3:0]                    cache_awcache [NO_OF_SLAVES],
+
+    output logic [NO_OF_SLAVES-1:0]       cache_wvalid,
+    output logic [DATA_WIDTH-1:0]         cache_wdata   [NO_OF_SLAVES],
+    output logic [(DATA_WIDTH/8)-1:0]     cache_wstrb   [NO_OF_SLAVES],
+    output logic [NO_OF_SLAVES-1:0]       cache_wlast,
+
+    output logic [NO_OF_SLAVES-1:0]       cache_arvalid,
+    output logic [EXT_ID_WIDTH-1:0]       cache_arid    [NO_OF_SLAVES],
+    output logic [ADDR_WIDTH-1:0]         cache_araddr  [NO_OF_SLAVES],
+    output logic [7:0]                    cache_arlen   [NO_OF_SLAVES],
+    output logic [2:0]                    cache_arsize  [NO_OF_SLAVES],
+    output logic [1:0]                    cache_arburst [NO_OF_SLAVES],
+    output logic [3:0]                    cache_arcache [NO_OF_SLAVES],
+
+    output logic [NO_OF_SLAVES-1:0]       cache_rready,
+    output logic [NO_OF_SLAVES-1:0]       cache_bready,
+
+    input  logic [NO_OF_SLAVES-1:0]       cache_arready,
+    input  logic [NO_OF_SLAVES-1:0]       cache_awready,
+    input  logic [NO_OF_SLAVES-1:0]       cache_wready,
+
+    input  logic [NO_OF_SLAVES-1:0]       cache_bvalid,
+    input  logic [EXT_ID_WIDTH-1:0]       cache_bid     [NO_OF_SLAVES],
+    input  logic [1:0]                    cache_bresp   [NO_OF_SLAVES],
+
+    input  logic [NO_OF_SLAVES-1:0]       cache_rvalid,
+    input  logic [DATA_WIDTH-1:0]         cache_rdata   [NO_OF_SLAVES],
+    input  logic [EXT_ID_WIDTH-1:0]       cache_rid     [NO_OF_SLAVES],
+    input  logic [1:0]                    cache_rresp   [NO_OF_SLAVES],
+    input  logic [NO_OF_SLAVES-1:0]       cache_rlast
 );
-  
-  //==========================================================================
-  // LOCAL PARAMETERS
-  //==========================================================================
 
-  // Bit widths for indexing
-  localparam int MID_W = (NO_OF_MASTERS <= 1) ? 1 : $clog2(NO_OF_MASTERS);
-  localparam int SID_W = (NO_OF_SLAVES  <= 1) ? 1 : $clog2(NO_OF_SLAVES);
+    // =========================================================
+    // Internal signals
+    // =========================================================
+    int wr_active_master [NO_OF_SLAVES];
+    int wr_prev_grant    [NO_OF_SLAVES];
+    int rd_active_master [NO_OF_SLAVES];
+    int rd_prev_grant    [NO_OF_SLAVES];
 
-  // Cache parameters (from package)
-  localparam int OFFSET_BITS = $clog2(CACHE_LINE_SIZE);
-  localparam int INDEX_BITS  = $clog2(NUM_SETS);
-  localparam int TAG_BITS    = ADDRESS_WIDTH - INDEX_BITS - OFFSET_BITS;
+    int slave_aw_order  [NO_OF_SLAVES] [$];
+    int master_aw_order [NO_OF_MASTERS][$];
 
-  //==========================================================================
-  // SIGNAL DECLARATIONS
-  //==========================================================================
+    int wr_w_slave [NO_OF_MASTERS]; // -1 = no pending W for this master
 
-  // --- Signals from Masters ---
-  logic [NO_OF_MASTERS-1:0]        m_arvalid;
-  logic [NO_OF_MASTERS-1:0]        m_arready;
-  logic [ADDRESS_WIDTH-1:0]        m_araddr  [NO_OF_MASTERS];
-  logic [ID_WIDTH-1:0]             m_arid    [NO_OF_MASTERS];
-  logic [7:0]                      m_arlen   [NO_OF_MASTERS];
-  logic [2:0]                      m_arsize  [NO_OF_MASTERS];
-  logic [1:0]                      m_arburst [NO_OF_MASTERS];
+    typedef int slave_q_t[$];
+    slave_q_t wr_respOrder [NO_OF_MASTERS][int];
+    slave_q_t rd_respOrder [NO_OF_MASTERS][int];
 
-  logic [NO_OF_MASTERS-1:0]        m_rready;
-  logic [NO_OF_MASTERS-1:0]        m_rvalid;
-  logic [DATA_WIDTH-1:0]           m_rdata   [NO_OF_MASTERS];
-  logic [ID_WIDTH-1:0]             m_rid     [NO_OF_MASTERS];
-  logic [1:0]                      m_rresp   [NO_OF_MASTERS];
-  logic [NO_OF_MASTERS-1:0]        m_rlast;
+    // =========================================================
+    // CHANGE 2 & 3: 1-cycle cooldown registers to prevent
+    // re-grant on the same cycle a handshake completes.
+    // Stops select_master() from seeing the old m_awvalid/
+    // m_arvalid (still high at the handshake posedge) and
+    // mis-routing the next transaction to the wrong slave.
+    // =========================================================
+    logic wr_just_released [NO_OF_SLAVES];
+    logic rd_just_released [NO_OF_SLAVES];
 
-  // --- Signals from Masters  ---
-  logic [NO_OF_MASTERS-1:0]        m_awvalid;
-  logic [NO_OF_MASTERS-1:0]        m_awready;
-  logic [ADDRESS_WIDTH-1:0]           m_awaddr  [NO_OF_MASTERS];
-  logic [ID_WIDTH-1:0]             m_awid    [NO_OF_MASTERS];
-  logic [7:0]                      m_awlen   [NO_OF_MASTERS];
-  logic [2:0]                      m_awsize  [NO_OF_MASTERS];
-  logic [1:0]                      m_awburst [NO_OF_MASTERS];
+    // =========================================================
+    // M2S: Forward master signals to the appropriate slave
+    // =========================================================
+    generate
+        for (genvar s = 0; s < NO_OF_SLAVES; s++) begin : M2S
+            always_comb begin
+                cache_awvalid[s] = '0;
+                cache_awid[s]    = '0;
+                cache_awaddr[s]  = '0;
+                cache_awlen[s]   = '0;
+                cache_awsize[s]  = '0;
+                cache_awburst[s] = '0;
+                cache_awcache[s] = '0;
 
-  logic [NO_OF_MASTERS-1:0]        m_wvalid;
-  logic [NO_OF_MASTERS-1:0]        m_wready;
-  logic [DATA_WIDTH-1:0]           m_wdata   [NO_OF_MASTERS];
-  logic [(DATA_WIDTH/8)-1:0]       m_wstrb   [NO_OF_MASTERS];
-  logic [NO_OF_MASTERS-1:0]        m_wlast;
+                cache_wvalid[s]  = '0;
+                cache_wdata[s]   = '0;
+                cache_wstrb[s]   = '0;
+                cache_wlast[s]   = '0;
 
-  logic [NO_OF_MASTERS-1:0]        m_bready;
-  logic [NO_OF_MASTERS-1:0]        m_bvalid;
-  logic [ID_WIDTH-1:0]             m_bid     [NO_OF_MASTERS];
-  logic [1:0]                      m_bresp   [NO_OF_MASTERS];
+                cache_arvalid[s] = '0;
+                cache_arid[s]    = '0;
+                cache_araddr[s]  = '0;
+                cache_arlen[s]   = '0;
+                cache_arsize[s]  = '0;
+                cache_arburst[s] = '0;
+                cache_arcache[s] = '0;
 
-  // --- Signals to Slaves  ---
-  logic [NO_OF_SLAVES-1:0]         s_arvalid;
-  logic [NO_OF_SLAVES-1:0]         s_arready;
-  logic [ADDRESS_WIDTH-1:0]           s_araddr  [NO_OF_SLAVES];
-  logic [ID_WIDTH-1:0]             s_arid    [NO_OF_SLAVES];
-  logic [7:0]                      s_arlen   [NO_OF_SLAVES];
-  logic [2:0]                      s_arsize  [NO_OF_SLAVES];
-  logic [1:0]                      s_arburst [NO_OF_SLAVES];
+                if (wr_active_master[s] != -1) begin
+                    automatic int m = wr_active_master[s];
+                    if (map_slave_addr(m_awaddr[m]) == s) begin
+                        cache_awvalid[s] = m_awvalid[m];
+                        cache_awid[s]    = {m[MASTER_BITS-1:0], m_awid[m]};
+                        cache_awaddr[s]  = m_awaddr[m];
+                        cache_awlen[s]   = m_awlen[m];
+                        cache_awsize[s]  = m_awsize[m];
+                        cache_awburst[s] = m_awburst[m];
+                        cache_awcache[s] = m_awcache[m];
+                    end
+                end
 
-  logic [NO_OF_SLAVES-1:0]         s_rready;
-  logic [NO_OF_SLAVES-1:0]         s_rvalid;
-  logic [DATA_WIDTH-1:0]           s_rdata   [NO_OF_SLAVES];
-  logic [ID_WIDTH-1:0]             s_rid     [NO_OF_SLAVES];
-  logic [1:0]                      s_rresp   [NO_OF_SLAVES];
-  logic [NO_OF_SLAVES-1:0]         s_rlast;
+                for (int m = 0; m < NO_OF_MASTERS; m++) begin
+                    if (wr_w_slave[m] != -1 && wr_w_slave[m] == s) begin
+                        cache_wvalid[s] = m_wvalid[m];
+                        cache_wdata[s]  = m_wdata[m];
+                        cache_wstrb[s]  = m_wstrb[m];
+                        cache_wlast[s]  = m_wlast[m];
+                    end
+                end
 
-  logic [NO_OF_SLAVES-1:0]         s_awvalid;
-  logic [NO_OF_SLAVES-1:0]         s_awready;
-  logic [ADDRESS_WIDTH-1:0]           s_awaddr  [NO_OF_SLAVES];
-  logic [ID_WIDTH-1:0]             s_awid    [NO_OF_SLAVES];
-  logic [7:0]                      s_awlen   [NO_OF_SLAVES];
-  logic [2:0]                      s_awsize  [NO_OF_SLAVES];
-  logic [1:0]                      s_awburst [NO_OF_SLAVES];
+                if (rd_active_master[s] != -1) begin
+                    automatic int m = rd_active_master[s];
+                    cache_arvalid[s] = m_arvalid[m];
+                    cache_arid[s]    = {m[MASTER_BITS-1:0], m_arid[m]};
+                    cache_araddr[s]  = m_araddr[m];
+                    cache_arlen[s]   = m_arlen[m];
+                    cache_arsize[s]  = m_arsize[m];
+                    cache_arburst[s] = m_arburst[m];
+                    cache_arcache[s] = m_arcache[m];
+                end
+            end
+        end
+    endgenerate
 
-  logic [NO_OF_SLAVES-1:0]         s_wvalid;
-  logic [NO_OF_SLAVES-1:0]         s_wready;
-  logic [DATA_WIDTH-1:0]           s_wdata   [NO_OF_SLAVES];
-  logic [(DATA_WIDTH/8)-1:0]       s_wstrb   [NO_OF_SLAVES];
-  logic [NO_OF_SLAVES-1:0]         s_wlast;
+    // =========================================================
+    // S2M: Route slave responses back to the correct master
+    // =========================================================
+    always_comb begin
+        logic [NO_OF_SLAVES-1:0] b_allowed;
+        logic [NO_OF_SLAVES-1:0] r_allowed;
+        b_allowed = '0;
+        r_allowed = '0;
 
-  logic [NO_OF_SLAVES-1:0]         s_bready;
-  logic [NO_OF_SLAVES-1:0]         s_bvalid;
-  logic [ID_WIDTH-1:0]             s_bid     [NO_OF_SLAVES];
-  logic [1:0]                      s_bresp   [NO_OF_SLAVES];
+        for (int m = 0; m < NO_OF_MASTERS; m++) begin
+            m_awready[m] = '0;
+            m_wready[m]  = '0;
+            m_bvalid[m]  = '0;
+            m_bresp[m]   = '0;
+            m_bid[m]     = '0;
+            m_arready[m] = '0;
+            m_rvalid[m]  = '0;
+            m_rdata[m]   = '0;
+            m_rresp[m]   = '0;
+            m_rid[m]     = '0;
+            m_rlast[m]   = '0;
+        end
 
-  //==========================================================================
-  // INTERFACE SIGNALS BETWEEN MODULES
-  //==========================================================================
+        for (int s = 0; s < NO_OF_SLAVES; s++) begin
+            cache_bready[s] = '0;
+            cache_rready[s] = '0;
+        end
 
-  // --- Read Path to Cache Interface ---
-  logic                            rd_req_valid   [NO_OF_MASTERS];
-  logic [ADDRESS_WIDTH-1:0]           rd_req_addr    [NO_OF_MASTERS];
-  logic [ID_WIDTH-1:0]             rd_req_id      [NO_OF_MASTERS];
-  logic [7:0]                      rd_req_len     [NO_OF_MASTERS];
-  logic [2:0]                      rd_req_size    [NO_OF_MASTERS];
-  logic [1:0]                      rd_req_burst   [NO_OF_MASTERS];
+        // AW/AR ready pass-through
+        for (int s = 0; s < NO_OF_SLAVES; s++) begin
+            if (wr_active_master[s] != -1)
+                m_awready[wr_active_master[s]] = cache_awready[s];
+            if (rd_active_master[s] != -1)
+                m_arready[rd_active_master[s]] = cache_arready[s];
+        end
 
-  logic                            rd_ready       [NO_OF_MASTERS];
-  logic                            rd_cache_hit   [NO_OF_MASTERS];
-  logic                            rd_cache_miss  [NO_OF_MASTERS];
-  logic [DATA_WIDTH-1:0]           rd_cache_data  [NO_OF_MASTERS];
-  logic                            rd_data_valid  [NO_OF_MASTERS];
-  logic [ID_WIDTH-1:0]             rd_data_id     [NO_OF_MASTERS];
-  logic                            rd_data_last   [NO_OF_MASTERS];
-  logic [1:0]                      rd_resp        [NO_OF_MASTERS];
+        for (int m = 0; m < NO_OF_MASTERS; m++) begin
+            if (wr_w_slave[m] != -1) begin
+                m_wready[m] = cache_wready[wr_w_slave[m]];
+            end
+        end
 
-  // --- Write Path to Cache Interface ---
-  logic                            cache_addr_valid [NO_OF_MASTERS];
-  logic [ADDRESS_WIDTH-1:0]           cache_addr       [NO_OF_MASTERS];
-  logic [ID_WIDTH-1:0]             cache_id         [NO_OF_MASTERS];
-  logic [7:0]                      cache_len        [NO_OF_MASTERS];
-  logic [2:0]                      cache_size       [NO_OF_MASTERS];
-  logic [1:0]                      cache_burst      [NO_OF_MASTERS];
+        // B routing
+        for (int s = 0; s < NO_OF_SLAVES; s++) begin
+            if (cache_bvalid[s]) begin
+                automatic logic [MASTER_BITS-1:0] master_index;
+                automatic logic [ID_WIDTH-1:0]    axi_id;
+                master_index = cache_bid[s][EXT_ID_WIDTH-1 -: MASTER_BITS];
+                axi_id       = cache_bid[s][ID_WIDTH-1:0];
 
-  logic                            cache_data_valid [NO_OF_MASTERS];
-  logic [DATA_WIDTH-1:0]           cache_data       [NO_OF_MASTERS];
-  logic [(DATA_WIDTH/8)-1:0]       cache_strb       [NO_OF_MASTERS];
-  logic                            cache_data_last  [NO_OF_MASTERS];
+                if (wr_respOrder[master_index].exists(int'(axi_id)) &&
+                    wr_respOrder[master_index][int'(axi_id)].size() > 0 &&
+                    wr_respOrder[master_index][int'(axi_id)][0] == s) begin
 
-  logic                            cache_hit        [NO_OF_MASTERS];
-  logic                            cache_miss       [NO_OF_MASTERS];
-  logic                            cache_complete   [NO_OF_MASTERS];
-  logic                            cache_resp_valid [NO_OF_MASTERS];
-  logic [1:0]                      cache_resp       [NO_OF_MASTERS];
-  logic [ID_WIDTH-1:0]             cache_resp_id    [NO_OF_MASTERS];
+                    if (!m_bvalid[master_index]) begin
+                        m_bvalid[master_index] = cache_bvalid[s];
+                        m_bresp[master_index]  = cache_bresp[s];
+                        m_bid[master_index]    = axi_id;
+                        b_allowed[s]           = 1'b1;
+                    end
+                    cache_bready[s] = m_bready[master_index];
+                end else begin
+                    cache_bready[s] = 1'b0;
+                end
+            end
+        end
 
-  //==========================================================================
-  // MODULE INSTANTIATIONS
-  //==========================================================================
+        // Ordered R channel routing
+        for (int s = 0; s < NO_OF_SLAVES; s++) begin
+            if (cache_rvalid[s]) begin
+                automatic logic [MASTER_BITS-1:0] master_index;
+                automatic logic [ID_WIDTH-1:0]    axi_id;
+                master_index = cache_rid[s][EXT_ID_WIDTH-1 -: MASTER_BITS];
+                axi_id       = cache_rid[s][ID_WIDTH-1:0];
 
-  // -------------------------------------------------------------------------
-  // READ PATH MODULE
-  // -------------------------------------------------------------------------
-  axi_read_path #(
-    .NO_OF_MASTERS  (NO_OF_MASTERS),
-    .ADDRESS_WIDTH  (ADDRESS_WIDTH),
-    .DATA_WIDTH     (DATA_WIDTH),
-    .ID_WIDTH       (ID_WIDTH),
-    .MAX_OUTSTANDING(OUTSTANDING_FIFO_DEPTH)
-  ) u_read_path (
-    .aclk           (aclk),
-    .aresetn        (aresetn),
+                if (rd_respOrder[master_index].exists(int'(axi_id)) &&
+                    rd_respOrder[master_index][int'(axi_id)].size() > 0 &&
+                    rd_respOrder[master_index][int'(axi_id)][0] == s) begin
 
-    // Master interfaces (AR + R channels)
-    .m_arvalid      (m_arvalid),
-    .m_arready      (m_arready),
-    .m_araddr       (m_araddr),
-    .m_arid         (m_arid),
-    .m_arlen        (m_arlen),
-    .m_arsize       (m_arsize),
-    .m_arburst      (m_arburst),
+                    if (m_rvalid[master_index] == 1'b0) begin
+                        m_rvalid[master_index] = cache_rvalid[s];
+                        m_rdata[master_index]  = cache_rdata[s];
+                        m_rresp[master_index]  = cache_rresp[s];
+                        m_rlast[master_index]  = cache_rlast[s];
+                        m_rid[master_index]    = axi_id;
+                        r_allowed[s]           = 1'b1;
+                    end
+                end
+            end
 
-    .m_rvalid       (m_rvalid),
-    .m_rready       (m_rready),
-    .m_rdata        (m_rdata),
-    .m_rid          (m_rid),
-    .m_rresp        (m_rresp),
-    .m_rlast        (m_rlast),
-
-    // Interface to Cache
-    .rd_req_valid   (rd_req_valid),
-    .rd_req_addr    (rd_req_addr),
-    .rd_req_id      (rd_req_id),
-    .rd_req_len     (rd_req_len),
-    .rd_req_size    (rd_req_size),
-    .rd_req_burst   (rd_req_burst),
-    .rd_data_id     (rd_data_id),
-    .rd_resp        (rd_resp),
-
-    .rd_cache_hit   (rd_cache_hit),
-    .rd_cache_miss  (rd_cache_miss),
-    .rd_cache_data  (rd_cache_data),
-    .rd_data_valid  (rd_data_valid),
-    .rd_data_last   (rd_data_last)
-  );
-
-  // -------------------------------------------------------------------------
-  // WRITE PATH MODULE
-  // -------------------------------------------------------------------------
-  axi_write_path #(
-    .NO_OF_MASTERS  (NO_OF_MASTERS),
-    .ADDRESS_WIDTH  (ADDRESS_WIDTH),
-    .DATA_WIDTH     (DATA_WIDTH),
-    .ID_WIDTH       (ID_WIDTH),
-    .MAX_OUTSTANDING(OUTSTANDING_FIFO_DEPTH)
-  ) u_write_path (
-    .aclk           (aclk),
-    .aresetn        (aresetn),
-
-    // Master interfaces (AW + W + B channels)
-    .m_awvalid      (m_awvalid),
-    .m_awready      (m_awready),
-    .m_awaddr       (m_awaddr),
-    .m_awid         (m_awid),
-    .m_awlen        (m_awlen),
-    .m_awsize       (m_awsize),
-    .m_awburst      (m_awburst),
-
-    .m_wvalid       (m_wvalid),
-    .m_wready       (m_wready),
-    .m_wdata        (m_wdata),
-    .m_wstrb        (m_wstrb),
-    .m_wlast        (m_wlast),
-
-    .m_bvalid       (m_bvalid),
-    .m_bready       (m_bready),
-    .m_bid          (m_bid),
-    .m_bresp        (m_bresp),
-
-    // Interface to Cache
-    .cache_addr_valid (cache_addr_valid),
-    .cache_addr       (cache_addr),
-    .cache_id         (cache_id),
-    .cache_len        (cache_len),
-    .cache_size       (cache_size),
-    .cache_burst      (cache_burst),
-
-    .cache_data_valid (cache_data_valid),
-    .cache_data       (cache_data),
-    .cache_strb       (cache_strb),
-    .cache_data_last  (cache_data_last),
-
-    .cache_hit        (cache_hit),
-    .cache_miss       (cache_miss),
-    .cache_complete   (cache_complete),
-    .cache_resp_valid (cache_resp_valid),
-    .cache_resp       (cache_resp),
-    .cache_resp_id    (cache_resp_id)
-  );
-
-  // -------------------------------------------------------------------------
-  // CACHE CONTROLLER MODULE
-  // -------------------------------------------------------------------------
-  axi_cache_controller #(
-      .NO_OF_MASTERS   (NO_OF_MASTERS),
-      .NO_OF_SLAVES    (NO_OF_SLAVES),
-      .ADDRESS_WIDTH   (ADDRESS_WIDTH),
-      .DATA_WIDTH      (DATA_WIDTH),
-      .ID_WIDTH        (ID_WIDTH),
-      .CACHE_LINE_SIZE (CACHE_LINE_SIZE),
-      .NUM_SETS        (NUM_SETS),
-      .ASSOCIATIVITY   (ASSOCIATIVITY),
-      .NUM_MSHR        (NUM_MSHR)
-  ) u_cache_controller (
-      .aclk            (aclk),
-      .aresetn         (aresetn),
-
-      // ---------------- Read Interface ----------------
-      .rd_req_valid    (rd_req_valid),
-      .rd_req_addr     (rd_req_addr),
-      .rd_req_id       (rd_req_id),
-      .rd_req_len      (rd_req_len),
-      .rd_req_size     (rd_req_size),
-      .rd_req_burst    (rd_req_burst),
-
-      .rd_ready        (rd_ready),
-      .rd_cache_hit    (rd_cache_hit),
-      .rd_cache_miss   (rd_cache_miss),
-      .rd_cache_data   (rd_cache_data),
-      .rd_data_valid   (rd_data_valid),
-      .rd_data_id      (rd_data_id),
-      .rd_data_last    (rd_data_last),
-      .rd_resp         (rd_resp),
-
-      // ---------------- Write Interface ----------------
-      .wr_req_valid    (cache_addr_valid),
-      .wr_req_addr     (cache_addr),
-      .wr_req_id       (cache_id),
-      .wr_req_len      (cache_len),
-      .wr_req_size     (cache_size),
-      .wr_req_burst    (cache_burst),
-
-      .wr_data_valid   (cache_data_valid),
-      .wr_data         (cache_data),
-      .wr_strb         (cache_strb),
-      .wr_data_last    (cache_data_last),
-
-      .wr_req_ready    (),  // Not used
-      .wr_cache_hit    (cache_hit),
-      .wr_cache_miss   (cache_miss),
-      .wr_complete     (cache_complete),
-      .wr_resp_valid   (cache_resp_valid),
-      .wr_resp         (cache_resp),
-
-      // ---------------- AXI Slave Interface ----------------
-      .s_arvalid       (s_arvalid),
-      .s_arready       (s_arready),
-      .s_araddr        (s_araddr),
-      .s_arid          (s_arid),
-      .s_arlen         (s_arlen),
-      .s_arsize        (s_arsize),
-      .s_arburst       (s_arburst),
-
-      .s_rvalid        (s_rvalid),
-      .s_rready        (s_rready),
-      .s_rdata         (s_rdata),
-      .s_rid           (s_rid),
-      .s_rresp         (s_rresp),
-      .s_rlast         (s_rlast),
-
-      .s_awvalid       (s_awvalid),
-      .s_awready       (s_awready),
-      .s_awaddr        (s_awaddr),
-      .s_awid          (s_awid),
-      .s_awlen         (s_awlen),
-      .s_awsize        (s_awsize),
-      .s_awburst       (s_awburst),
-
-      .s_wvalid        (s_wvalid),
-      .s_wready        (s_wready),
-      .s_wdata         (s_wdata),
-      .s_wstrb         (s_wstrb),
-      .s_wlast         (s_wlast),
-
-      .s_bvalid        (s_bvalid),
-      .s_bready        (s_bready),
-      .s_bresp         (s_bresp)
-  );
-
-  //==========================================================================
-  // CONNECT INTERNAL SIGNALS TO INTERFACE PORTS
-  //==========================================================================
-
-  genvar m, s;
-
-  // Connect master interfaces
-  generate
-    for (m = 0; m < NO_OF_MASTERS; m++) begin : G_MASTER_CONNECT
-      // Read address channel
-      assign m_arvalid[m] = master_if[m].arvalid;
-      assign master_if[m].arready = m_arready[m];
-      assign m_araddr[m] = master_if[m].araddr;
-      assign m_arid[m] = master_if[m].arid;
-      assign m_arlen[m] = master_if[m].arlen;
-      assign m_arsize[m] = master_if[m].arsize;
-      assign m_arburst[m] = master_if[m].arburst;
-
-      // Read data channel
-      assign master_if[m].rvalid = m_rvalid[m];
-      assign m_rready[m] = master_if[m].rready;
-      assign master_if[m].rdata = m_rdata[m];
-      assign master_if[m].rid = m_rid[m];
-      assign master_if[m].rresp = m_rresp[m];
-      assign master_if[m].rlast = m_rlast[m];
-
-      // Write address channel
-      assign m_awvalid[m] = master_if[m].awvalid;
-      assign master_if[m].awready = m_awready[m];
-      assign m_awaddr[m] = master_if[m].awaddr;
-      assign m_awid[m] = master_if[m].awid;
-      assign m_awlen[m] = master_if[m].awlen;
-      assign m_awsize[m] = master_if[m].awsize;
-      assign m_awburst[m] = master_if[m].awburst;
-
-      // Write data channel
-      assign m_wvalid[m] = master_if[m].wvalid;
-      assign master_if[m].wready = m_wready[m];
-      assign m_wdata[m] = master_if[m].wdata;
-      assign m_wstrb[m] = master_if[m].wstrb;
-      assign m_wlast[m] = master_if[m].wlast;
-
-      // Write response channel
-      assign master_if[m].bvalid = m_bvalid[m];
-      assign m_bready[m] = master_if[m].bready;
-      assign master_if[m].bid = m_bid[m];
-      assign master_if[m].bresp = m_bresp[m];
+            if (r_allowed[s]) begin
+                automatic logic [MASTER_BITS-1:0] m_idx =
+                    cache_rid[s][EXT_ID_WIDTH-1 -: MASTER_BITS];
+                cache_rready[s] = m_rready[m_idx];
+            end
+        end
     end
-  endgenerate
 
-  // Connect slave interfaces
-  generate
-    for (s = 0; s < NO_OF_SLAVES; s++) begin : G_SLAVE_CONNECT
-      // Read address channel
-      assign slave_if[s].arvalid = s_arvalid[s];
-      assign s_arready[s] = slave_if[s].arready;
-      assign slave_if[s].araddr = s_araddr[s];
-      assign slave_if[s].arid = s_arid[s];
-      assign slave_if[s].arlen = s_arlen[s];
-      assign slave_if[s].arsize = s_arsize[s];
-      assign slave_if[s].arburst = s_arburst[s];
+    // =========================================================
+    // WRITE TRACKING LOGIC
+    // CHANGE 1: Removed rd_respOrder[m].delete() from this
+    // reset block — it was a double-driver conflict with the
+    // pop-queues always_ff below which also deletes it.
+    // =========================================================
+    always_ff @(posedge aclk or negedge aresetn) begin
+        if (!aresetn) begin
+            for (int m = 0; m < NO_OF_MASTERS; m++) begin
+                master_aw_order[m].delete();
+                // rd_respOrder NOT deleted here — owned by pop-queues block
+                wr_w_slave[m] = -1;
+            end
+        end else begin
 
-      // Read data channel
-      assign s_rvalid[s] = slave_if[s].rvalid;
-      assign slave_if[s].rready = s_rready[s];
-      assign s_rdata[s] = slave_if[s].rdata;
-      assign s_rid[s] = slave_if[s].rid;
-      assign s_rresp[s] = slave_if[s].rresp;
-      assign s_rlast[s] = slave_if[s].rlast;
+            // Track AW handshakes
+            for (int m = 0; m < NO_OF_MASTERS; m++) begin
+                if (m_awvalid[m] && m_awready[m]) begin
+                    int s;
+                    s = map_slave_addr(m_awaddr[m]);
+                    master_aw_order[m].push_back(s);
+                    wr_respOrder[m][int'(m_awid[m])].push_back(s);
+                    wr_w_slave[m] = master_aw_order[m][0];
+                end
+            end
 
-      // Write address channel
-      assign slave_if[s].awvalid = s_awvalid[s];
-      assign s_awready[s] = slave_if[s].awready;
-      assign slave_if[s].awaddr = s_awaddr[s];
-      assign slave_if[s].awid = s_awid[s];
-      assign slave_if[s].awlen = s_awlen[s];
-      assign slave_if[s].awsize = s_awsize[s];
-      assign slave_if[s].awburst = s_awburst[s];
+            // Read response tracking
+            for (int m = 0; m < NO_OF_MASTERS; m++) begin
+                if (m_arvalid[m] && m_arready[m]) begin
+                    automatic int s = map_slave_addr(m_araddr[m]);
+                    rd_respOrder[m][int'(m_arid[m])].push_back(s);
+                end
+            end
 
-      // Write data channel
-      assign slave_if[s].wvalid = s_wvalid[s];
-      assign s_wready[s] = slave_if[s].wready;
-      assign slave_if[s].wdata = s_wdata[s];
-      assign slave_if[s].wstrb = s_wstrb[s];
-      assign slave_if[s].wlast = s_wlast[s];
+            // Advance after WLAST
+            for (int m = 0; m < NO_OF_MASTERS; m++) begin
+                if (m_wvalid[m] && m_wready[m] && m_wlast[m]) begin
+                    if (master_aw_order[m].size() > 0)
+                        void'(master_aw_order[m].pop_front());
+                    if (master_aw_order[m].size() > 0)
+                        wr_w_slave[m] = master_aw_order[m][0];
+                    else
+                        wr_w_slave[m] = -1;
+                end
+            end
 
-      // Write response channel
-      assign s_bvalid[s] = slave_if[s].bvalid;
-      assign slave_if[s].bready = s_bready[s];
-      assign s_bid[s] = slave_if[s].bid;
-      assign s_bresp[s] = slave_if[s].bresp;
+        end
     end
-  endgenerate
+
+    // =========================================================
+    // WRITE ARBITRATION LOGIC
+    // CHANGE 2: Added wr_just_released 1-cycle cooldown.
+    // Prevents select_master() from seeing the old m_awvalid
+    // (still high at handshake posedge) and granting the same
+    // master to a second slave before it deasserts awvalid.
+    // =========================================================
+    always_ff @(posedge aclk or negedge aresetn) begin
+        if (!aresetn) begin
+            for (int s = 0; s < NO_OF_SLAVES; s++) begin
+                wr_active_master[s]  = -1;
+                wr_prev_grant[s]     = -1;
+                wr_just_released[s]  = 1'b0;
+            end
+        end else begin
+            for (int s = 0; s < NO_OF_SLAVES; s++) begin
+
+                wr_just_released[s] = 1'b0;  // default: clear each cycle
+
+                if (wr_active_master[s] == -1 && !wr_just_released[s]) begin
+                    int next;
+                    next = select_master(s, 1);
+                    if (next != -1) begin
+                        wr_active_master[s] = next;
+                        wr_prev_grant[s]    = next;
+                    end
+                end
+                else if (wr_active_master[s] != -1 &&
+                         m_awvalid[wr_active_master[s]] &&
+                         m_awready[wr_active_master[s]]) begin
+                    wr_active_master[s] = -1;
+                    wr_just_released[s] = 1'b1;  // block re-grant for 1 cycle
+                end
+
+            end
+        end
+    end
+
+    // =========================================================
+    // READ ARBITRATION LOGIC
+    // CHANGE 3: Added rd_just_released 1-cycle cooldown.
+    // Same fix as CHANGE 2, applied to the AR channel.
+    // Prevents select_master() from matching the old m_araddr
+    // (still valid at handshake posedge) and granting the wrong
+    // slave to the next AR transaction.
+    // =========================================================
+    always_ff @(posedge aclk or negedge aresetn) begin
+        if (!aresetn) begin
+            for (int s = 0; s < NO_OF_SLAVES; s++) begin
+                rd_active_master[s]  = -1;
+                rd_prev_grant[s]     = -1;
+                rd_just_released[s]  = 1'b0;
+            end
+        end else begin
+            for (int s = 0; s < NO_OF_SLAVES; s++) begin
+
+                rd_just_released[s] = 1'b0;  // default: clear each cycle
+
+                if (rd_active_master[s] == -1 && !rd_just_released[s]) begin
+                    int next;
+                    next = select_master(s, 0);
+                    if (next != -1) begin
+                        rd_active_master[s] = next;
+                        rd_prev_grant[s]    = next;
+                    end
+                end
+                else if (rd_active_master[s] != -1 &&
+                         m_arvalid[rd_active_master[s]] &&
+                         m_arready[rd_active_master[s]]) begin
+                    rd_active_master[s] = -1;
+                    rd_just_released[s] = 1'b1;  // block re-grant for 1 cycle
+                end
+
+            end
+        end
+    end
+
+    // =========================================================
+    // SEQUENTIAL: Pop B/R response queues on handshake
+    // rd_respOrder and wr_respOrder both owned here exclusively
+    // =========================================================
+    always_ff @(posedge aclk or negedge aresetn) begin
+        if (!aresetn) begin
+            for (int m = 0; m < NO_OF_MASTERS; m++) begin
+                wr_respOrder[m].delete();
+                rd_respOrder[m].delete();
+            end
+        end else begin
+            for (int m = 0; m < NO_OF_MASTERS; m++) begin
+                if (m_bvalid[m] && m_bready[m]) begin
+                    automatic logic [ID_WIDTH-1:0] bid = m_bid[m];
+                    if (wr_respOrder[m].exists(int'(bid)) &&
+                        wr_respOrder[m][int'(bid)].size() > 0)
+                        void'(wr_respOrder[m][int'(bid)].pop_front());
+                end
+            end
+            for (int m = 0; m < NO_OF_MASTERS; m++) begin
+                if (m_rvalid[m] && m_rready[m] && m_rlast[m]) begin
+                    automatic logic [ID_WIDTH-1:0] rid = m_rid[m];
+                    if (rd_respOrder[m].exists(int'(rid)) &&
+                        rd_respOrder[m][int'(rid)].size() > 0)
+                        void'(rd_respOrder[m][int'(rid)].pop_front());
+                end
+            end
+        end
+    end
+
+    // =========================================================
+    // Address decode
+    // =========================================================
+    function automatic logic [$clog2(NO_OF_SLAVES):0] map_slave_addr(
+        logic [ADDR_WIDTH-1:0] addr_in
+    );
+        for (int i = 0; i < NO_OF_SLAVES; i++) begin
+            if (addr_in >= ADDR_WIDTH'(i * (1 << SLAVE_MEM_SIZE)) &&
+                addr_in <  ADDR_WIDTH'((i+1) * (1 << SLAVE_MEM_SIZE)))
+                return i;
+        end
+        return '1;
+    endfunction
+
+    // =========================================================
+    // Arbitration function
+    // =========================================================
+    function automatic int select_master(int targetSlave, int isWrite);
+        logic localWriteReq [NO_OF_MASTERS];
+        logic localReadReq  [NO_OF_MASTERS];
+        int selectedMaster = -1;
+        int highestQos     = -1;
+        int equal_qos_cnt  =  0;
+        bit firstReqSeen   =  0;
+
+        if (isWrite == 1) begin
+            for (int m = 0; m < NO_OF_MASTERS; m++)
+                localWriteReq[m] = m_awvalid[m] ?
+                    (map_slave_addr(m_awaddr[m]) == ($clog2(NO_OF_SLAVES)+1)'(targetSlave)) : 0;
+
+            for (int m = 0; m < NO_OF_MASTERS; m++) begin
+                if (localWriteReq[m]) begin
+                    if (!firstReqSeen) begin
+                        highestQos = int'(m_awqos[m]); selectedMaster = m; firstReqSeen = 1;
+                    end else if (int'(m_awqos[m]) > highestQos) begin
+                        highestQos = int'(m_awqos[m]); selectedMaster = m;
+                    end
+                end
+            end
+            if (!firstReqSeen) return -1;
+
+            equal_qos_cnt = 0;
+            for (int m = 0; m < NO_OF_MASTERS; m++)
+                if (localWriteReq[m] && int'(m_awqos[m]) == highestQos) equal_qos_cnt++;
+            if (equal_qos_cnt == 1) return selectedMaster;
+
+            for (int i = 1; i <= NO_OF_MASTERS; i++) begin
+                automatic int nextIdx = (wr_prev_grant[targetSlave] + i) % NO_OF_MASTERS;
+                if (localWriteReq[nextIdx] && int'(m_awqos[nextIdx]) == highestQos)
+                    return nextIdx;
+            end
+            return selectedMaster;
+
+        end else begin
+            for (int m = 0; m < NO_OF_MASTERS; m++)
+                localReadReq[m] = m_arvalid[m] ?
+                    (map_slave_addr(m_araddr[m]) == ($clog2(NO_OF_SLAVES)+1)'(targetSlave)) : 0;
+
+            firstReqSeen = 0;
+            for (int m = 0; m < NO_OF_MASTERS; m++) begin
+                if (localReadReq[m]) begin
+                    if (!firstReqSeen) begin
+                        highestQos = int'(m_arqos[m]); selectedMaster = m; firstReqSeen = 1;
+                    end else if (int'(m_arqos[m]) > highestQos) begin
+                        highestQos = int'(m_arqos[m]); selectedMaster = m;
+                    end
+                end
+            end
+            if (!firstReqSeen) return -1;
+
+            equal_qos_cnt = 0;
+            for (int m = 0; m < NO_OF_MASTERS; m++)
+                if (localReadReq[m] && int'(m_arqos[m]) == highestQos) equal_qos_cnt++;
+            if (equal_qos_cnt == 1) return selectedMaster;
+
+            for (int i = 0; i < NO_OF_MASTERS; i++) begin
+                automatic int nextIdx = (rd_prev_grant[targetSlave] + i) % NO_OF_MASTERS;
+                if (localReadReq[nextIdx] && int'(m_arqos[nextIdx]) == highestQos)
+                    return nextIdx;
+            end
+            return selectedMaster;
+        end
+    endfunction
+
 endmodule
