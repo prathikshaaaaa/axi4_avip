@@ -1,3 +1,7 @@
+
+`ifndef AXI4_SLAVE_WRITEBACK_SEQ_INCLUDED_
+`define  AXI4_SLAVE_WRITEBACK_SEQ_INCLUDED_
+
 class axi4_slave_writeback_seq extends axi4_slave_bk_base_seq;
   `uvm_object_utils(axi4_slave_writeback_seq)
  
