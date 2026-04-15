@@ -96,7 +96,7 @@ typedef struct {
 
    bit [L3_INDEX_BITS-1:0] index;
    bit [L3_TAG_BITS-1:0]   tag;
-   bit [ADDR_WIDTH-1:0]    line_addr;
+  bit [ADDRESS_WIDTH-1:0]    line_addr;
 
    int way;
 
@@ -121,7 +121,7 @@ typedef struct {
 
    // ---------------- Write Data Buffer 
   logic [DATA_WIDTH-1:0] wdata_buf[WORDS_PER_LINE];
-   logic [STRB_WIDTH-1:0] wstrb_buf[WORDS_PER_LINE];
+  logic [STROBE_WIDTH-1:0] wstrb_buf[WORDS_PER_LINE];
    int wbeat_count;
 
    axi_cache_policy_s policy;
@@ -140,7 +140,7 @@ typedef struct {
   int scb_write_owner_set;
   int scb_write_owner_way;
   bit scb_write_owner_is_hit;
-  bit [ADDR_WIDTH-1:0] scb_write_line;
+  bit [ADDRESS_WIDTH-1:0] scb_write_line;
 
   //Performance counter tracking
   bit wr_hit_counted[NO_OF_MASTERS];
@@ -166,7 +166,7 @@ typedef struct {
     bit expected_l3_hit;
     time addr_request_time;
     bit prediction_made;
-    bit [ADDR_WIDTH-1:0] line_addr;
+    bit [ADDRESS_WIDTH-1:0] line_addr;
   } pending_read_transaction_t;
 
   pending_write_transaction_t pending_write_txns[int][bit[ID_WIDTH-1:0]][$];
@@ -298,8 +298,8 @@ typedef struct {
   // SLAVE ADDRESS CONFIGURATION
   //=============================================================================
   
-  bit[ADDR_WIDTH-1:0] SLAVE_START_ADDR[];
-  bit[ADDR_WIDTH-1:0] SLAVE_END_ADDR[];
+  bit[ADDRESS_WIDTH-1:0] SLAVE_START_ADDR[];
+  bit[ADDRESS_WIDTH-1:0] SLAVE_END_ADDR[];
 
   int nonExistantMemRead;
   
@@ -322,14 +322,14 @@ typedef struct {
   extern virtual function void init_l3_cache_model();
 
   extern virtual function void l3_cache_decode_address(
-    input  bit [ADDR_WIDTH-1:0] addr,
+    input  bit [ADDRESS_WIDTH-1:0] addr,
     output bit [L3_TAG_BITS-1:0]   tag,
     output bit [L3_INDEX_BITS-1:0] index,
     output bit [L3_OFFSET_BITS-1:0] offset
   );
 
   extern virtual function bit l3_cache_lookup(
-    input  bit [ADDR_WIDTH-1:0] addr,
+    input  bit [ADDRESS_WIDTH-1:0] addr,
     input  axi_cache_policy_s   policy,
     output int                  hit_way,
     output l3_state_e           state
@@ -356,14 +356,14 @@ typedef struct {
   );
 
   extern virtual function int scb_allocate_mshr(
-    input bit [ADDR_WIDTH-1:0] addr,
+    input bit [ADDRESS_WIDTH-1:0] addr,
     input int master,
     input int txn_id,
     input bit is_write
   );
   
   extern virtual function int scb_find_existing_mshr(
-    input bit [ADDR_WIDTH-1:0] line_addr
+    input bit [ADDRESS_WIDTH-1:0] line_addr
   );
   
   extern virtual function void scb_update_mshr_beat(
@@ -401,7 +401,7 @@ typedef struct {
   );
   
   extern virtual function bit[ADDR_WIDTH-1:0] get_line_base_addr(
-    bit[ADDR_WIDTH-1:0] addr
+    bit[ADDRESS_WIDTH-1:0] addr
   );
   
   // NEW: Helper functions for fixes
