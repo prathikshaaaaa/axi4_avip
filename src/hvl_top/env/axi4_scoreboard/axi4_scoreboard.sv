@@ -1,4 +1,5 @@
 import uvm_pkg::*;
+import axi4_globals_pkg::*;
 `include "uvm_macros.svh"
 
 class axi4_scoreboard extends uvm_scoreboard;
