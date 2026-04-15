@@ -602,7 +602,7 @@ endfunction : axi_decode_cache_policy
 // Function: l3_cache_decode_address
 //=============================================================================
 function void axi4_scoreboard::l3_cache_decode_address(
-  input  bit [ADDR_WIDTH-1:0] addr,
+  input  bit [ADDRESS_WIDTH-1:0] addr,
   output bit [L3_TAG_BITS-1:0] tag,
   output bit [L3_INDEX_BITS-1:0] index,
   output bit [L3_OFFSET_BITS-1:0] offset);
@@ -620,7 +620,7 @@ endfunction : l3_cache_decode_address
 //   - Lines being written by locked master (FIX #5)
 //=============================================================================
 function bit axi4_scoreboard::l3_cache_lookup(
-  input  bit [ADDR_WIDTH-1:0] addr,
+  input  bit [ADDRESS_WIDTH-1:0] addr,
   input  axi_cache_policy_s    policy,
   output int                   hit_way,
   output l3_state_e            state);
@@ -765,7 +765,7 @@ function void axi4_scoreboard::l3_writeback_to_memory(
   input int way
 );
 
-  bit [ADDR_WIDTH-1:0] wb_addr;
+  bit [ADDRESS_WIDTH-1:0] wb_addr;
   int                  slave_idx;
   int                  word_i;
   int                  lane;
@@ -850,18 +850,18 @@ endfunction : line_has_active_mshr
 //=============================================================================
 // Function: get_line_base_addr
 //=============================================================================
-function bit[ADDR_WIDTH-1:0] axi4_scoreboard::get_line_base_addr(
-  bit[ADDR_WIDTH-1:0] addr);
-  return {addr[ADDR_WIDTH-1:L3_OFFSET_BITS], {L3_OFFSET_BITS{1'b0}}};
+function bit[ADDRESS_WIDTH-1:0] axi4_scoreboard::get_line_base_addr(
+  bit[ADDRESS_WIDTH-1:0] addr);
+  return {addr[ADDRESS_WIDTH-1:L3_OFFSET_BITS], {L3_OFFSET_BITS{1'b0}}};
 endfunction : get_line_base_addr
 
 //=============================================================================
 // Function: scb_find_existing_mshr
 //=============================================================================
 function int axi4_scoreboard::scb_find_existing_mshr(
-    input logic [ADDR_WIDTH-1:0] addr);
+    input logic [ADDRESS_WIDTH-1:0] addr);
 
-   logic [ADDR_WIDTH-1:0] line_base;
+   logic [ADDRESS_WIDTH-1:0] line_base;
    line_base = get_line_base_addr(addr);
 
    for(int i=0;i<MAX_MSHR;i++) begin
@@ -878,7 +878,7 @@ endfunction: scb_find_existing_mshr
 // Function: scb_allocate_mshr
 //=============================================================================
 function int axi4_scoreboard::scb_allocate_mshr(
-    input logic [ADDR_WIDTH-1:0] addr,
+    input logic [ADDRESS_WIDTH-1:0] addr,
     input int                    master,
     input int                    txn_id,
     input bit                    is_write);
@@ -889,7 +889,7 @@ function int axi4_scoreboard::scb_allocate_mshr(
   bit [L3_TAG_BITS-1:0]    tag;
   bit [L3_INDEX_BITS-1:0]  index;
   bit [L3_OFFSET_BITS-1:0] offset;
-  logic [ADDR_WIDTH-1:0]   line_base;
+  logic [ADDRESS_WIDTH-1:0]   line_base;
 
   idx = scb_find_existing_mshr(addr);
   if(idx != -1) begin
@@ -1379,7 +1379,7 @@ endfunction : connect_phase
 //=============================================================================
 // Function: get_slave_index
 //=============================================================================
-function int axi4_scoreboard::get_slave_index(logic[ADDR_WIDTH-1:0] addr);
+function int axi4_scoreboard::get_slave_index(logic[ADDRESS_WIDTH-1:0] addr);
   for(int i = 0; i < NO_OF_SLAVES; i++) begin
     if(addr >= SLAVE_START_ADDR[i] && addr <= SLAVE_END_ADDR[i]) begin
       return i;
@@ -1772,7 +1772,7 @@ foreach(axi4_slave_write_address_analysis_fifo[i]) begin
           //    l3_writeback_to_memory() preserved tag even after
           //    moving state to L3_CLEAN.
           //=============================================================
-          bit [ADDR_WIDTH-1:0] expected_wb_addr;
+          bit [ADDRESS_WIDTH-1:0] expected_wb_addr;
           expected_wb_addr = {
             l3_cache[scb_mshr[wb_idx].index][scb_mshr[wb_idx].way].tag,
             scb_mshr[wb_idx].index[L3_INDEX_BITS-1:0],
@@ -2016,7 +2016,7 @@ foreach(axi4_slave_write_data_analysis_fifo[i]) begin
       // 4. RECONSTRUCT WB BASE ADDRESS AND COMPUTE BEAT OFFSET
       //=================================================================
       begin : WB_DATA_CHECK
-        bit [ADDR_WIDTH-1:0] wb_base_addr;
+        bit [ADDRESS_WIDTH-1:0] wb_base_addr;
         int                  beat_num;
         longint              beat_base;
 
@@ -2309,7 +2309,7 @@ foreach(axi4_slave_write_response_analysis_fifo[i]) begin
 
           end else begin
             // ERROR: writeback failed -> Restore L3_DIRTY and undo Reference Data
-            bit [ADDR_WIDTH-1:0] wb_addr;
+            bit [ADDRESS_WIDTH-1:0] wb_addr;
 
 
 
@@ -2748,7 +2748,7 @@ end
     forever begin
       axi4_slave_tx        s_read_data_tx;
       int                  mshr_id;
-      bit [ADDR_WIDTH-1:0] line_base;
+      bit [ADDRESS_WIDTH-1:0] line_base;
       int                  index;
       int                  way;
       bit [1:0]            snap_resp_code;
@@ -2969,7 +2969,7 @@ task axi4_scoreboard::axi4_write_address_comparison(
   // ------------------------------------------------------------------
   begin
     axi_cache_policy_s policy;
-    bit [ADDR_WIDTH-1:0] expected_addr;
+    bit [ADDRESS_WIDTH-1:0] expected_addr;
 
     policy = axi_decode_cache_policy(exp_tx.awcache, 0 /*is_read=0*/);
 
@@ -3379,7 +3379,7 @@ task axi4_scoreboard::axi4_read_address_comparison(
   // R15 — ARADDR
   // ------------------------------------------------------------------
   begin
-    bit [ADDR_WIDTH-1:0] expected_addr;
+    bit [ADDRESS_WIDTH-1:0] expected_addr;
 
     if(policy.cacheable && !policy.device)
       expected_addr = get_line_base_addr(exp_tx.araddr);  // refill
