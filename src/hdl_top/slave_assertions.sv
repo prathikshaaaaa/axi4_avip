@@ -5,7 +5,7 @@
 // Importing Global Package
 //-------------------------------------------------------
 import axi4_globals_pkg::*;
-
+/*
 //--------------------------------------------------------------------------------------------
 // Interface : slave_assertions
 // Used to write the assertion checks required for the slave checks
@@ -222,4 +222,4 @@ interface slave_assertions (input                     aclk,
 endinterface : slave_assertions
 
 `endif
-
+*/

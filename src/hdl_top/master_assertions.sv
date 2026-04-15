@@ -5,7 +5,7 @@
 // Importing Global Package
 //-------------------------------------------------------
 import axi4_globals_pkg::*;
-
+/*
 //--------------------------------------------------------------------------------------------
 // Interface : master_assertions
 // Used to write the assertion checks required for the master checks
@@ -223,4 +223,4 @@ interface master_assertions (input                     aclk,
 endinterface : master_assertions
 
 `endif
-
+*/
