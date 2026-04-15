@@ -1,6 +1,6 @@
 
 
-function axi4_scorebaord::new(string name = "axi4_scoreboard", 
+function axi4_scoreboard::new(string name = "axi4_scoreboard", 
                                        uvm_component parent = null);
   super.new(name, parent);
 endfunction : new
@@ -8,7 +8,7 @@ endfunction : new
 //=============================================================================
 // Function: build_phase
 //=============================================================================
-function void axi4_scorebaord::build_phase(uvm_phase phase);
+function void axi4_scoreboard::build_phase(uvm_phase phase);
   super.build_phase(phase);
   
   if(!uvm_config_db#(axi4_env_config)::get(this, "", "axi4_env_config", axi4_env_cfg_h)) begin
@@ -106,6 +106,6 @@ endfunction : build_phase
 //=============================================================================
 // Function: connect_phase
 //=============================================================================
-function void axi4_scorebaord::connect_phase(uvm_phase phase);
+function void axi4_scoreboard::connect_phase(uvm_phase phase);
   super.connect_phase(phase);
 endfunction : connect_phase
