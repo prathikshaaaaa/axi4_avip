@@ -8,7 +8,7 @@ endfunction : new
 //=============================================================================
 // Function: build_phase
 //=============================================================================
-function void axi4_scoreboard::build_phase(uvm_phase phase);
+function void build_phase(uvm_phase phase);
   super.build_phase(phase);
   
   if(!uvm_config_db#(axi4_env_config)::get(this, "", "axi4_env_config", axi4_env_cfg_h)) begin
@@ -106,6 +106,6 @@ endfunction : build_phase
 //=============================================================================
 // Function: connect_phase
 //=============================================================================
-function void axi4_scoreboard::connect_phase(uvm_phase phase);
+function void connect_phase(uvm_phase phase);
   super.connect_phase(phase);
 endfunction : connect_phase
