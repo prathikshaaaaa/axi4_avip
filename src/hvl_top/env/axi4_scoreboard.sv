@@ -595,7 +595,7 @@ function axi_cache_policy_s axi4_scoreboard::axi_decode_cache_policy(
 
   return p;
 
-endfunction :axi_decode_cache_policy
+endfunction 
 
 
 //=============================================================================
