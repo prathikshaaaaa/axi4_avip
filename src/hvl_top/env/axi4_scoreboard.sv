@@ -548,7 +548,7 @@ endfunction : build_phase
 //=============================================================================
 // Function: axi_decode_cache_policy
 //=============================================================================
-function axi_cache_policy_s axi4_scoreboard::axi_decode_cache_policy(
+function axi4_scoreboard::axi_cache_policy_s axi4_scoreboard::axi_decode_cache_policy(
   bit [3:0] axcache,
   bit is_read
 );
