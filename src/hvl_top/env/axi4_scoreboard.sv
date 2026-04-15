@@ -400,7 +400,7 @@ typedef struct {
     input axi4_master_tx m_tx
   );
   
-  extern virtual function bit[ADDR_WIDTH-1:0] get_line_base_addr(
+    extern virtual function bit[ADDRESS_WIDTH-1:0] get_line_base_addr(
     bit[ADDRESS_WIDTH-1:0] addr
   );
   
