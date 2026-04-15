@@ -1,6 +1,14 @@
 import uvm_pkg::*;
 import axi4_globals_pkg::*;
 `include "uvm_macros.svh"
+//=============================================================================
+// IMPLEMENTATION — split across included files
+//=============================================================================
+
+`include "axi4_scoreboard_phases.sv"
+`include "axi4_scoreboard_cache.sv"
+`include "axi4_scoreboard_ref_model.sv"
+`include "axi4_scoreboard_run.sv"
 
 class axi4_scoreboard extends uvm_scoreboard;
   `uvm_component_utils(axi4_scoreboard)
@@ -428,11 +436,3 @@ typedef struct {
   extern virtual task automatic axi4_read_data_comparison(input axi4_master_tx exp_tx, input axi4_master_tx act_tx, input int master_id, input int slave_id, input bit expected_hit);
 endclass : axi4_scoreboard
 
-//=============================================================================
-// IMPLEMENTATION — split across included files
-//=============================================================================
-
-`include "axi4_scoreboard_phases.sv"
-`include "axi4_scoreboard_cache.sv"
-`include "axi4_scoreboard_ref_model.sv"
-`include "axi4_scoreboard_run.sv"
