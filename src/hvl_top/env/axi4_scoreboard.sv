@@ -416,7 +416,7 @@ typedef struct {
   );
   
   // Reference model and utility functions
-  extern virtual function int get_slave_index(logic[ADDR_WIDTH-1:0] addr);
+    extern virtual function int get_slave_index(logic[ADDRESS_WIDTH-1:0] addr);
   extern virtual function void ref_model_write(axi4_master_tx m_tx, int slave_idx, int master_idx);
   extern virtual function void ref_model_read(axi4_master_tx m_tx, int slave_idx);
   
