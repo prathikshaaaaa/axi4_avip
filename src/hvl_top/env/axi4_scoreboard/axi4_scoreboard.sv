@@ -114,7 +114,7 @@ typedef struct {
 
    // ---------------- Write Data Buffer 
   logic [DATA_WIDTH-1:0] wdata_buf[WORDS_PER_LINE];
-  logic [STRB_WIDTH-1:0] wstrb_buf[WORDS_PER_LINE];
+  logic [STROBE_WIDTH-1:0] wstrb_buf[WORDS_PER_LINE];
    int wbeat_count;
 
    axi_cache_policy_s policy;
