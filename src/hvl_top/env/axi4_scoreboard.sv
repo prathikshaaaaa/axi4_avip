@@ -6,8 +6,9 @@ class axi4_scoreboard extends uvm_scoreboard;
 
   axi4_master_tx axi4_master_tx_h;
   axi4_slave_tx axi4_slave_tx_h;
-
-  //=============================================================================
+  bit[61:0]master_aw_queue[int][$];
+  int wb_beat_tracker[int];
+   //=============================================================================
   // L3 CACHE CONFIGURATION (SHARED CACHE)
   //=============================================================================
   localparam int L3_CACHE_SIZE_BYTES       = 4096; //16*4*64
@@ -165,8 +166,8 @@ typedef struct {
     bit [ADDRESS_WIDTH-1:0] line_addr;
   } pending_read_transaction_t;
 
-  pending_write_transaction_t pending_write_txns[int][bit[ID_WIDTH-1:0]][$];
-  pending_read_transaction_t pending_read_txns[int][bit[ID_WIDTH-1:0]][$];
+  pending_write_transaction_t pending_write_txns[int][bit[ID_WIDTH-1:0]][$][$];
+  pending_read_transaction_t pending_read_txns[int][bit[ID_WIDTH-1:0]][$][$];
 
   //=============================================================================
   // REFERENCE MEMORY (MAIN DRAM)
@@ -315,7 +316,6 @@ typedef struct {
   extern virtual function void report_phase(uvm_phase phase);
   
   // L3 cache functions
-  extern virtual function void init_l3_cache_model();
 
   extern virtual function void l3_cache_decode_address(
     input  bit [ADDRESS_WIDTH-1:0] addr,
@@ -359,7 +359,7 @@ typedef struct {
   );
   
   extern virtual function int scb_find_existing_mshr(
-    input bit [ADDRESS_WIDTH-1:0] line_addr
+    input bit [ADDRESS_WIDTH-1:0] addr
   );
   
   extern virtual function void scb_update_mshr_beat(
@@ -427,11 +427,11 @@ typedef struct {
   );
   
   // Comparison tasks
-  extern virtual task axi4_write_address_comparison(input axi4_master_tx exp_tx, input axi4_slave_tx act_tx, input int master_id, input int slave_id);
-  extern virtual task axi4_write_data_comparison(input axi4_master_tx exp_tx, input axi4_slave_tx act_tx, input int master_id, input int slave_id);
-  extern virtual task axi4_write_response_comparison(input axi4_master_tx exp_tx, input axi4_slave_tx act_tx, input int master_id, input int slave_id);
-  extern virtual task axi4_read_address_comparison(input axi4_master_tx exp_tx, input axi4_slave_tx act_tx, input int master_id, input int slave_id);
-  extern virtual task automatic axi4_read_data_comparison(input axi4_master_tx exp_tx, input axi4_master_tx act_tx, input int master_id, input int slave_id, input bit expected_hit);
+ // extern virtual task axi4_write_address_comparison(input axi4_master_tx exp_tx, input axi4_slave_tx act_tx, input int master_id, input int slave_id);
+ // extern virtual task axi4_write_data_comparison(input axi4_master_tx exp_tx, input axi4_slave_tx act_tx, input int master_id, input int slave_id);
+ // extern virtual task axi4_write_response_comparison(input axi4_master_tx exp_tx, input axi4_slave_tx act_tx, input int master_id, input int slave_id);
+ // extern virtual task axi4_read_address_comparison(input axi4_master_tx exp_tx, input axi4_slave_tx act_tx, input int master_id, input int slave_id);
+ // extern virtual task automatic axi4_read_data_comparison(input axi4_master_tx exp_tx, input axi4_master_tx act_tx, input int master_id, input int slave_id, input bit expected_hit);
 endclass : axi4_scoreboard
 
 //=============================================================================
@@ -454,7 +454,6 @@ function void axi4_scoreboard::build_phase(uvm_phase phase);
   end
   
   // Initialize L3 cache model
-  init_l3_cache_model();
   
   // Allocate arrays for masters
   axi4_master_read_address_analysis_fifo = new[NO_OF_MASTERS];
@@ -470,10 +469,6 @@ function void axi4_scoreboard::build_phase(uvm_phase phase);
   axi4_master_tx_rdata_count = new[NO_OF_MASTERS];
   axi4_master_tx_rresp_count = new[NO_OF_MASTERS];
   
-  l3_read_hits_per_master = new[NO_OF_MASTERS];
-  l3_read_misses_per_master = new[NO_OF_MASTERS];
-  l3_write_hits_per_master = new[NO_OF_MASTERS];
-  l3_write_misses_per_master = new[NO_OF_MASTERS];
   
   foreach(l3_read_hits_per_master[i]) begin
     l3_read_hits_per_master[i] = 0;
@@ -681,7 +676,7 @@ endfunction : l3_cache_lookup
 //Lower number = OLDER
 //Higher number = NEWER
 //=============================================================================
-function int axi4_scoreboard::l3_find_lru_way(int set_index);
+function int unsigned axi4_scoreboard::l3_find_lru_way(int unsigned set_index);
   int victim_way = -1;
   int max_lru    = -1;
 
@@ -716,7 +711,7 @@ endfunction : l3_find_lru_way
 //=============================================================================
 // Function: l3_update_lru (matches RTL age-based LRU)
 //=============================================================================
-function void axi4_scoreboard::l3_update_lru(int set_index, int way);
+function void axi4_scoreboard::l3_update_lru(int unsigned set_index, int unsigned way);
 
   // Don't update invalid or filling lines
   if(l3_cache[set_index][way].state == L3_INVALID ||
@@ -808,11 +803,7 @@ function void axi4_scoreboard::l3_writeback_to_memory(
 
   l3_writebacks_to_memory++;
 
-  `uvm_info("L3_WB_FLUSHED",
-    $sformatf("Dirty line flushed to refMem: Set=%0d Way=%0d Addr=0x%0h "
-              "Slave=%0d — awaiting BRESP",
-              set_index, way, wb_addr, slave_idx),
-    UVM_MEDIUM)
+  `uvm_info("L3_WB_FLUSHED",$sformatf("Dirty line flushed to refMem: Set=%0d Way=%0d Addr=0x%0h Slave=%0d — awaiting BRESP",set_index, way, wb_addr, slave_idx),UVM_MEDIUM)
 
 endfunction : l3_writeback_to_memory
 
@@ -855,7 +846,7 @@ endfunction : get_line_base_addr
 // Function: scb_find_existing_mshr
 //=============================================================================
 function int axi4_scoreboard::scb_find_existing_mshr(
-    input logic [ADDRESS_WIDTH-1:0] addr);
+    input bit [ADDRESS_WIDTH-1:0] addr);
 
    logic [ADDRESS_WIDTH-1:0] line_base;
    line_base = get_line_base_addr(addr);
@@ -874,7 +865,7 @@ endfunction: scb_find_existing_mshr
 // Function: scb_allocate_mshr
 //=============================================================================
 function int axi4_scoreboard::scb_allocate_mshr(
-    input logic [ADDRESS_WIDTH-1:0] addr,
+    input bit [ADDRESS_WIDTH-1:0] addr,
     input int                    master,
     input int                    txn_id,
     input bit                    is_write);
@@ -960,10 +951,10 @@ function void axi4_scoreboard::scb_update_mshr_beat(
     input int slave,
     input logic [DATA_WIDTH-1:0] data,  
     input bit rlast);
-
+    int i;
    if(!active_r_valid[slave]) return;
 
-   int i = active_r_mshr[slave];
+   i = active_r_mshr[slave];
 
    if(!scb_mshr[i].valid) return;
    if(scb_mshr[i].beat_count >= WORDS_PER_LINE) return;
@@ -1051,7 +1042,7 @@ endfunction:apply_write_merge
 function void axi4_scoreboard::scb_release_mshr(
     input int i,
     input bit resp_accepted);
-
+    int set,way,base,s;
    if(i < 0 || i >= MAX_MSHR)
       return;
 
@@ -1064,13 +1055,14 @@ function void axi4_scoreboard::scb_release_mshr(
    if(!resp_accepted)
       return;
 
-   int set  = scb_mshr[i].index;  
-   int way  = scb_mshr[i].way;
-   int base = scb_mshr[i].start_word;
+    set  = scb_mshr[i].index;  
+    way  = scb_mshr[i].way;
+    base = scb_mshr[i].start_word;
 
    // Apply buffered writes after refill
    for(int b = 0; b < scb_mshr[i].wbeat_count; b++) begin
-      int line_word = base + b;
+      int line_word;
+       line_word = base + b;
       if(line_word >= WORDS_PER_LINE)
          break;
 
@@ -1092,7 +1084,7 @@ function void axi4_scoreboard::scb_release_mshr(
    end
 
    // Release slave refill ownership
-   int s = scb_mshr[i].slave;
+    s = scb_mshr[i].slave;
    if(s >= 0 && s < NO_OF_SLAVES) begin
       active_r_valid[s] = 0;
       active_r_mshr[s]  = -1;
@@ -1708,8 +1700,8 @@ foreach(axi4_master_write_address_analysis_fifo[i]) begin
       master_aw_queue[m_idx].push_back({s_idx, int'(m_write_addr_tx.awid)});
 
       `uvm_info("WR_PENDING",
-        $sformatf("M[%0d]->S[%0d] AWID=0x%0h pushed "
-                  "(pending depth=%0d aw_queue depth=%0d)",
+        $sformatf("M[%0d]->S[%0d] AWID=0x%0h pushed 
+                  pending depth=%0d aw_queue depth=%0d",
           m_idx, s_idx,
           m_write_addr_tx.awid,
           pending_write_txns[s_idx][m_idx][m_write_addr_tx.awid].size(),
@@ -1789,8 +1781,8 @@ foreach(axi4_slave_write_address_analysis_fifo[i]) begin
             end
 
             `uvm_info("WB_ADDR_GRANTED",
-              $sformatf("S[%0d] MSHR[%0d] AWID=0x%0h AWADDR=0x%0h "
-                        "WRITEBACK GRANTED",
+              $sformatf("S[%0d] MSHR[%0d] AWID=0x%0h AWADDR=0x%0h 
+                        WRITEBACK GRANTED",
                 s_idx, wb_idx,
                 s_write_addr_tx.awid,
                 s_write_addr_tx.awaddr),
@@ -1809,8 +1801,8 @@ foreach(axi4_slave_write_address_analysis_fifo[i]) begin
 
       if(!found) begin
         `uvm_error("WR_ADDR_NO_MATCH",
-          $sformatf("S[%0d] AWID=0x%0h AWADDR=0x%0h: "
-                    "no active writeback MSHR matches",
+          $sformatf("S[%0d] AWID=0x%0h AWADDR=0x%0h: 
+                    no active writeback MSHR matches",
             s_idx,
             s_write_addr_tx.awid,
             s_write_addr_tx.awaddr))
@@ -1856,8 +1848,8 @@ foreach(axi4_master_write_data_analysis_fifo[i]) begin
       //=================================================================
       if(master_aw_queue[m_idx].size() == 0) begin
         `uvm_error("MSTR_WR_DATA_NO_AW",
-          $sformatf("M[%0d] W beat received but master_aw_queue is empty. "
-                    "WDATA=0x%0h WLAST=%0b",
+          $sformatf("M[%0d] W beat received but master_aw_queue is empty. 
+                    WDATA=0x%0h WLAST=%0b",
             m_idx,
             m_write_data_tx.wdata[0],
             m_write_data_tx.wlast))
@@ -1870,8 +1862,8 @@ foreach(axi4_master_write_data_analysis_fifo[i]) begin
 
       if(pending_write_txns[s_idx][m_idx][awid].size() == 0) begin
         `uvm_error("MSTR_WR_DATA_NO_PENDING",
-          $sformatf("M[%0d] S[%0d] AWID=0x%0h aw_queue points to "
-                    "empty pending_write_txns entry",
+          $sformatf("M[%0d] S[%0d] AWID=0x%0h aw_queue points to 
+                    empty pending_write_txns entry",
             m_idx, s_idx, awid))
         continue;
       end
@@ -1884,8 +1876,8 @@ foreach(axi4_master_write_data_analysis_fifo[i]) begin
       pending_tx.beats_received++;
 
       `uvm_info("MSTR_WR_DATA_BEAT",
-        $sformatf("M[%0d] S[%0d] AWID=0x%0h beat=%0d/%0d "
-                  "WDATA=0x%0h WSTRB=0x%0h",
+        $sformatf("M[%0d] S[%0d] AWID=0x%0h beat=%0d/%0d 
+                  WDATA=0x%0h WSTRB=0x%0h",
           m_idx, s_idx, awid,
           pending_tx.beats_received,
           pending_tx.tx.awlen + 1,
@@ -1899,8 +1891,8 @@ foreach(axi4_master_write_data_analysis_fifo[i]) begin
       if(m_write_data_tx.wlast) begin
         if(pending_tx.beats_received != (pending_tx.tx.awlen + 1)) begin
           `uvm_error("MSTR_WLAST_EARLY",
-            $sformatf("M[%0d] S[%0d] AWID=0x%0h "
-                      "WLAST at beat=%0d but AWLEN+1=%0d",
+            $sformatf("M[%0d] S[%0d] AWID=0x%0h 
+                      WLAST at beat=%0d but AWLEN+1=%0d",
               m_idx, s_idx, awid,
               pending_tx.beats_received,
               pending_tx.tx.awlen + 1))
@@ -1908,8 +1900,8 @@ foreach(axi4_master_write_data_analysis_fifo[i]) begin
       end else begin
         if(pending_tx.beats_received > pending_tx.tx.awlen) begin
           `uvm_error("MSTR_WLAST_LATE",
-            $sformatf("M[%0d] S[%0d] AWID=0x%0h "
-                      "beat=%0d exceeded AWLEN=%0d no WLAST",
+            $sformatf("M[%0d] S[%0d] AWID=0x%0h 
+                      beat=%0d exceeded AWLEN=%0d no WLAST",
               m_idx, s_idx, awid,
               pending_tx.beats_received,
               pending_tx.tx.awlen))
@@ -1929,8 +1921,8 @@ foreach(axi4_master_write_data_analysis_fifo[i]) begin
         pending_tx.write_data_complete = 1;
 
         `uvm_info("MSTR_WR_DATA_COMPLETE",
-          $sformatf("M[%0d] S[%0d] AWID=0x%0h "
-                    "write data COMPLETE beats=%0d",
+          $sformatf("M[%0d] S[%0d] AWID=0x%0h 
+                    write data COMPLETE beats=%0d",
             m_idx, s_idx, awid,
             pending_tx.beats_received),
           UVM_MEDIUM)
@@ -2000,8 +1992,8 @@ foreach(axi4_slave_write_data_analysis_fifo[i]) begin
 
       if(!found) begin
         `uvm_error("SLV_WR_DATA_NO_WB",
-          $sformatf("S[%0d] WB data beat received but no active "
-                    "writeback MSHR found. WDATA=0x%0h WLAST=%0b",
+          $sformatf("S[%0d] WB data beat received but no active 
+                   writeback MSHR found. WDATA=0x%0h WLAST=%0b",
             s_idx,
             s_write_data_tx.wdata[0],
             s_write_data_tx.wlast))
@@ -2050,9 +2042,9 @@ foreach(axi4_slave_write_data_analysis_fifo[i]) begin
 
             if(expected_byte !== dut_byte) begin
               `uvm_error("WB_DATA_MISMATCH",
-                $sformatf("S[%0d] MSHR[%0d] beat=%0d "
-                          "addr=0x%0h lane=%0d "
-                          "Expected=0x%0h Got=0x%0h",
+                $sformatf("S[%0d] MSHR[%0d] beat=%0d 
+                          addr=0x%0h lane=%0d 
+                          Expected=0x%0h Got=0x%0h",
                   s_idx, wb_mshr_idx, beat_num,
                   byte_addr, lane,
                   expected_byte, dut_byte))
@@ -2071,15 +2063,15 @@ foreach(axi4_slave_write_data_analysis_fifo[i]) begin
         if(s_write_data_tx.wlast) begin
           if(wb_beat_tracker[s_idx] != WORDS_PER_LINE) begin
             `uvm_error("WB_WLAST_COUNT",
-              $sformatf("S[%0d] MSHR[%0d] WLAST after %0d beats "
-                        "expected %0d",
+              $sformatf("S[%0d] MSHR[%0d] WLAST after %0d beats 
+                        expected %0d",
                 s_idx, wb_mshr_idx,
                 wb_beat_tracker[s_idx],
                 WORDS_PER_LINE))
           end else begin
             `uvm_info("WB_DATA_COMPLETE",
-              $sformatf("S[%0d] MSHR[%0d] WB data COMPLETE "
-                        "beats=%0d base=0x%0h",
+              $sformatf("S[%0d] MSHR[%0d] WB data COMPLETE 
+                        beats=%0d base=0x%0h",
                 s_idx, wb_mshr_idx,
                 wb_beat_tracker[s_idx],
                 wb_base_addr),
@@ -2381,8 +2373,8 @@ foreach(axi4_master_read_address_analysis_fifo[i]) begin
       axi4_master_tx_araddr_count[m_idx]++;
 
       `uvm_info("MSTR_RD_ADDR",
-        $sformatf("M[%0d] ARID=0x%0h ARADDR=0x%0h ARLEN=%0d ARSIZE=%0d "
-                  "ARBURST=%0d ARCACHE=0x%0h",
+        $sformatf("M[%0d] ARID=0x%0h ARADDR=0x%0h ARLEN=%0d ARSIZE=%0d 
+                  ARBURST=%0d ARCACHE=0x%0h",
                   m_idx, m_read_addr_tx.arid, m_read_addr_tx.araddr,
                   m_read_addr_tx.arlen, m_read_addr_tx.arsize,
                   m_read_addr_tx.arburst, m_read_addr_tx.arcache),
@@ -2430,8 +2422,8 @@ foreach(axi4_master_read_address_analysis_fifo[i]) begin
 
         if(hit_way == -1) begin
           `uvm_error("L3_HIT_WAY_MISSING",
-            $sformatf("M[%0d] Expected HIT but way not found at AR time "
-                      "Addr=0x%0h", m_idx, m_read_addr_tx.araddr))
+            $sformatf("M[%0d] Expected HIT but way not found at AR time 
+                      Addr=0x%0h", m_idx, m_read_addr_tx.araddr))
         end else begin
 
           bytes_per_beat = 1 << m_read_addr_tx.arsize;
@@ -2476,15 +2468,15 @@ foreach(axi4_master_read_address_analysis_fifo[i]) begin
       if(expected_l3_hit) begin
         ->slave_read_addr_granted[s_idx];
         `uvm_info("RD_HIT_GRANTED",
-          $sformatf("M[%0d] S[%0d] ARID=0x%0h HIT — address_granted set "
-                    "immediately, no slave AR expected",
+          $sformatf("M[%0d] S[%0d] ARID=0x%0h HIT — address_granted set 
+                    immediately, no slave AR expected",
                     m_idx, s_idx, m_read_addr_tx.arid),
           UVM_MEDIUM)
       end
 
       `uvm_info("RD_PENDING",
-        $sformatf("M[%0d]->S[%0d] ARID=0x%0h queued (depth=%0d) "
-                  "L3_HIT=%0b address_granted=%0b",
+        $sformatf("M[%0d]->S[%0d] ARID=0x%0h queued (depth=%0d) 
+                  L3_HIT=%0b address_granted=%0b",
                   m_idx, s_idx, m_read_addr_tx.arid,
                   pending_read_txns[s_idx][m_read_addr_tx.arid].size(),
                   expected_l3_hit, pending_tx.address_granted),
@@ -2550,8 +2542,8 @@ end
       // Guard: slave R-channel must not already be active
       if(active_r_valid[s_idx]) begin
         `uvm_error("AR_SLAVE_BUSY",
-          $sformatf("S[%0d] received new AR but active_r_valid already set — "
-                    "DUT issued two ARs on same slave channel",
+          $sformatf("S[%0d] received new AR but active_r_valid already set — 
+                    DUT issued two ARs on same slave channel",
                     s_idx))
       end else begin
 
@@ -2585,8 +2577,8 @@ end
         // missed in the master address path.
         if(!mshr_found) begin
           `uvm_error("AR_NO_MSHR",
-            $sformatf("S[%0d] AR addr=0x%0h ARID=0x%0h has no matching MSHR — "
-                      "spurious refill or missed miss allocation",
+            $sformatf("S[%0d] AR addr=0x%0h ARID=0x%0h has no matching MSHR — 
+                      spurious refill or missed miss allocation",
                       s_idx, s_read_addr_tx.araddr, s_read_addr_tx.arid))
         end
 
@@ -2688,15 +2680,15 @@ end
                 scb_release_mshr(mshr_idx, 1);
 
                 `uvm_info("MSHR_RELEASED",
-                  $sformatf("M[%0d] S[%0d] MSHR[%0d] released after "
-                            "master rlast confirmed line=0x%0h",
+                  $sformatf("M[%0d] S[%0d] MSHR[%0d] released after 
+                            master rlast confirmed line=0x%0h",
                             m_idx, s_idx, mshr_idx, pending_tx.line_addr),
                   UVM_MEDIUM)
 
               end else begin
                 `uvm_error("MSHR_RELEASE_FAIL",
-                  $sformatf("M[%0d] S[%0d] RID=0x%0h MSHR for "
-                            "line=0x%0h not found or not done at rlast",
+                  $sformatf("M[%0d] S[%0d] RID=0x%0h MSHR for 
+                            line=0x%0h not found or not done at rlast",
                             m_idx, s_idx, m_read_data_tx.arid,
                             pending_tx.line_addr))
               end
@@ -2811,8 +2803,8 @@ end
           end
 
           `uvm_info("L3_REFILL_COMPLETE",
-            $sformatf("S[%0d] Cache filled from refMem: line=0x%0h "
-                      "Set=%0d Way=%0d — awaiting master R response for MSHR release",
+            $sformatf("S[%0d] Cache filled from refMem: line=0x%0h 
+                      Set=%0d Way=%0d — awaiting master R response for MSHR release",
                       s_idx, line_base, index, way),
             UVM_MEDIUM)
 
@@ -2931,8 +2923,8 @@ end
 
 
 
-
-  
+ endtask
+ /* 
 task axi4_scoreboard::axi4_write_address_comparison(
   input axi4_master_tx exp_tx,
   input axi4_slave_tx  act_tx,
@@ -2967,7 +2959,7 @@ task axi4_scoreboard::axi4_write_address_comparison(
     axi_cache_policy_s policy;
     bit [ADDRESS_WIDTH-1:0] expected_addr;
 
-    policy = axi_decode_cache_policy(exp_tx.awcache, 0 /*is_read=0*/);
+    policy = axi_decode_cache_policy(exp_tx.awcache, 0 );
 
     if(policy.cacheable && !policy.device)
       // Writeback: DUT issues cache-line-aligned address
@@ -3135,8 +3127,8 @@ task axi4_scoreboard::axi4_write_address_comparison(
       expected_lock = 1'b0;  // Must be NORMAL for cache-line ops
       if(exp_tx.awlock !== 1'b0) begin
         `uvm_warning("AW_LOCK_CACHEABLE",
-          $sformatf("M[%0d]->S[%0d] Master issued EXCLUSIVE LOCK on cacheable write "
-                    "AWADDR=0x%0h — AXI4 spec violation §A7",
+          $sformatf("M[%0d]->S[%0d] Master issued EXCLUSIVE LOCK on cacheable write 
+                    AWADDR=0x%0h — AXI4 spec violation §A7",
                     master_id, slave_id, exp_tx.awaddr))
       end
     end
@@ -3169,7 +3161,7 @@ task axi4_scoreboard::axi4_write_data_comparison(
 );
 
   axi_cache_policy_s policy;
-  policy = axi_decode_cache_policy(exp_tx.awcache, 0 /*is_read=0*/);
+  policy = axi_decode_cache_policy(exp_tx.awcache, 0);
 
   // ------------------------------------------------------------------
   // NON-CACHEABLE / DEVICE BYPASS — exact forwarding
@@ -3190,8 +3182,8 @@ task axi4_scoreboard::axi4_write_data_comparison(
           else begin
             byte_data_cmp_failed_wdata_count++;
             `uvm_error("W_CMP_WDATA_FAIL",
-              $sformatf("M[%0d]->S[%0d] WDATA bypass mismatch — "
-                        "Beat=%0d Lane=%0d Expected=0x%0h Got=0x%0h",
+              $sformatf("M[%0d]->S[%0d] WDATA bypass mismatch — 
+                        Beat=%0d Lane=%0d Expected=0x%0h Got=0x%0h",
                         master_id, slave_id,
                         beat, lane, exp_byte, act_byte))
           end
@@ -3205,8 +3197,8 @@ task axi4_scoreboard::axi4_write_data_comparison(
       else begin
         byte_data_cmp_failed_wstrb_count++;
         `uvm_error("W_CMP_WSTRB_FAIL",
-          $sformatf("M[%0d]->S[%0d] WSTRB bypass mismatch — "
-                    "Beat=%0d Expected=0x%0h Got=0x%0h",
+          $sformatf("M[%0d]->S[%0d] WSTRB bypass mismatch — 
+                    Beat=%0d Expected=0x%0h Got=0x%0h",
                     master_id, slave_id,
                     beat, exp_tx.wstrb[beat], act_tx.wstrb[beat]))
       end
@@ -3240,8 +3232,8 @@ task axi4_scoreboard::axi4_write_data_comparison(
       else begin
         byte_data_cmp_failed_wstrb_count++;
         `uvm_error("W_CMP_WSTRB_WB_FAIL",
-          $sformatf("M[%0d]->S[%0d] WB WSTRB non-all-ones: Got=0x%0h — "
-                    "AXI4 writeback must write all byte lanes",
+          $sformatf("M[%0d]->S[%0d] WB WSTRB non-all-ones: Got=0x%0h — 
+                    AXI4 writeback must write all byte lanes",
                     master_id, slave_id, act_tx.wstrb[0]))
       end
     end
@@ -3313,8 +3305,8 @@ task axi4_scoreboard::axi4_write_response_comparison(
       else begin
         byte_data_cmp_failed_bresp_count++;
         `uvm_error("B_CMP_BRESP_EXOKAY_ILLEGAL",
-          $sformatf("M[%0d]->S[%0d] BRESP=EXOKAY but AWLOCK was NORMAL — "
-                    "AXI4 violation AWID=0x%0h",
+          $sformatf("M[%0d]->S[%0d] BRESP=EXOKAY but AWLOCK was NORMAL — 
+                    AXI4 violation AWID=0x%0h",
                     master_id, slave_id, exp_tx.awid))
       end
     end
@@ -3329,8 +3321,8 @@ task axi4_scoreboard::axi4_write_response_comparison(
     2'b11: begin // DECERR
       byte_data_cmp_failed_bresp_count++;
       `uvm_error("B_CMP_BRESP_DECERR",
-        $sformatf("M[%0d]->S[%0d] BRESP=DECERR for AWID=0x%0h AWADDR=0x%0h — "
-                  "address decode failure",
+        $sformatf("M[%0d]->S[%0d] BRESP=DECERR for AWID=0x%0h AWADDR=0x%0h — 
+                  address decode failure",
                   master_id, slave_id, exp_tx.awid, exp_tx.awaddr))
     end
 
@@ -3352,7 +3344,7 @@ task axi4_scoreboard::axi4_read_address_comparison(
 );
 
   axi_cache_policy_s policy;
-  policy = axi_decode_cache_policy(exp_tx.arcache, 1 /*is_read=1*/);
+  policy = axi_decode_cache_policy(exp_tx.arcache, 1 );
 
   // ------------------------------------------------------------------
   // R14 — ARID
@@ -3614,16 +3606,16 @@ task automatic axi4_scoreboard::axi4_read_data_comparison(
         if(exp_tx.arlock === 1'b1) begin
           byte_data_cmp_verified_rresp_count++;
           `uvm_info("R_CMP_RRESP_EXOKAY",
-            $sformatf("M[%0d] S[%0d] Beat=%0d RRESP=EXOKAY for exclusive "
-                      "ARID=0x%0h — OK",
+            $sformatf("M[%0d] S[%0d] Beat=%0d RRESP=EXOKAY for exclusive 
+                      ARID=0x%0h — OK",
                       master_id, slave_id, beat, exp_tx.arid),
             UVM_HIGH)
         end
         else begin
           byte_data_cmp_failed_rresp_count++;
           `uvm_error("R_CMP_RRESP_EXOKAY_ILLEGAL",
-            $sformatf("M[%0d] S[%0d] Beat=%0d RRESP=EXOKAY but ARLOCK=NORMAL — "
-                      "AXI4 violation ARID=0x%0h",
+            $sformatf("M[%0d] S[%0d] Beat=%0d RRESP=EXOKAY but ARLOCK=NORMAL — 
+                      AXI4 violation ARID=0x%0h",
                       master_id, slave_id, beat, exp_tx.arid))
         end
       end
@@ -3664,8 +3656,8 @@ task automatic axi4_scoreboard::axi4_read_data_comparison(
   else begin
     byte_data_cmp_failed_rlast_count++;
     `uvm_error("R_CMP_RLAST_FAIL",
-      $sformatf("M[%0d] S[%0d] RLAST NOT asserted at final beat ARID=0x%0h "
-                "ARLEN=%0d",
+      $sformatf("M[%0d] S[%0d] RLAST NOT asserted at final beat ARID=0x%0h 
+                ARLEN=%0d",
                 master_id, slave_id, exp_tx.arid, exp_tx.arlen))
   end
 
@@ -3799,11 +3791,7 @@ task automatic axi4_scoreboard::axi4_read_data_comparison(
         if(expected_byte !== dut_byte) begin
           beat_ok = 0;
           byte_data_cmp_failed_rdata_count++;
-          `uvm_error("R_CMP_MISS_DATA_MISMATCH",
-            $sformatf("M[%0d] S[%0d] MISS Beat=%0d ByteIdx=%0d "
-                      "Addr=0x%0h Lane=%0d "
-                      "Expected(refMem)=0x%0h Got=0x%0h",
-                      master_id, slave_id,
+          `uvm_error("R_CMP_MISS_DATA_MISMATCH",$sformatf("M[%0d] S[%0d] MISS Beat=%0d ByteIdx=%0d Addr=0x%0h Lane=%0d Expected(refMem)=0x%0h Got=0x%0h",master_id, slave_id,
                       beat, byte_idx,
                       temp_addr, lane,
                       expected_byte, dut_byte))
@@ -3824,15 +3812,12 @@ task automatic axi4_scoreboard::axi4_read_data_comparison(
 
       if(beat_ok) begin
         byte_data_cmp_verified_rdata_count++;
-        `uvm_info("R_CMP_MISS_DATA_OK",
-          $sformatf("M[%0d] S[%0d] MISS Beat=%0d RDATA OK",
-                    master_id, slave_id, beat),
-          UVM_HIGH)
+        `uvm_info("R_CMP_MISS_DATA_OK",$sformatf("M[%0d] S[%0d] MISS Beat=%0d RDATA OK",master_id, slave_id, beat),UVM_HIGH)
       end
 
     end // foreach beat
   end // MISS PATH
 
-endtask : axi4_read_data_comparison
+endtask : axi4_read_data_comparison*/
 // endtask : axi4_read_data_comparison
 `endif
