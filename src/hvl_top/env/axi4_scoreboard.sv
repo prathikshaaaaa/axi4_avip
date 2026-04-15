@@ -2,6 +2,7 @@
 `define AXI4_L3_CACHE_SCOREBOARD_INCLUDED_
 
 import uvm_pkg::*;
+import globals_pkg::*;
 `include "uvm_macros.svh"
 
 class axi4_scoreboard extends uvm_scoreboard;
@@ -119,8 +120,8 @@ typedef struct {
    bit [1:0] resp_code;
 
    // ---------------- Write Data Buffer 
-   logic [DATA_W-1:0] wdata_buf[WORDS_PER_LINE];
-   logic [STRB_W-1:0] wstrb_buf[WORDS_PER_LINE];
+  logic [DATA_WIDTH-1:0] wdata_buf[WORDS_PER_LINE];
+   logic [STRB_WIDTH-1:0] wstrb_buf[WORDS_PER_LINE];
    int wbeat_count;
 
    axi_cache_policy_s policy;
