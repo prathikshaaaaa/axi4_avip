@@ -23,7 +23,7 @@ class axi4_scoreboard extends uvm_scoreboard;
 
   localparam int L3_OFFSET_BITS = $clog2(L3_CACHE_LINE_SIZE_BYTES);
   localparam int L3_INDEX_BITS  = $clog2(L3_NUM_CACHE_SETS);
-  localparam int L3_TAG_BITS    = ADDR_WIDTH - L3_INDEX_BITS - L3_OFFSET_BITS;
+  localparam int L3_TAG_BITS    = ADDRESS_WIDTH - L3_INDEX_BITS - L3_OFFSET_BITS;
   localparam int MAX_MSHR = 2;
   
   localparam int WORDS_PER_LINE = L3_CACHE_LINE_SIZE_BYTES / (DATA_WIDTH/8);
@@ -1033,14 +1033,14 @@ endfunction : scb_update_mshr_write_data
 // Word-local merge with byte offset support
 //=============================================================================
 function void apply_write_merge(
-      inout logic [DATA_W-1:0] line_data,
-      input  logic [DATA_W-1:0] wdata,
-      input  logic [STRB_W-1:0] wstrb);
+  inout logic [DATA_WIDTH-1:0] line_data,
+      input  logic [DATA_WIDTH-1:0] wdata,
+  input  logic [STROBE_WIDTH-1:0] wstrb);
 
-  if(STRB_W*8 != DATA_W)
+  if(STROBE_WIDTH*8 != DATA_WIDTH)
    `uvm_error("MERGE","WSTRB width mismatch")
 
-   for(int b = 0; b < STRB_W; b++) begin
+    for(int b = 0; b < STROBE_WIDTH; b++) begin
       if(wstrb[b]) begin
          line_data[b*8 +: 8] = wdata[b*8 +: 8];
       end
