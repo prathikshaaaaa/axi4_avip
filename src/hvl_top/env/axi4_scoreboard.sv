@@ -1,10 +1,6 @@
 `ifndef AXI4_L3_CACHE_SCOREBOARD_INCLUDED_
 `define AXI4_L3_CACHE_SCOREBOARD_INCLUDED_
 
-import uvm_pkg::*;
-import axi4_globals_pkg::*;
-`include "uvm_macros.svh"
-
 class axi4_scoreboard extends uvm_scoreboard;
   `uvm_component_utils(axi4_scoreboard)
 
@@ -3839,3 +3835,4 @@ task automatic axi4_scoreboard::axi4_read_data_comparison(
 
 endtask : axi4_read_data_comparison
 // endtask : axi4_read_data_comparison
+`endif
