@@ -1,5 +1,5 @@
 
-
+`include "axi4_scoreboard.sv"
 function axi4_scoreboard::new(string name = "axi4_scoreboard", 
                                        uvm_component parent = null);
   super.new(name, parent);
