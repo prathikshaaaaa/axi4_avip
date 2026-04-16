@@ -13,9 +13,9 @@
 ../../src/globals/axi4_globals_pkg.sv
 ../../src/hvl_top/master/axi4_master_pkg.sv
 ../../src/hvl_top/slave/axi4_slave_pkg.sv
+../../src/hvl_top/env/axi4_env_pkg.sv
 ../../src/hvl_top/test/sequences/master_sequences/axi4_master_seq_pkg.sv
 ../../src/hvl_top/test/sequences/slave_sequences/axi4_slave_seq_pkg.sv
-../../src/hvl_top/env/axi4_env_pkg.sv
 ../../src/hvl_top/test/virtual_sequences/axi4_virtual_seq_pkg.sv
 ../../src/hvl_top/test/axi4_test_pkg.sv
 ../../src/hdl_top/axi4_interface/axi4_if.sv
