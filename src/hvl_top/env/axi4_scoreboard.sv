@@ -1920,12 +1920,7 @@ foreach(axi4_master_write_data_analysis_fifo[i]) begin
 
         pending_tx.write_data_complete = 1;
 
-        `uvm_info("MSTR_WR_DATA_COMPLETE",
-          $sformatf("M[%0d] S[%0d] AWID=0x%0h 
-                    write data COMPLETE beats=%0d",
-            m_idx, s_idx, awid,
-            pending_tx.beats_received),
-          UVM_MEDIUM)
+        `uvm_info("MSTR_WR_DATA_COMPLETE",$sformatf("M[%0d] S[%0d] AWID=0x%0h write data COMPLETE beats=%0d",m_idx, s_idx, awid,pending_tx.beats_received),UVM_MEDIUM)
 
         // Pop front of AW queue — done with this transaction's data
         void'(master_aw_queue[m_idx].pop_front());
@@ -1964,13 +1959,7 @@ foreach(axi4_slave_write_data_analysis_fifo[i]) begin
       axi4_slave_write_data_analysis_fifo[s_idx].get(s_write_data_tx);
       axi4_slave_tx_wdata_count[s_idx]++;
 
-      `uvm_info("SLV_WR_DATA",
-        $sformatf("S[%0d] WDATA=0x%0h WSTRB=0x%0h WLAST=%0b",
-          s_idx,
-          s_write_data_tx.wdata[0],
-          s_write_data_tx.wstrb[0],
-          s_write_data_tx.wlast),
-        UVM_HIGH)
+      `uvm_info("SLV_WR_DATA",$sformatf("S[%0d] WDATA=0x%0h WSTRB=0x%0h WLAST=%0b",s_idx,s_write_data_tx.wdata[0],s_write_data_tx.wstrb[0],s_write_data_tx.wlast),UVM_HIGH)
 
       found       = 0;
       wb_mshr_idx = -1;
