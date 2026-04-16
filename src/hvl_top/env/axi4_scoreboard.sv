@@ -2840,10 +2840,7 @@ task axi4_scoreboard::axi4_write_address_comparison(
     if(policy.cacheable && !policy.device) begin
       expected_lock = 1'b0;  // Must be NORMAL for cache-line ops
       if(exp_tx.awlock !== 1'b0) begin
-        `uvm_warning("AW_LOCK_CACHEABLE",
-          $sformatf("M[%0d]->S[%0d] Master issued EXCLUSIVE LOCK on cacheable write 
-                    AWADDR=0x%0h — AXI4 spec violation §A7",
-                    master_id, slave_id, exp_tx.awaddr))
+`uvm_warning("AW_LOCK_CACHEABLE", $sformatf("M[%0d]->S[%0d] Master issued EXCLUSIVE LOCK on cacheable write AWADDR=0x%0h - AXI4 spec violation A7", master_id, slave_id, exp_tx.awaddr))
       end
     end
     else begin
@@ -2895,11 +2892,7 @@ task axi4_scoreboard::axi4_write_data_comparison(
           end
           else begin
             byte_data_cmp_failed_wdata_count++;
-            `uvm_error("W_CMP_WDATA_FAIL",
-              $sformatf("M[%0d]->S[%0d] WDATA bypass mismatch — 
-                        Beat=%0d Lane=%0d Expected=0x%0h Got=0x%0h",
-                        master_id, slave_id,
-                        beat, lane, exp_byte, act_byte))
+`uvm_error("W_CMP_WDATA_FAIL", $sformatf("M[%0d]->S[%0d] WDATA bypass mismatch - Beat=%0d Lane=%0d Expected=0x%0h Got=0x%0h", master_id, slave_id, beat, lane, exp_byte, act_byte))
           end
         end
       end
@@ -2910,11 +2903,7 @@ task axi4_scoreboard::axi4_write_data_comparison(
       end
       else begin
         byte_data_cmp_failed_wstrb_count++;
-        `uvm_error("W_CMP_WSTRB_FAIL",
-          $sformatf("M[%0d]->S[%0d] WSTRB bypass mismatch — 
-                    Beat=%0d Expected=0x%0h Got=0x%0h",
-                    master_id, slave_id,
-                    beat, exp_tx.wstrb[beat], act_tx.wstrb[beat]))
+ `uvm_error("W_CMP_WSTRB_FAIL", $sformatf("M[%0d]->S[%0d] WSTRB bypass mismatch - Beat=%0d Expected=0x%0h Got=0x%0h", master_id, slave_id, beat, exp_tx.wstrb[beat], act_tx.wstrb[beat]))
       end
 
     end // foreach beat
@@ -2945,10 +2934,7 @@ task axi4_scoreboard::axi4_write_data_comparison(
       end
       else begin
         byte_data_cmp_failed_wstrb_count++;
-        `uvm_error("W_CMP_WSTRB_WB_FAIL",
-          $sformatf("M[%0d]->S[%0d] WB WSTRB non-all-ones: Got=0x%0h — 
-                    AXI4 writeback must write all byte lanes",
-                    master_id, slave_id, act_tx.wstrb[0]))
+      `uvm_error("W_CMP_WSTRB_WB_FAIL", $sformatf("M[%0d]->S[%0d] WB WSTRB non-all-ones: Got=0x%0h - AXI4 writeback must write all byte lanes", master_id, slave_id, act_tx.wstrb[0]))
       end
     end
     
@@ -3018,10 +3004,7 @@ task axi4_scoreboard::axi4_write_response_comparison(
       end
       else begin
         byte_data_cmp_failed_bresp_count++;
-        `uvm_error("B_CMP_BRESP_EXOKAY_ILLEGAL",
-          $sformatf("M[%0d]->S[%0d] BRESP=EXOKAY but AWLOCK was NORMAL — 
-                    AXI4 violation AWID=0x%0h",
-                    master_id, slave_id, exp_tx.awid))
+    `uvm_error("B_CMP_BRESP_EXOKAY_ILLEGAL", $sformatf("M[%0d]->S[%0d] BRESP=EXOKAY but AWLOCK was NORMAL - AXI4 violation AWID=0x%0h", master_id, slave_id, exp_tx.awid))
       end
     end
 
@@ -3034,10 +3017,7 @@ task axi4_scoreboard::axi4_write_response_comparison(
 
     2'b11: begin // DECERR
       byte_data_cmp_failed_bresp_count++;
-      `uvm_error("B_CMP_BRESP_DECERR",
-        $sformatf("M[%0d]->S[%0d] BRESP=DECERR for AWID=0x%0h AWADDR=0x%0h — 
-                  address decode failure",
-                  master_id, slave_id, exp_tx.awid, exp_tx.awaddr))
+     `uvm_error("B_CMP_BRESP_DECERR", $sformatf("M[%0d]->S[%0d] BRESP=DECERR for AWID=0x%0h AWADDR=0x%0h - address decode failure", master_id, slave_id, exp_tx.awid, exp_tx.awaddr))
     end
 
     default: begin
@@ -3222,10 +3202,7 @@ task axi4_scoreboard::axi4_read_address_comparison(
     if(policy.cacheable && !policy.device) begin
       expected_lock = 1'b0;
       if(exp_tx.arlock !== 1'b0) begin
-        `uvm_warning("AR_LOCK_CACHEABLE",
-          $sformatf("M[%0d]->S[%0d] Master issued EXCLUSIVE LOCK on cacheable read "
-                    "ARADDR=0x%0h — AXI4 spec violation §A7",
-                    master_id, slave_id, exp_tx.araddr))
+`uvm_warning("AR_LOCK_CACHEABLE", $sformatf("M[%0d]->S[%0d] Master issued EXCLUSIVE LOCK on cacheable read ARADDR=0x%0h - AXI4 spec violation A7", master_id, slave_id, exp_tx.araddr))
       end
     end
     else begin
@@ -3319,18 +3296,12 @@ task automatic axi4_scoreboard::axi4_read_data_comparison(
       2'b01: begin // EXOKAY
         if(exp_tx.arlock === 1'b1) begin
           byte_data_cmp_verified_rresp_count++;
-          `uvm_info("R_CMP_RRESP_EXOKAY",
-            $sformatf("M[%0d] S[%0d] Beat=%0d RRESP=EXOKAY for exclusive 
-                      ARID=0x%0h — OK",
-                      master_id, slave_id, beat, exp_tx.arid),
+          `uvm_info("R_CMP_RRESP_EXOKAY", $sformatf("M[%0d] S[%0d] Beat=%0d RRESP=EXOKAY for exclusive ARID=0x%0h - OK", master_id, slave_id, beat, exp_tx.arid), UVM_HIGH)
             UVM_HIGH)
         end
         else begin
           byte_data_cmp_failed_rresp_count++;
-          `uvm_error("R_CMP_RRESP_EXOKAY_ILLEGAL",
-            $sformatf("M[%0d] S[%0d] Beat=%0d RRESP=EXOKAY but ARLOCK=NORMAL — 
-                      AXI4 violation ARID=0x%0h",
-                      master_id, slave_id, beat, exp_tx.arid))
+          `uvm_error("R_CMP_RRESP_EXOKAY_ILLEGAL", $sformatf("M[%0d] S[%0d] Beat=%0d RRESP=EXOKAY but ARLOCK=NORMAL - AXI4 violation ARID=0x%0h", master_id, slave_id, beat, exp_tx.arid))
         end
       end
       2'b10: begin // SLVERR
