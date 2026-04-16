@@ -1704,8 +1704,7 @@ foreach(axi4_master_write_address_analysis_fifo[i]) begin
       //=========================================================
       master_aw_queue[m_idx].push_back({s_idx, int'(m_write_addr_tx.awid)});
 
-      `uvm_info("WR_PENDING",$sformatf("M[%0d]->S[%0d] AWID=0x%0h pushed pending depth=%0d aw_queue depth=%0d",m_idx, s_idx,m_write_addr_tx.awid,pending_write_txns[s_idx][m_idx][m_write_addr_tx.awid].size(),master_aw_queue[m_idx].size()),UVM_HIGH)
-
+      `uvm_info("WR_PENDING", $sformatf("M[%0d]->S[%0d] AWID=0x%0h pushed pending depth=%0d aw_queue depth=%0d", m_idx, s_idx, m_write_addr_tx.awid, pending_write_txns[s_idx][m_idx][m_write_addr_tx.awid].size(), master_aw_queue[m_idx].size()), UVM_HIGH)
     end // forever
   join_none
 end
@@ -1810,7 +1809,7 @@ foreach(axi4_master_write_data_analysis_fifo[i]) begin
       axi4_master_write_data_analysis_fifo[m_idx].get(m_write_data_tx);
       axi4_master_tx_wdata_count[m_idx]++;
 
-      `uvm_info("MSTR_WR_DATA",$sformatf("M[%0d] WDATA[0]=0x%0h WSTRB=0x%0h WLAST=%0b",m_idx,m_write_data_tx.wdata[0],m_write_data_tx.wstrb[0],m_write_data_tx.wlast),UVM_HIGH)
+      `uvm_info("MSTR_WR_DATA",$sformatf("M[%0d] WDATA[0]=0x%0h WSTRB=0x%0h WLAST=%0b", m_idx,m_write_data_tx.wdata[0],m_write_data_tx.wstrb[0],m_write_data_tx.wlast),UVM_HIGH)
 
       //=================================================================
       // 2. GET CURRENT PENDING TRANSACTION FROM AW QUEUE
