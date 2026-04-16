@@ -1817,12 +1817,7 @@ foreach(axi4_master_write_data_analysis_fifo[i]) begin
       //    unfinished AW for this master — no searching needed.
       //=================================================================
       if(master_aw_queue[m_idx].size() == 0) begin
-        `uvm_error("MSTR_WR_DATA_NO_AW",
-          $sformatf("M[%0d] W beat received but master_aw_queue is empty. 
-                    WDATA=0x%0h WLAST=%0b",
-            m_idx,
-            m_write_data_tx.wdata[0],
-            m_write_data_tx.wlast))
+       `uvm_error("MSTR_WR_DATA_NO_AW", $sformatf("M[%0d] W beat received but master_aw_queue is empty. WDATA=0x%0h WLAST=%0b", m_idx, m_write_data_tx.wdata[0], m_write_data_tx.wlast))
         continue;
       end
 
@@ -1849,21 +1844,11 @@ foreach(axi4_master_write_data_analysis_fifo[i]) begin
       //=================================================================
       if(m_write_data_tx.wlast) begin
         if(pending_tx.beats_received != (pending_tx.tx.awlen + 1)) begin
-          `uvm_error("MSTR_WLAST_EARLY",
-            $sformatf("M[%0d] S[%0d] AWID=0x%0h 
-                      WLAST at beat=%0d but AWLEN+1=%0d",
-              m_idx, s_idx, awid,
-              pending_tx.beats_received,
-              pending_tx.tx.awlen + 1))
+          `uvm_error("MSTR_WLAST_EARLY", $sformatf("M[%0d] S[%0d] AWID=0x%0h WLAST at beat=%0d but AWLEN+1=%0d", m_idx, s_idx, awid, pending_tx.beats_received, pending_tx.tx.awlen + 1))
         end
       end else begin
         if(pending_tx.beats_received > pending_tx.tx.awlen) begin
-          `uvm_error("MSTR_WLAST_LATE",
-            $sformatf("M[%0d] S[%0d] AWID=0x%0h 
-                      beat=%0d exceeded AWLEN=%0d no WLAST",
-              m_idx, s_idx, awid,
-              pending_tx.beats_received,
-              pending_tx.tx.awlen))
+          `uvm_error("MSTR_WLAST_LATE", $sformatf("M[%0d] S[%0d] AWID=0x%0h beat=%0d exceeded AWLEN=%0d no WLAST", m_idx, s_idx, awid, pending_tx.beats_received, pending_tx.tx.awlen))
         end
       end
 
@@ -1939,12 +1924,7 @@ foreach(axi4_slave_write_data_analysis_fifo[i]) begin
       end
 
       if(!found) begin
-        `uvm_error("SLV_WR_DATA_NO_WB",
-          $sformatf("S[%0d] WB data beat received but no active 
-                   writeback MSHR found. WDATA=0x%0h WLAST=%0b",
-            s_idx,
-            s_write_data_tx.wdata[0],
-            s_write_data_tx.wlast))
+     `uvm_error("SLV_WR_DATA_NO_WB", $sformatf("S[%0d] WB data beat received but no active writeback MSHR found. WDATA=0x%0h WLAST=%0b", s_idx, s_write_data_tx.wdata[0], s_write_data_tx.wlast))
         continue;
       end
 
@@ -1989,13 +1969,7 @@ foreach(axi4_slave_write_data_analysis_fifo[i]) begin
             dut_byte = s_write_data_tx.wdata[0][8*lane +: 8];
 
             if(expected_byte !== dut_byte) begin
-              `uvm_error("WB_DATA_MISMATCH",
-                $sformatf("S[%0d] MSHR[%0d] beat=%0d 
-                          addr=0x%0h lane=%0d 
-                          Expected=0x%0h Got=0x%0h",
-                  s_idx, wb_mshr_idx, beat_num,
-                  byte_addr, lane,
-                  expected_byte, dut_byte))
+           `uvm_error("WB_DATA_MISMATCH", $sformatf("S[%0d] MSHR[%0d] beat=%0d addr=0x%0h lane=%0d Expected=0x%0h Got=0x%0h", s_idx, wb_mshr_idx, beat_num, byte_addr, lane, expected_byte, dut_byte))
             end
           end
         end
@@ -2010,20 +1984,9 @@ foreach(axi4_slave_write_data_analysis_fifo[i]) begin
         //=============================================================
         if(s_write_data_tx.wlast) begin
           if(wb_beat_tracker[s_idx] != WORDS_PER_LINE) begin
-            `uvm_error("WB_WLAST_COUNT",
-              $sformatf("S[%0d] MSHR[%0d] WLAST after %0d beats 
-                        expected %0d",
-                s_idx, wb_mshr_idx,
-                wb_beat_tracker[s_idx],
-                WORDS_PER_LINE))
+            `uvm_error("WB_WLAST_COUNT", $sformatf("S[%0d] MSHR[%0d] WLAST after %0d beats expected %0d", s_idx, wb_mshr_idx, wb_beat_tracker[s_idx], WORDS_PER_LINE))
           end else begin
-            `uvm_info("WB_DATA_COMPLETE",
-              $sformatf("S[%0d] MSHR[%0d] WB data COMPLETE 
-                        beats=%0d base=0x%0h",
-                s_idx, wb_mshr_idx,
-                wb_beat_tracker[s_idx],
-                wb_base_addr),
-              UVM_MEDIUM)
+           `uvm_info("WB_DATA_COMPLETE", $sformatf("S[%0d] MSHR[%0d] WB data COMPLETE beats=%0d base=0x%0h", s_idx, wb_mshr_idx, wb_beat_tracker[s_idx], wb_base_addr), UVM_MEDIUM)
           end
           // Reset for next writeback on this slave
           wb_beat_tracker[s_idx] = 0;
