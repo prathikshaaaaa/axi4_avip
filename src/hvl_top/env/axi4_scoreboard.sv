@@ -2622,11 +2622,7 @@ end
               l3_cache[index][way].data[byte_i] = 8'h00;
           end
 
-          `uvm_info("L3_REFILL_COMPLETE",
-            $sformatf("S[%0d] Cache filled from refMem: line=0x%0h 
-                      Set=%0d Way=%0d — awaiting master R response for MSHR release",
-                      s_idx, line_base, index, way),
-            UVM_MEDIUM)
+        `uvm_info("L3_REFILL_COMPLETE", $sformatf("S[%0d] Cache filled from refMem: line=0x%0h Set=%0d Way=%0d - awaiting master R response for MSHR release", s_idx, line_base, index, way), UVM_MEDIUM)
 
         end else begin
           `uvm_info("L3_REFILL_ERROR_SKIP",
