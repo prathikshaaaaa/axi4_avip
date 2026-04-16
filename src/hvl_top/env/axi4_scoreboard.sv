@@ -1704,14 +1704,7 @@ foreach(axi4_master_write_address_analysis_fifo[i]) begin
       //=========================================================
       master_aw_queue[m_idx].push_back({s_idx, int'(m_write_addr_tx.awid)});
 
-      `uvm_info("WR_PENDING",
-        $sformatf("M[%0d]->S[%0d] AWID=0x%0h pushed 
-                  pending depth=%0d aw_queue depth=%0d",
-          m_idx, s_idx,
-          m_write_addr_tx.awid,
-          pending_write_txns[s_idx][m_idx][m_write_addr_tx.awid].size(),
-          master_aw_queue[m_idx].size()),
-        UVM_HIGH)
+      `uvm_info("WR_PENDING",$sformatf("M[%0d]->S[%0d] AWID=0x%0h pushed pending depth=%0d aw_queue depth=%0d",m_idx, s_idx,m_write_addr_tx.awid,pending_write_txns[s_idx][m_idx][m_write_addr_tx.awid].size(),master_aw_queue[m_idx].size()),UVM_HIGH)
 
     end // forever
   join_none
@@ -1738,13 +1731,7 @@ foreach(axi4_slave_write_address_analysis_fifo[i]) begin
       axi4_slave_write_address_analysis_fifo[s_idx].get(s_write_addr_tx);
       axi4_slave_tx_awaddr_count[s_idx]++;
 
-      `uvm_info("SLV_WR_ADDR",
-        $sformatf("S[%0d] AWID=0x%0h AWADDR=0x%0h AWLEN=%0d",
-          s_idx,
-          s_write_addr_tx.awid,
-          s_write_addr_tx.awaddr,
-          s_write_addr_tx.awlen),
-        UVM_MEDIUM)
+      `uvm_info("SLV_WR_ADDR",$sformatf("S[%0d] AWID=0x%0h AWADDR=0x%0h AWLEN=%0d",s_idx,s_write_addr_tx.awid,s_write_addr_tx.awaddr,s_write_addr_tx.awlen),UVM_MEDIUM)
 
       found = 0;
 
@@ -1778,20 +1765,10 @@ foreach(axi4_slave_write_address_analysis_fifo[i]) begin
             // 4. VERIFY AWLEN == WORDS_PER_LINE - 1
             //===========================================================
             if(s_write_addr_tx.awlen != (WORDS_PER_LINE - 1)) begin
-              `uvm_error("WB_AWLEN_MISMATCH",
-                $sformatf("S[%0d] MSHR[%0d] WB AWLEN=%0d expected=%0d",
-                  s_idx, wb_idx,
-                  s_write_addr_tx.awlen,
-                  WORDS_PER_LINE - 1))
+              `uvm_error("WB_AWLEN_MISMATCH",$sformatf("S[%0d] MSHR[%0d] WB AWLEN=%0d expected=%0d",s_idx, wb_idx,s_write_addr_tx.awlen,WORDS_PER_LINE - 1))
             end
 
-            `uvm_info("WB_ADDR_GRANTED",
-              $sformatf("S[%0d] MSHR[%0d] AWID=0x%0h AWADDR=0x%0h 
-                        WRITEBACK GRANTED",
-                s_idx, wb_idx,
-                s_write_addr_tx.awid,
-                s_write_addr_tx.awaddr),
-              UVM_MEDIUM)
+            `uvm_info("WB_ADDR_GRANTED",$sformatf("S[%0d] MSHR[%0d] AWID=0x%0h AWADDR=0x%0h WRITEBACK GRANTED",s_idx, wb_idx,s_write_addr_tx.awid,s_write_addr_tx.awaddr),UVM_MEDIUM)
 
             //===========================================================
             // 5. UNBLOCK SLAVE WDATA PATH
@@ -1805,12 +1782,7 @@ foreach(axi4_slave_write_address_analysis_fifo[i]) begin
       end
 
       if(!found) begin
-        `uvm_error("WR_ADDR_NO_MATCH",
-          $sformatf("S[%0d] AWID=0x%0h AWADDR=0x%0h: 
-                    no active writeback MSHR matches",
-            s_idx,
-            s_write_addr_tx.awid,
-            s_write_addr_tx.awaddr))
+        `uvm_error("WR_ADDR_NO_MATCH",$sformatf("S[%0d] AWID=0x%0h AWADDR=0x%0h:no active writeback MSHR matches", s_idx,s_write_addr_tx.awid,s_write_addr_tx.awaddr))
       end
 
     end // forever
@@ -1838,13 +1810,7 @@ foreach(axi4_master_write_data_analysis_fifo[i]) begin
       axi4_master_write_data_analysis_fifo[m_idx].get(m_write_data_tx);
       axi4_master_tx_wdata_count[m_idx]++;
 
-      `uvm_info("MSTR_WR_DATA",
-        $sformatf("M[%0d] WDATA[0]=0x%0h WSTRB=0x%0h WLAST=%0b",
-          m_idx,
-          m_write_data_tx.wdata[0],
-          m_write_data_tx.wstrb[0],
-          m_write_data_tx.wlast),
-        UVM_HIGH)
+      `uvm_info("MSTR_WR_DATA",$sformatf("M[%0d] WDATA[0]=0x%0h WSTRB=0x%0h WLAST=%0b",m_idx,m_write_data_tx.wdata[0],m_write_data_tx.wstrb[0],m_write_data_tx.wlast),UVM_HIGH)
 
       //=================================================================
       // 2. GET CURRENT PENDING TRANSACTION FROM AW QUEUE
@@ -1866,10 +1832,7 @@ foreach(axi4_master_write_data_analysis_fifo[i]) begin
       awid     = bit'(awid_int);
 
       if(pending_write_txns[s_idx][m_idx][awid].size() == 0) begin
-        `uvm_error("MSTR_WR_DATA_NO_PENDING",
-          $sformatf("M[%0d] S[%0d] AWID=0x%0h aw_queue points to 
-                    empty pending_write_txns entry",
-            m_idx, s_idx, awid))
+        `uvm_error("MSTR_WR_DATA_NO_PENDING",$sformatf("M[%0d] S[%0d] AWID=0x%0h aw_queue points to empty pending_write_txns entry",m_idx, s_idx, awid))
         continue;
       end
 
@@ -1880,15 +1843,7 @@ foreach(axi4_master_write_data_analysis_fifo[i]) begin
       //=================================================================
       pending_tx.beats_received++;
 
-      `uvm_info("MSTR_WR_DATA_BEAT",
-        $sformatf("M[%0d] S[%0d] AWID=0x%0h beat=%0d/%0d 
-                  WDATA=0x%0h WSTRB=0x%0h",
-          m_idx, s_idx, awid,
-          pending_tx.beats_received,
-          pending_tx.tx.awlen + 1,
-          m_write_data_tx.wdata[0],
-          m_write_data_tx.wstrb[0]),
-        UVM_HIGH)
+      `uvm_info("MSTR_WR_DATA_BEAT",$sformatf("M[%0d] S[%0d] AWID=0x%0h beat=%0d/%0d WDATA=0x%0h WSTRB=0x%0h",m_idx, s_idx, awid,pending_tx.beats_received,pending_tx.tx.awlen + 1,m_write_data_tx.wdata[0],m_write_data_tx.wstrb[0]),UVM_HIGH)
 
       //=================================================================
       // 4. CHECK WLAST TIMING
