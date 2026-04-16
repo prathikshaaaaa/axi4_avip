@@ -3341,10 +3341,7 @@ task automatic axi4_scoreboard::axi4_read_data_comparison(
   end
   else begin
     byte_data_cmp_failed_rlast_count++;
-    `uvm_error("R_CMP_RLAST_FAIL",
-      $sformatf("M[%0d] S[%0d] RLAST NOT asserted at final beat ARID=0x%0h 
-                ARLEN=%0d",
-                master_id, slave_id, exp_tx.arid, exp_tx.arlen))
+`uvm_error("R_CMP_RLAST_FAIL", $sformatf("M[%0d] S[%0d] RLAST NOT asserted at final beat ARID=0x%0h ARLEN=%0d", master_id, slave_id, exp_tx.arid, exp_tx.arlen))
   end
 
   // ------------------------------------------------------------------
@@ -3409,14 +3406,14 @@ task automatic axi4_scoreboard::axi4_read_data_comparison(
           if(cache_byte !== dut_byte) begin
             beat_ok = 0;
             byte_data_cmp_failed_rdata_count++;
-            `uvm_error("R_CMP_HIT_DATA_MISMATCH",
-              $sformatf("M[%0d] S[%0d] HIT Beat=%0d ByteIdx=%0d "
-                        "Addr=0x%0h Lane=%0d "
-                        "Expected(cache)=0x%0h Got=0x%0h",
-                        master_id, slave_id,
-                        beat, byte_idx,
-                        temp_addr, lane,
-                        cache_byte, dut_byte))
+ `uvm_error("R_CMP_HIT_DATA_MISMATCH",
+  $sformatf("M[%0d] S[%0d] HIT Beat=%0d ByteIdx=%0d "
+            "Addr=0x%0h Lane=%0d "
+            "Expected(cache)=0x%0h Got=0x%0h",
+            master_id, slave_id,
+            beat, byte_idx,
+            temp_addr, lane,
+            cache_byte, dut_byte))
           end
 
           // Advance address per burst type
