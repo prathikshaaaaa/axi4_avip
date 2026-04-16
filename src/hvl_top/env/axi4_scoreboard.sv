@@ -2407,10 +2407,7 @@ end
         // no record of — either a spurious fetch or an MSHR allocation was
         // missed in the master address path.
         if(!mshr_found) begin
-          `uvm_error("AR_NO_MSHR",
-            $sformatf("S[%0d] AR addr=0x%0h ARID=0x%0h has no matching MSHR — 
-                      spurious refill or missed miss allocation",
-                      s_idx, s_read_addr_tx.araddr, s_read_addr_tx.arid))
+        `uvm_error("AR_NO_MSHR", $sformatf("S[%0d] AR addr=0x%0h ARID=0x%0h has no matching MSHR - spurious refill or missed miss allocation", s_idx, s_read_addr_tx.araddr, s_read_addr_tx.arid))
         end
 
       end // active_r_valid guard
@@ -2510,18 +2507,10 @@ end
 
                 scb_release_mshr(mshr_idx, 1);
 
-                `uvm_info("MSHR_RELEASED",
-                  $sformatf("M[%0d] S[%0d] MSHR[%0d] released after 
-                            master rlast confirmed line=0x%0h",
-                            m_idx, s_idx, mshr_idx, pending_tx.line_addr),
-                  UVM_MEDIUM)
+                `uvm_info("MSHR_RELEASED", $sformatf("M[%0d] S[%0d] MSHR[%0d] released after master rlast confirmed line=0x%0h", m_idx, s_idx, mshr_idx, pending_tx.line_addr), UVM_MEDIUM)
 
               end else begin
-                `uvm_error("MSHR_RELEASE_FAIL",
-                  $sformatf("M[%0d] S[%0d] RID=0x%0h MSHR for 
-                            line=0x%0h not found or not done at rlast",
-                            m_idx, s_idx, m_read_data_tx.arid,
-                            pending_tx.line_addr))
+               `uvm_error("MSHR_RELEASE_FAIL", $sformatf("M[%0d] S[%0d] RID=0x%0h MSHR for line=0x%0h not found or not done at rlast", m_idx, s_idx, m_read_data_tx.arid, pending_tx.line_addr))
               end
             end
 
