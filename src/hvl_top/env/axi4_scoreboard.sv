@@ -1,6 +1,8 @@
 `ifndef AXI4_L3_CACHE_SCOREBOARD_INCLUDED_
 `define AXI4_L3_CACHE_SCOREBOARD_INCLUDED_
 
+import axi4_globals_pkg::*;
+
 class axi4_scoreboard extends uvm_scoreboard;
   `uvm_component_utils(axi4_scoreboard)
 
@@ -2559,7 +2561,7 @@ end
       bit [ADDRESS_WIDTH-1:0] line_base;
       int                  index;
       int                  way;
-      bit [1:0]            snap_resp_code;
+      rresp_e    snap_resp_code;
 
       axi4_slave_read_data_analysis_fifo[s_idx].get(s_read_data_tx);
       axi4_slave_tx_rdata_count[s_idx]++;
@@ -2568,7 +2570,7 @@ end
       `uvm_info("SLV_RD_DATA",
         $sformatf("S[%0d] RID=0x%0h RDATA[0]=0x%0h RLAST=%0b RRESP=%0s",
                   s_idx, s_read_data_tx.rid, s_read_data_tx.rdata[0],
-                  s_read_data_tx.rlast, s_read_data_tx.rresp[0].name()),
+                  s_read_data_tx.rlast, s_read_data_tx.rresp.name()),
         UVM_HIGH)
 
       if(!active_r_valid[s_idx]) begin
@@ -2579,13 +2581,13 @@ end
 
       mshr_id = active_r_mshr[s_idx];
 
-      if(s_read_data_tx.rresp[0] != 2'b00) begin
-        scb_mshr[mshr_id].resp_code = s_read_data_tx.rresp[0];
+      if(s_read_data_tx.rresp != 2'b00) begin
+        scb_mshr[mshr_id].resp_code = s_read_data_tx.rresp;
         `uvm_error("REFILL_RRESP_ERROR",
           $sformatf("S[%0d] MSHR[%0d] beat=%0d RRESP=0x%0h",
                     s_idx, mshr_id,
                     scb_mshr[mshr_id].beat_count,
-                    s_read_data_tx.rresp[0]))
+                    s_read_data_tx.rresp))
       end
 
       scb_mshr[mshr_id].beat_count++;
