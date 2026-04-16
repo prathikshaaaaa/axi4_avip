@@ -928,7 +928,7 @@ function int axi4_scoreboard::scb_allocate_mshr(
       scb_mshr[i].tag         = tag;
       scb_mshr[i].beat_count  = 0;
       scb_mshr[i].wbeat_count = 0;
-      scb_mshr[i].resp_code   = 2'b00;
+      scb_mshr[i].resp_code   = WRITE_OKAY;
       scb_mshr[i].wb_error    = 0;
 
       if(scb_mshr[i].needs_writeback)
