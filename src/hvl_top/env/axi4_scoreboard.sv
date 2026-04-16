@@ -3296,8 +3296,7 @@ task automatic axi4_scoreboard::axi4_read_data_comparison(
       2'b01: begin // EXOKAY
         if(exp_tx.arlock === 1'b1) begin
           byte_data_cmp_verified_rresp_count++;
-          `uvm_info("R_CMP_RRESP_EXOKAY", $sformatf("M[%0d] S[%0d] Beat=%0d RRESP=EXOKAY for exclusive ARID=0x%0h - OK", master_id, slave_id, beat, exp_tx.arid), UVM_HIGH)
-            UVM_HIGH)
+        `uvm_info("R_CMP_RRESP_EXOKAY", $sformatf("M[%0d] S[%0d] Beat=%0d RRESP=EXOKAY for exclusive ARID=0x%0h - OK", master_id, slave_id, beat, exp_tx.arid), UVM_HIGH)
         end
         else begin
           byte_data_cmp_failed_rresp_count++;
