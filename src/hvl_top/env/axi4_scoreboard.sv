@@ -430,7 +430,7 @@ typedef struct {
  extern virtual task axi4_write_data_comparison(input axi4_master_tx exp_tx, input axi4_slave_tx act_tx, input int master_id, input int slave_id);
  extern virtual task axi4_write_response_comparison(input axi4_master_tx exp_tx, input axi4_slave_tx act_tx, input int master_id, input int slave_id);
  extern virtual task axi4_read_address_comparison(input axi4_master_tx exp_tx, input axi4_slave_tx act_tx, input int master_id, input int slave_id);
- extern virtual task automatic axi4_read_data_comparison(input axi4_master_tx exp_tx, input axi4_master_tx act_tx, input int master_id, input int slave_id, input bit expected_hit);
+ extern virtual task axi4_read_data_comparison(input axi4_master_tx exp_tx, input axi4_master_tx act_tx, input int master_id, input int slave_id, input bit expected_hit);
 endclass : axi4_scoreboard
 
 //=============================================================================
@@ -2438,7 +2438,7 @@ end
       `uvm_info("MSTR_RD_DATA",
         $sformatf("M[%0d] RID=0x%0h RDATA[0]=0x%0h RLAST=%0b RRESP=%0s",
                   m_idx, m_read_data_tx.arid, m_read_data_tx.rdata[0],
-                  m_read_data_tx.rlast, m_read_data_tx.rresp[0].name()),
+                  m_read_data_tx.rlast, m_read_data_tx.rresp.name()),
         UVM_MEDIUM)
 
       // Search pending_read_txns across all slaves by arid and master_id
