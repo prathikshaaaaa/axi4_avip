@@ -369,14 +369,11 @@ typedef struct {
   );
   
   extern virtual function void scb_update_mshr_write_data(
-    input int mshr_idx,
-    input byte wdata[],
-    input bit wstrb[]
-  );
+  input int master, input int txn_id,
+  input logic [DATA_WIDTH-1:0] data,
+  input logic [(DATA_WIDTH/8)-1:0] strb);
   
-  extern virtual function void scb_release_mshr(
-    input int mshr_idx
-  );
+  extern virtual function void scb_release_mshr(input int i, input bit resp_accepted);
 
   // Request handlers
   extern virtual function void l3_handle_read_request(
