@@ -2062,7 +2062,7 @@ foreach(axi4_master_write_response_analysis_fifo[i]) begin
       //=================================================================
       // 2. Pop the pending transaction
       //=================================================================
-      pending_tx = pending_write_txns[s_idx][m_idx][awid].pop_front();
+      pending_tx = pending_write_txns[s_idx][m_idx][m_write_resp_tx.bid].pop_front();
 
 
       if(!pending_tx.write_data_complete) begin
