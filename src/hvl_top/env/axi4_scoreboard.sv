@@ -116,7 +116,7 @@ typedef struct {
    bit needs_writeback;
    bit wb_done;
    bit wb_error;
-   bresp_e; resp_code;
+   bresp_e resp_code;
 
    // ---------------- Write Data Buffer 
   logic [DATA_WIDTH-1:0] wdata_buf[WORDS_PER_LINE];
