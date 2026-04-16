@@ -423,12 +423,12 @@ typedef struct {
     bit is_read
   );
   
-  // Comparison tasks
- // extern virtual task axi4_write_address_comparison(input axi4_master_tx exp_tx, input axi4_slave_tx act_tx, input int master_id, input int slave_id);
- // extern virtual task axi4_write_data_comparison(input axi4_master_tx exp_tx, input axi4_slave_tx act_tx, input int master_id, input int slave_id);
- // extern virtual task axi4_write_response_comparison(input axi4_master_tx exp_tx, input axi4_slave_tx act_tx, input int master_id, input int slave_id);
- // extern virtual task axi4_read_address_comparison(input axi4_master_tx exp_tx, input axi4_slave_tx act_tx, input int master_id, input int slave_id);
- // extern virtual task automatic axi4_read_data_comparison(input axi4_master_tx exp_tx, input axi4_master_tx act_tx, input int master_id, input int slave_id, input bit expected_hit);
+ // Comparison tasks
+ extern virtual task axi4_write_address_comparison(input axi4_master_tx exp_tx, input axi4_slave_tx act_tx, input int master_id, input int slave_id);
+ extern virtual task axi4_write_data_comparison(input axi4_master_tx exp_tx, input axi4_slave_tx act_tx, input int master_id, input int slave_id);
+ extern virtual task axi4_write_response_comparison(input axi4_master_tx exp_tx, input axi4_slave_tx act_tx, input int master_id, input int slave_id);
+ extern virtual task axi4_read_address_comparison(input axi4_master_tx exp_tx, input axi4_slave_tx act_tx, input int master_id, input int slave_id);
+ extern virtual task automatic axi4_read_data_comparison(input axi4_master_tx exp_tx, input axi4_master_tx act_tx, input int master_id, input int slave_id, input bit expected_hit);
 endclass : axi4_scoreboard
 
 //=============================================================================
@@ -532,6 +532,14 @@ function void axi4_scoreboard::build_phase(uvm_phase phase);
   end
   
 endfunction : build_phase
+
+function void axi4_scoreboard::check_phase(uvm_phase phase);
+  super.check_phase(phase);
+endfunction
+
+function void axi4_scoreboard::report_phase(uvm_phase phase);
+  super.report_phase(phase);
+endfunction
 
 //=============================================================================
 // Function: axi_decode_cache_policy
