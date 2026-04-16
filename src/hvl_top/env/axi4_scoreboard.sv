@@ -2128,12 +2128,8 @@ foreach(axi4_master_write_response_analysis_fifo[i]) begin
         // WRITE MISS COMPLETION
         //-------------------------------------------------------------
         if(scb_mshr[mshr_idx].needs_writeback && !scb_mshr[mshr_idx].wb_done) begin
-          `uvm_error("MASTER_BRESP_BEFORE_WB_DONE",
-            $sformatf("M[%0d] S[%0d] BID=0x%0h MSHR[%0d]: master BRESP before writeback BRESP completed",
-                      m_idx, s_idx, m_write_resp_tx.bid, mshr_idx))
+          `uvm_error("MASTER_BRESP_BEFORE_WB_DONE", $sformatf("M[%0d] S[%0d] BID=0x%0h MSHR[%0d]: master BRESP before writeback BRESP completed", m_idx, s_idx, m_write_resp_tx.bid, mshr_idx))
         end
-
-
 
         if(!scb_mshr[mshr_idx].done) begin
           `uvm_error("MASTER_BRESP_BEFORE_REFILL",
@@ -2141,23 +2137,13 @@ foreach(axi4_master_write_response_analysis_fifo[i]) begin
                       m_idx, s_idx, m_write_resp_tx.bid, mshr_idx))
         end
 
-
-
         // Store BRESP code — scb_release_mshr uses it for LRU update
         scb_mshr[mshr_idx].resp_code = m_write_resp_tx.bresp;
-
-
 
         // Release MSHR: applies buffered wdata, sets L3_DIRTY, updates LRU
         scb_release_mshr(mshr_idx, 1 /*resp_accepted*/);
 
-
-
-        `uvm_info("WR_MISS_COMPLETE",
-          $sformatf("M[%0d] S[%0d] BID=0x%0h MSHR[%0d] released — write-miss cycle complete BRESP=0x%0h",
-                    m_idx, s_idx, m_write_resp_tx.bid, mshr_idx, m_write_resp_tx.bresp),
-          UVM_MEDIUM)
-
+        `uvm_info("WR_MISS_COMPLETE", $sformatf("M[%0d] S[%0d] BID=0x%0h MSHR[%0d] released — write-miss cycle complete BRESP=0x%0h", m_idx, s_idx, m_write_resp_tx.bid, mshr_idx, m_write_resp_tx.bresp), UVM_MEDIUM)
 
 
       end else begin
@@ -2170,50 +2156,25 @@ foreach(axi4_master_write_response_analysis_fifo[i]) begin
             $sformatf("M[%0d] S[%0d] BID=0x%0h write-hit BRESP=0x%0h expected OKAY",
                       m_idx, s_idx, m_write_resp_tx.bid, m_write_resp_tx.bresp))
         end
-
-
-
-        `uvm_info("WR_HIT_COMPLETE",
-          $sformatf("M[%0d] S[%0d] BID=0x%0h write-hit complete BRESP=0x%0h",
-                    m_idx, s_idx, m_write_resp_tx.bid, m_write_resp_tx.bresp),
-          UVM_MEDIUM)
+        `uvm_info("WR_HIT_COMPLETE",$sformatf("M[%0d] S[%0d] BID=0x%0h write-hit complete BRESP=0x%0h", m_idx, s_idx, m_write_resp_tx.bid, m_write_resp_tx.bresp), UVM_MEDIUM)
       end
-
-
-
     end // forever
   join_none
 end
 
-
-//===========================================================================
+//==========================================================================
 // WRITE RESPONSE PATH - Slave Side
 //===========================================================================
-
-
-
 foreach(axi4_slave_write_response_analysis_fifo[i]) begin
   automatic int s_idx = i;
   fork
     forever begin
       axi4_slave_tx s_write_resp_tx;
       bit           found;
-
-
-
       axi4_slave_write_response_analysis_fifo[s_idx].get(s_write_resp_tx);
       axi4_slave_tx_bresp_count[s_idx]++;
       total_slave_tx_count++;
-
-
-
-      `uvm_info("SLV_WR_RESP",
-        $sformatf("S[%0d] BID=0x%0h BRESP=0x%0h",
-                  s_idx, s_write_resp_tx.bid, s_write_resp_tx.bresp),
-        UVM_MEDIUM)
-
-
-
+      `uvm_info("SLV_WR_RESP", $sformatf("S[%0d] BID=0x%0h BRESP=0x%0h", s_idx, s_write_resp_tx.bid, s_write_resp_tx.bresp), UVM_MEDIUM)
       found = 0;
 
 
@@ -2227,22 +2188,13 @@ foreach(axi4_slave_write_response_analysis_fifo[i]) begin
            scb_mshr[wi].needs_writeback &&
            !scb_mshr[wi].wb_done        &&
            scb_mshr[wi].slave == s_idx) begin
-
-
-
+          
           if(s_write_resp_tx.bresp == 2'b00) begin
             // OKAY: writeback succeeded
             scb_mshr[wi].wb_done  = 1;
             scb_mshr[wi].wb_error = 0;
-
-
-
-            `uvm_info("WB_BRESP_OK",
-              $sformatf("S[%0d] MSHR[%0d] writeback BRESP=OKAY — refill AR unblocked", s_idx, wi),
-              UVM_MEDIUM)
-
-
-
+            `uvm_info("WB_BRESP_OK", $sformatf("S[%0d] MSHR[%0d] writeback BRESP=OKAY — refill AR unblocked", s_idx, wi),UVM_MEDIUM)
+            
           end else begin
             // ERROR: writeback failed -> Restore L3_DIRTY and undo Reference Data
             bit [ADDRESS_WIDTH-1:0] wb_addr;
@@ -2278,13 +2230,8 @@ foreach(axi4_slave_write_response_analysis_fifo[i]) begin
 
 
 
-            `uvm_error("WB_BRESP_ERROR",
-              $sformatf("S[%0d] MSHR[%0d] writeback BRESP=0x%0h — line restored DIRTY refMem undone",
-                        s_idx, wi, s_write_resp_tx.bresp))
+            `uvm_error("WB_BRESP_ERROR", $sformatf("S[%0d] MSHR[%0d] writeback BRESP=0x%0h — line restored DIRTY refMem undone", s_idx, wi, s_write_resp_tx.bresp))
           end
-
-
-
           found = 1;
           break; 
         end
@@ -2293,9 +2240,7 @@ foreach(axi4_slave_write_response_analysis_fifo[i]) begin
 
 
       if(!found) begin
-        `uvm_error("SLV_BRESP_UNEXPECTED",
-          $sformatf("S[%0d] BID=0x%0h BRESP=0x%0h: received unexpected slave-side BRESP — no active writeback MSHR matches.",
-                    s_idx, s_write_resp_tx.bid, s_write_resp_tx.bresp))
+        `uvm_error("SLV_BRESP_UNEXPECTED", $sformatf("S[%0d] BID=0x%0h BRESP=0x%0h: received unexpected slave-side BRESP — no active writeback MSHR matches.", s_idx, s_write_resp_tx.bid, s_write_resp_tx.bresp))
       end
 
 
@@ -2320,20 +2265,12 @@ foreach(axi4_master_read_address_analysis_fifo[i]) begin
       axi4_master_read_address_analysis_fifo[m_idx].get(m_read_addr_tx);
       axi4_master_tx_araddr_count[m_idx]++;
 
-      `uvm_info("MSTR_RD_ADDR",
-        $sformatf("M[%0d] ARID=0x%0h ARADDR=0x%0h ARLEN=%0d ARSIZE=%0d 
-                  ARBURST=%0d ARCACHE=0x%0h",
-                  m_idx, m_read_addr_tx.arid, m_read_addr_tx.araddr,
-                  m_read_addr_tx.arlen, m_read_addr_tx.arsize,
-                  m_read_addr_tx.arburst, m_read_addr_tx.arcache),
-        UVM_MEDIUM)
+      `uvm_info("MSTR_RD_ADDR", $sformatf("M[%0d] ARID=0x%0h ARADDR=0x%0h ARLEN=%0d ARSIZE=%0d  ARBURST=%0d ARCACHE=0x%0h", m_idx, m_read_addr_tx.arid, m_read_addr_tx.araddr, m_read_addr_tx.arlen, m_read_addr_tx.arsize,  m_read_addr_tx.arburst, m_read_addr_tx.arcache), UVM_MEDIUM)
 
       s_idx = get_slave_index(m_read_addr_tx.araddr);
 
       if(s_idx == -1) begin
-        `uvm_error("ADDR_DECODE",
-          $sformatf("M[%0d] ARADDR=0x%0h doesn't map to any slave",
-                    m_idx, m_read_addr_tx.araddr))
+        `uvm_error("ADDR_DECODE", $sformatf("M[%0d] ARADDR=0x%0h doesn't map to any slave", m_idx, m_read_addr_tx.araddr))
         continue;
       end
 
@@ -2369,9 +2306,7 @@ foreach(axi4_master_read_address_analysis_fifo[i]) begin
         end
 
         if(hit_way == -1) begin
-          `uvm_error("L3_HIT_WAY_MISSING",
-            $sformatf("M[%0d] Expected HIT but way not found at AR time 
-                      Addr=0x%0h", m_idx, m_read_addr_tx.araddr))
+          `uvm_error("L3_HIT_WAY_MISSING", $sformatf("M[%0d] Expected HIT but way not found at AR time Addr=0x%0h", m_idx, m_read_addr_tx.araddr))
         end else begin
 
           bytes_per_beat = 1 << m_read_addr_tx.arsize;
@@ -2415,20 +2350,10 @@ foreach(axi4_master_read_address_analysis_fifo[i]) begin
       // For hits: trigger grant event here since slave AR path is bypassed
       if(expected_l3_hit) begin
         ->slave_read_addr_granted[s_idx];
-        `uvm_info("RD_HIT_GRANTED",
-          $sformatf("M[%0d] S[%0d] ARID=0x%0h HIT — address_granted set 
-                    immediately, no slave AR expected",
-                    m_idx, s_idx, m_read_addr_tx.arid),
-          UVM_MEDIUM)
+        `uvm_info("RD_HIT_GRANTED", $sformatf("M[%0d] S[%0d] ARID=0x%0h HIT — address_granted set immediately, no slave AR expected", m_idx, s_idx, m_read_addr_tx.arid), UVM_MEDIUM)
       end
 
-      `uvm_info("RD_PENDING",
-        $sformatf("M[%0d]->S[%0d] ARID=0x%0h queued (depth=%0d) 
-                  L3_HIT=%0b address_granted=%0b",
-                  m_idx, s_idx, m_read_addr_tx.arid,
-                  pending_read_txns[s_idx][m_read_addr_tx.arid].size(),
-                  expected_l3_hit, pending_tx.address_granted),
-        UVM_HIGH)
+      `uvm_info("RD_PENDING", $sformatf("M[%0d]->S[%0d] ARID=0x%0h queued (depth=%0d) L3_HIT=%0b address_granted=%0b", m_idx, s_idx, m_read_addr_tx.arid, pending_read_txns[s_idx][m_read_addr_tx.arid].size(), expected_l3_hit, pending_tx.address_granted), UVM_HIGH)
 
     end
   join_none
@@ -2480,19 +2405,14 @@ end
       end
 
       if(!found) begin
-        `uvm_error("RD_ADDR_NO_MATCH",
-                  $sformatf("S[%0d] received ARID=0x%0h but no pending transaction",
-                           s_idx, s_read_addr_tx.arid))
+       `uvm_error("RD_ADDR_NO_MATCH", $sformatf("S[%0d] received ARID=0x%0h but no pending transaction", s_idx, s_read_addr_tx.arid))
       end
 
       mshr_found = 0;
 
       // Guard: slave R-channel must not already be active
       if(active_r_valid[s_idx]) begin
-        `uvm_error("AR_SLAVE_BUSY",
-          $sformatf("S[%0d] received new AR but active_r_valid already set — 
-                    DUT issued two ARs on same slave channel",
-                    s_idx))
+     `uvm_error("AR_SLAVE_BUSY", $sformatf("S[%0d] received new AR but active_r_valid already set - DUT issued two ARs on same slave channel", s_idx))
       end else begin
 
         for(int m = 0; m < MAX_MSHR; m++) begin
