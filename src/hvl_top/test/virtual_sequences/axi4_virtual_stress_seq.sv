@@ -23,10 +23,12 @@ class axi4_virtual_stress_seq extends axi4_virtual_base_seq;
     // 2. BOOT UP ALL SLAVES (BACKGROUND THREADS)
     // ---------------------------------------------------------
     for (int s = 0; s < NO_OF_SLAVES; s++) begin
+      automatic int slv_idx;
+      
       s_wb_seq[s]     = axi4_slave_writeback_seq::type_id::create($sformatf("s_wb_seq[%0d]", s));
       s_refill_seq[s] = axi4_slave_refill_seq::type_id::create($sformatf("s_refill_seq[%0d]", s));
       
-      automatic int slv_idx = s;
+      slv_idx = s;
       
       fork
         forever s_wb_seq[slv_idx].start(p_sequencer.axi4_slave_write_seqr_h[slv_idx]);
@@ -38,6 +40,9 @@ class axi4_virtual_stress_seq extends axi4_virtual_base_seq;
     // 3. FIRE ALL MASTERS AT THE EXACT SAME TIME
     // ---------------------------------------------------------
     for (int m = 0; m < NO_OF_MASTERS; m++) begin
+
+      automatic int mst_idx;
+      
       m_seq[m] = axi4_master_write_miss_seq::type_id::create($sformatf("m_seq[%0d]", m));
       
       // Randomize each master to target different random addresses
@@ -45,7 +50,7 @@ class axi4_virtual_stress_seq extends axi4_virtual_base_seq;
          `uvm_fatal("STRESS_SEQ", "Master randomization failed")
       end
 
-      automatic int mst_idx = m;
+       mst_idx = m;
       
       fork
         // This fires the masters in parallel
