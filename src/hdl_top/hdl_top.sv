@@ -49,7 +49,7 @@ module hdl_top;
     .NO_OF_SLAVES (NO_OF_SLAVES),
     .ADDRESS_WIDTH(ADDRESS_WIDTH),
     .DATA_WIDTH(DATA_WIDTH),
-    .ID_WIDTH(ID_WIDTH)
+    .ID_WIDTH(ID_WIDTH),
     .SLAVE_MEM_SIZE(SLAVE_MEM_SIZE)
   ) axi_interconnect (
     .aclk      (aclk),
