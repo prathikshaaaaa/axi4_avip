@@ -65,6 +65,7 @@ package axi4_globals_pkg;
   parameter int NUM_SETS = 64;
   parameter int ASSOCIATIVITY = 4;
   parameter int NUM_MSHR      = 8;
+  parameter int WORDS_PER_LINE  = 4 ;
 
   //Variable: OUTSTANDING_FIFO_DEPTH
   //Indicates the fifo depth of outstanding transaction
