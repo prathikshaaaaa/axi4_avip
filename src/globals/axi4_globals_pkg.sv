@@ -38,7 +38,7 @@ package axi4_globals_pkg;
 
   //Parameter: SLAVE_MEMORY_SIZE
   //Sets the memory size of the slave in KB
-  parameter int SLAVE_MEM_SIZE = 12;
+  parameter int SLAVE_MEMORY_SIZE = 12;
 
   //Parameter: SLAVE_MEMORY_GAP
   //Sets the memory gap size of the slave
