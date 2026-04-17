@@ -9,6 +9,7 @@ class axi4_slave_refill_seq extends axi4_slave_base_seq;
   endfunction
   task body();
     super.body();
+    req = axi4_slave_tx::type_id::create("req");
     start_item(req);
     if(!req.randomize() with {
       // 1. Must be a READ transaction to satisfy the AR request
