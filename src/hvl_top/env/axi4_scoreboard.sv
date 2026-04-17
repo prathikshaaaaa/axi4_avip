@@ -1,8 +1,6 @@
 `ifndef AXI4_L3_CACHE_SCOREBOARD_INCLUDED_
 `define AXI4_L3_CACHE_SCOREBOARD_INCLUDED_
 
-import axi4_globals_pkg::*;
-
 class axi4_scoreboard extends uvm_scoreboard;
   `uvm_component_utils(axi4_scoreboard)
 
