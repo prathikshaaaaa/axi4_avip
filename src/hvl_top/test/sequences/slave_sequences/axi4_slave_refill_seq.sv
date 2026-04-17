@@ -26,6 +26,7 @@ class axi4_slave_refill_seq extends axi4_slave_bk_base_seq;
          req.rresp[i] == 2'b00; // OKAY response
       }
     }) begin
+     req.print();
       `uvm_fatal("SLV_REFILL_SEQ", "Randomization failed");
     end
     finish_item(req);
