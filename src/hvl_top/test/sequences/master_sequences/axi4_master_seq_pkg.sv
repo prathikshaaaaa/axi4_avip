@@ -108,6 +108,9 @@ package axi4_master_seq_pkg;
   `include "axi4_master_nbk_write_qos_seq.sv"
   `include "axi4_master_nbk_read_qos_seq.sv"
 
+  `include "axi4_master_write_miss_seq.sv"
+  
+
 endpackage : axi4_master_seq_pkg
 
 `endif
