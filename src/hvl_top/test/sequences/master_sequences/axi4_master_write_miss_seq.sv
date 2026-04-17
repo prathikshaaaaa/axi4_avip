@@ -22,7 +22,7 @@ class axi4_master_write_miss_seq extends axi4_master_base_seq;
 
       // WRITE CONFIG
       req.tx_type       == WRITE;
-      req.transfer_type == BLOCKING_WRITE; // or your env equivalent
+      req.transfer_type == NON_OUTSTANDING_WRITE ; // or your env equivalent
 
       // BURST CONFIG
       req.awburst == WRITE_INCR;
@@ -40,8 +40,8 @@ class axi4_master_write_miss_seq extends axi4_master_base_seq;
     // DATA (4 BEATS)
     // ---------------------------------------------
 
-    foreach (req.data[i]) begin
-      req.data[i] = 32'hA000_0000 + i;
+    foreach (req.wdata[i]) begin
+      req.wdata[i] = 32'hA000_0000 + i;
     end
 
     // ---------------------------------------------
