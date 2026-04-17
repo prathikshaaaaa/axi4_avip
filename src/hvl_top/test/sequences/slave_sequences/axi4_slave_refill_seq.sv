@@ -2,7 +2,7 @@
 `ifndef AXI4_SLAVE_REFILL_SEQ_INCLUDED_
 `define AXI4_SLAVE_REFILL_SEQ_INCLUDED_
  
-class axi4_slave_refill_seq extends axi4_slave_bk_base_seq;
+class axi4_slave_refill_seq extends axi4_slave_base_seq;
   `uvm_object_utils(axi4_slave_refill_seq)
   function new(string name="axi4_slave_refill_seq");
     super.new(name);
