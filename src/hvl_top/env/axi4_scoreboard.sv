@@ -2559,7 +2559,7 @@ end
       bit [ADDRESS_WIDTH-1:0] line_base;
       int                  index;
       int                  way;
-      rresp_e    snap_resp_code;
+      bit[1:0] snap_resp_code;
 
       axi4_slave_read_data_analysis_fifo[s_idx].get(s_read_data_tx);
       axi4_slave_tx_rdata_count[s_idx]++;
