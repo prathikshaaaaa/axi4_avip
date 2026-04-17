@@ -58,7 +58,7 @@ class axi4_master_write_miss_seq extends axi4_master_base_seq;
     // DEBUG PRINT
     // ---------------------------------------------
     `uvm_info(get_type_name(),
-      $sformatf("WRITE MISS: addr=0x%0h len=%0d", req.addr, req.awlen),
+              $sformatf("WRITE MISS: addr=0x%0h len=%0d", req.awaddr, req.awlen),
       UVM_MEDIUM)
 
   endtask
