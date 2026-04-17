@@ -15,8 +15,8 @@ class axi4_slave_writeback_seq extends axi4_slave_bk_base_seq;
     start_item(req);
  
     if(!req.randomize() with {
-      req.tx_type       == WRITE;
-      req.transfer_type == NON_OUTSTANDING_WRITE;
+      // req.tx_type       == WRITE;
+      // req.transfer_type == NON_OUTSTANDING_WRITE;
  
       req.awburst == WRITE_INCR;
       req.awsize  == WRITE_4_BYTES;
@@ -26,7 +26,8 @@ class axi4_slave_writeback_seq extends axi4_slave_bk_base_seq;
     }) begin
       `uvm_fatal("SLV_WB_SEQ", "Rand failed");
     end
- 
+       req.tx_type       = WRITE;
+      req.transfer_type = NON_OUTSTANDING_WRITE;
     finish_item(req);
   endtask
  
