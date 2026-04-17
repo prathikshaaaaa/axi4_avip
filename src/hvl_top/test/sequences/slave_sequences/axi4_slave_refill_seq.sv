@@ -24,7 +24,7 @@ class axi4_slave_refill_seq extends axi4_slave_base_seq;
       // 4. Force a successful OKAY response from the slave DDR
       // (Assuming your transaction class has an array for rresp per beat)
      req.rdata.size() == req.arlen + 1;
-      req.rresp == 2'b00;
+      req.rresp == READ_OKAY;
      
       // foreach(req.rresp[i]) {
       //    req.rresp[i] == 2'b00; // OKAY response
