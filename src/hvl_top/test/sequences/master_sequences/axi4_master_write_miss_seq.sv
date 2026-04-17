@@ -28,7 +28,7 @@ class axi4_master_write_miss_seq extends axi4_master_base_seq;
       req.awburst == WRITE_INCR;
       req.awsize  == WRITE_4_BYTES;  // 32-bit
       req.awlen   == 3;              // 4 beats
-      req.awcache == 4'b1111;
+      req.awcache == READ_WRITE_ALLOCATE;
       
       req.awaddr == 32'h8000_1000;
 
