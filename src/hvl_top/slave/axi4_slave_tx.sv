@@ -152,7 +152,7 @@ class axi4_slave_tx extends uvm_sequence_item;
 
   //Variable : rresp
   //Used to store the read response
-  rand rresp_e rresp[] ;
+  rand rresp_e rresp;
 
   //Variable : ruser
   //Used to store the read user
