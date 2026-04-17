@@ -16,7 +16,7 @@ module hvl_top;
     
     // The test to start is given at the command line
     // The command-line UVM_TESTNAME takes the precedance
-    run_test("axi4_base_test");
+    run_test("axi4_write_miss_test");
 
   end
 
