@@ -22,7 +22,7 @@ class axi4_write_miss_test extends axi4_base_test;
     vseq = axi4_virtual_stress_seq::type_id::create("vseq");
 
     // Start on virtual sequencer
-    vseq.start(env.axi4_virtual_seqr_h);
+    vseq.start(axi4_env_h.axi4_virtual_seqr_h);
 
     `uvm_info(get_type_name(), "TEST COMPLETED", UVM_LOW)
 
