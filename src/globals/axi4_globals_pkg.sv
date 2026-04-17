@@ -142,7 +142,8 @@ package axi4_globals_pkg;
     WRITE_BUFFERABLE,
     WRITE_MODIFIABLE,
     WRITE_OTHER_ALLOCATE,
-    WRITE_ALLOCATE
+    WRITE_ALLOCATE,
+    READ_WRITE_ALLOCATE = 15
   } awcache_e;
 
   //Enum: arcache_e
