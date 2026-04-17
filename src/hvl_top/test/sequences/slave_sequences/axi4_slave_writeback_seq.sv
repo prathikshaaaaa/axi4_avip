@@ -13,21 +13,25 @@ class axi4_slave_writeback_seq extends axi4_slave_bk_base_seq;
     super.body();
  
     start_item(req);
+    
+    if(!req.randomize())
+    // if(!req.randomize() with {
+    //   // req.tx_type       == WRITE;
+    //   // req.transfer_type == NON_OUTSTANDING_WRITE;
  
-    if(!req.randomize() with {
-      // req.tx_type       == WRITE;
-      // req.transfer_type == NON_OUTSTANDING_WRITE;
+    //   // req.awburst == WRITE_INCR;
+    //   // req.awsize  == WRITE_4_BYTES;
  
-      req.awburst == WRITE_INCR;
-      req.awsize  == WRITE_4_BYTES;
- 
-      // full cache line
-      req.awlen == WORDS_PER_LINE - 1;
-    }) begin
+    //   // full cache line
+    //   // req.awlen == WORDS_PER_LINE - 1;
+    // }) begin
       `uvm_fatal("SLV_WB_SEQ", "Rand failed");
-    end
+    
        req.tx_type       = WRITE;
       req.transfer_type = NON_OUTSTANDING_WRITE;
+    req.awburst = WRITE_INCR;
+    req.awsize  = WRITE_4_BYTES;
+    req.awlen = WORDS_PER_LINE - 1;
     finish_item(req);
   endtask
  
