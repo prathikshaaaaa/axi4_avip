@@ -13,6 +13,7 @@ package axi4_virtual_seq_pkg;
   //-------------------------------------------------------
   `include "uvm_macros.svh"
   import uvm_pkg::*;
+  import axi4_globals_pkg::*;
   import axi4_master_pkg::*;
   import axi4_slave_pkg::*; 
   import axi4_master_seq_pkg::*; 
