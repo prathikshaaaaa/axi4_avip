@@ -50,7 +50,7 @@ module hdl_top;
     .ADDRESS_WIDTH(ADDRESS_WIDTH),
     .DATA_WIDTH(DATA_WIDTH),
     .ID_WIDTH(ID_WIDTH),
-    .SLAVE_MEM_SIZE(SLAVE_MEM_SIZE)
+    .SLAVE_MEM_SIZE(SLAVE_MEMORY_SIZE)
   ) axi_interconnect (
     .aclk      (aclk),
     .aresetn  (aresetn),
