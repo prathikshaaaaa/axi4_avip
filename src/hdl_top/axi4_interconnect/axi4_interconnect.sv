@@ -1,3 +1,7 @@
+
+`include"axi4_decoder.sv"
+`include"axi_cache_controller.sv"
+
 module axi_interconnect_cache #(
     parameter int NO_OF_MASTERS  = 4,
     parameter int NO_OF_SLAVES   = 2,
