@@ -13,8 +13,9 @@ class axi4_slave_refill_seq extends axi4_slave_base_seq;
     start_item(req);
     if(!req.randomize() with {
       // 1. Must be a READ transaction to satisfy the AR request
-      req.tx_type       == READ;
-      req.transfer_type == NON_OUTSTANDING_READ;
+     
+      // req.tx_type       == READ;
+      // req.transfer_type == NON_OUTSTANDING_READ;
       // 2. Match the burst parameters expected for a cache line fetch
       req.arburst == READ_INCR;      // Or READ_WRAP, depending on your cache RTL
       req.arsize  == READ_4_BYTES;   // Assuming a 32-bit data bus
@@ -33,6 +34,8 @@ class axi4_slave_refill_seq extends axi4_slave_base_seq;
      req.print();
       `uvm_fatal("SLV_REFILL_SEQ", "Randomization failed");
     end
+   req.tx_type       = READ;
+    req.transfer_type = NON_OUTSTANDING_READ;
     finish_item(req);
   endtask
 endclass
