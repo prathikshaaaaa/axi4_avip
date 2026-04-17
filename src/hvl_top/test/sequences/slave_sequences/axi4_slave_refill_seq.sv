@@ -13,7 +13,7 @@ class axi4_slave_refill_seq extends axi4_slave_bk_base_seq;
     if(!req.randomize() with {
       // 1. Must be a READ transaction to satisfy the AR request
       req.tx_type       == READ;
-      req.transfer_type == BLOCKING_READ;
+      req.transfer_type == NON_OUTSTANDING_READ;
       // 2. Match the burst parameters expected for a cache line fetch
       req.arburst == READ_INCR;      // Or READ_WRAP, depending on your cache RTL
       req.arsize  == READ_4_BYTES;   // Assuming a 32-bit data bus
