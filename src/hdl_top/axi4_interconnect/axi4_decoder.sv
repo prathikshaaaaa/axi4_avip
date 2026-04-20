@@ -211,8 +211,10 @@ module axi4_decoder #(
 
         // AW/AR ready pass-through
         for (int s = 0; s < NO_OF_SLAVES; s++) begin
-            if (wr_active_master[s] != -1)
+            if (wr_active_master[s] != -1)begin
                 m_awready[wr_active_master[s]] = cache_awready[s];
+$display("DECODER AW/AR ready pass-through write T=%0t wr_active_master[%s] = %d",$time,s,wr_active_master[s]);
+end
             if (rd_active_master[s] != -1)
                 m_arready[rd_active_master[s]] = cache_arready[s];
         end
@@ -337,19 +339,23 @@ module axi4_decoder #(
     // =========================================================
     always_ff @(posedge aclk or negedge aresetn) begin
         if (!aresetn) begin
+ $display("DECODER WRITE ARBITRATION LOGIC reset T=%0t",$time);
             for (int s = 0; s < NO_OF_SLAVES; s++) begin
                 wr_active_master[s]  = -1;
                 wr_prev_grant[s]     = -1;
                 wr_just_released[s]  = 1'b0;
             end
         end else begin
+$display("DECODER WRITE ARBITRATION LOGIC reset (else) T=%0t",$time);
             for (int s = 0; s < NO_OF_SLAVES; s++) begin
 
                 wr_just_released[s] = 1'b0;  // default: clear each cycle
-
+$display("DECODER WRITE ARBITRATION LOGIC reset (else)(inside forloop) T=%0t",$time);
                 if (wr_active_master[s] == -1 && !wr_just_released[s]) begin
                     int next;
                     next = select_master(s, 1);
+$display("DECODER WRITE ARBITRATION LOGIC reset (else)(inside forloop if) T=%0t",$time);
+$display("next  =%d",next);
                     if (next != -1) begin
                         wr_active_master[s] = next;
                         wr_prev_grant[s]    = next;
@@ -462,6 +468,7 @@ module axi4_decoder #(
         bit firstReqSeen   =  0;
 
         if (isWrite == 1) begin
+$display("select_master inisde iswrite == 1");
             for (int m = 0; m < NO_OF_MASTERS; m++)
                 localWriteReq[m] = m_awvalid[m] ?
                     (map_slave_addr(m_awaddr[m]) == ($clog2(NO_OF_SLAVES)+1)'(targetSlave)) : 0;
@@ -475,8 +482,10 @@ module axi4_decoder #(
                     end
                 end
             end
-            if (!firstReqSeen) return -1;
-
+            if (!firstReqSeen)begin
+$display( "inside !firstReqSeen returning -1");
+return -1;
+end
             equal_qos_cnt = 0;
             for (int m = 0; m < NO_OF_MASTERS; m++)
                 if (localWriteReq[m] && int'(m_awqos[m]) == highestQos) equal_qos_cnt++;
