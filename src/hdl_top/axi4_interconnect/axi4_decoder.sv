@@ -446,7 +446,7 @@ $display("next  =%d",next);
     // Address decode
     // =========================================================
     function automatic logic [$clog2(NO_OF_SLAVES):0] map_slave_addr(
-        logic [ADDR_WIDTH-1:0] addr_in
+        logic [ADDR_WIDTH-1:0] addr_in = 0
     );
         for (int i = 0; i < NO_OF_SLAVES; i++) begin
             if (addr_in >= ADDR_WIDTH'(i * (1 << SLAVE_MEM_SIZE)) &&
