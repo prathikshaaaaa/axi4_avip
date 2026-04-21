@@ -450,9 +450,13 @@ $display("next  =%d",next);
     );
         for (int i = 0; i < NO_OF_SLAVES; i++) begin
             if (addr_in >= ADDR_WIDTH'(i * (1 << SLAVE_MEM_SIZE)) &&
-                addr_in <  ADDR_WIDTH'((i+1) * (1 << SLAVE_MEM_SIZE)))
+                addr_in <  ADDR_WIDTH'((i+1) * (1 << SLAVE_MEM_SIZE))) begin
+                $display("inside map_slave_addr (if) addr = %h for %0d ",addr_in,i);
                 return i;
+            end
+            $display("inside map_slave_addr (outside if) addr = %h for %0d ",addr_in,i);
         end
+        $display("inside map_slave_addr (outside return) addr = %h ",addr_in);
         return '1;
     endfunction
 
