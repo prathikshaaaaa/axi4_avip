@@ -13,7 +13,7 @@ module axi4_decoder #(
 
     input  bit [NO_OF_MASTERS-1:0]      m_awvalid,
     input  logic [ID_WIDTH-1:0]           m_awid    [NO_OF_MASTERS],
-    input  bit [ADDR_WIDTH-1:0]         m_awaddr  [NO_OF_MASTERS],
+    input  logic [ADDR_WIDTH-1:0]         m_awaddr  [NO_OF_MASTERS],
     input  logic [7:0]                    m_awlen   [NO_OF_MASTERS],
     input  logic [2:0]                    m_awsize  [NO_OF_MASTERS],
     input  logic [1:0]                    m_awburst [NO_OF_MASTERS],
