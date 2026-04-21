@@ -476,10 +476,9 @@ $display("select_master inisde iswrite == 1");
             for (int m = 0; m < NO_OF_MASTERS; m++)begin
                 localWriteReq[m] = m_awvalid[m] ?
                     (map_slave_addr(m_awaddr[m]) == ($clog2(NO_OF_SLAVES)+1)'(targetSlave)) : 0;
-                #0;
-                $display("localWriteReq[%0d] = %0d | m_awvalid[%0d] = %0d ",m,localWriteReq[m] ,m,m_awvalid[m] );
-                $display(" m_awaddr[%0d] = %0d ",m,m_awaddr[m]);
-                $display("map_slave_addr(m_awaddr[%0d]) = %0d | targetSlave =%0d $clog2(NO_OF_SLAVES)+1)'(targetSlave) = %0d ",m,map_slave_addr(m_awaddr[m]),targetSlave,($clog2(NO_OF_SLAVES)+1)'(targetSlave));
+                $strobe("localWriteReq[%0d] = %0d | m_awvalid[%0d] = %0d ",m,localWriteReq[m] ,m,m_awvalid[m] );
+                $strobe(" m_awaddr[%0d] = %0d ",m,m_awaddr[m]);
+                $strobe("map_slave_addr(m_awaddr[%0d]) = %0d | targetSlave =%0d $clog2(NO_OF_SLAVES)+1)'(targetSlave) = %0d ",m,map_slave_addr(m_awaddr[m]),targetSlave,($clog2(NO_OF_SLAVES)+1)'(targetSlave));
             end
             for (int m = 0; m < NO_OF_MASTERS; m++) begin
                 if (localWriteReq[m]) begin
@@ -491,7 +490,7 @@ $display("select_master inisde iswrite == 1");
                 end
             end
             if (!firstReqSeen)begin
-$display( "inside !firstReqSeen returning -1");
+$strobe( "inside !firstReqSeen returning -1");
 return -1;
 end
             equal_qos_cnt = 0;
