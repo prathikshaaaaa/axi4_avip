@@ -473,6 +473,7 @@ $display("select_master inisde iswrite == 1");
                 localWriteReq[m] = m_awvalid[m] ?
                     (map_slave_addr(m_awaddr[m]) == ($clog2(NO_OF_SLAVES)+1)'(targetSlave)) : 0;
                 $display("localWriteReq[%0d] = %0d | m_awvalid[%0d] = %0d ",m,localWriteReq[m] ,m,m_awvalid[m] );
+                $display(" m_awaddr[%0d] = %0d ",m,m_awaddr[m]);
             end
             for (int m = 0; m < NO_OF_MASTERS; m++) begin
                 if (localWriteReq[m]) begin
