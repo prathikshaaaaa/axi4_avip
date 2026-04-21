@@ -31,7 +31,6 @@ class axi4_master_write_miss_seq extends axi4_master_base_seq;
       req.awcache == READ_WRITE_ALLOCATE;
       
       req.awaddr == 32'h0000_0001;
-      req.awvaild == 'b1;
 
     }) begin
       `uvm_fatal("AXI4_WRITE_MISS_SEQ", "Randomization failed")
