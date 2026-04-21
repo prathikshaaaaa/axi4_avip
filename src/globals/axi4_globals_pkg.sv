@@ -24,7 +24,7 @@ package axi4_globals_pkg;
 
   //Parameter: NO_OF_SLAVES
   //Used to set number of slaves required
-  parameter int NO_OF_SLAVES = 5;
+  parameter int NO_OF_SLAVES = 2;
 
   //Parameter: ADDRESS_WIDTH
   //Used to set the address width to the address bus
