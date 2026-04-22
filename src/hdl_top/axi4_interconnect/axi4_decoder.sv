@@ -111,9 +111,6 @@ module axi4_decoder #(
     // =========================================================
     // CHANGE 2 & 3: 1-cycle cooldown registers to prevent
     // re-grant on the same cycle a handshake completes.
-    // Stops select_master() from seeing the old m_awvalid/
-    // m_arvalid (still high at the handshake posedge) and
-    // mis-routing the next transaction to the wrong slave.
     // =========================================================
     logic wr_just_released [NO_OF_SLAVES];
     logic rd_just_released [NO_OF_SLAVES];
@@ -211,10 +208,10 @@ module axi4_decoder #(
 
         // AW/AR ready pass-through
         for (int s = 0; s < NO_OF_SLAVES; s++) begin
-            if (wr_active_master[s] != -1)begin
+            if (wr_active_master[s] != -1) begin
                 m_awready[wr_active_master[s]] = cache_awready[s];
-$display("DECODER AW/AR ready pass-through write T=%0t wr_active_master[%s] = %d",$time,s,wr_active_master[s]);
-end
+                // $display("DECODER AW/AR ready pass-through write T=%0t wr_active_master[%s] = %d",$time,s,wr_active_master[s]);
+            end
             if (rd_active_master[s] != -1)
                 m_arready[rd_active_master[s]] = cache_arready[s];
         end
@@ -283,15 +280,11 @@ end
 
     // =========================================================
     // WRITE TRACKING LOGIC
-    // CHANGE 1: Removed rd_respOrder[m].delete() from this
-    // reset block — it was a double-driver conflict with the
-    // pop-queues always_ff below which also deletes it.
     // =========================================================
     always_ff @(posedge aclk or negedge aresetn) begin
         if (!aresetn) begin
             for (int m = 0; m < NO_OF_MASTERS; m++) begin
                 master_aw_order[m].delete();
-                // rd_respOrder NOT deleted here — owned by pop-queues block
                 wr_w_slave[m] = -1;
             end
         end else begin
@@ -332,30 +325,24 @@ end
 
     // =========================================================
     // WRITE ARBITRATION LOGIC
-    // CHANGE 2: Added wr_just_released 1-cycle cooldown.
-    // Prevents select_master() from seeing the old m_awvalid
-    // (still high at handshake posedge) and granting the same
-    // master to a second slave before it deasserts awvalid.
     // =========================================================
     always_ff @(posedge aclk or negedge aresetn) begin
         if (!aresetn) begin
- $display("DECODER WRITE ARBITRATION LOGIC reset T=%0t",$time);
+            // $display("DECODER WRITE ARBITRATION LOGIC reset T=%0t",$time);
             for (int s = 0; s < NO_OF_SLAVES; s++) begin
                 wr_active_master[s]  = -1;
                 wr_prev_grant[s]     = -1;
                 wr_just_released[s]  = 1'b0;
             end
         end else begin
-$display("DECODER WRITE ARBITRATION LOGIC reset (else) T=%0t",$time);
+            // $display("DECODER WRITE ARBITRATION LOGIC reset (else) T=%0t",$time);
             for (int s = 0; s < NO_OF_SLAVES; s++) begin
 
                 wr_just_released[s] = 1'b0;  // default: clear each cycle
-$display("DECODER WRITE ARBITRATION LOGIC reset (else)(inside forloop) T=%0t",$time);
+                
                 if (wr_active_master[s] == -1 && !wr_just_released[s]) begin
                     int next;
                     next = select_master(s, 1);
-$display("DECODER WRITE ARBITRATION LOGIC reset (else)(inside forloop if) T=%0t",$time);
-$display("next  =%d",next);
                     if (next != -1) begin
                         wr_active_master[s] = next;
                         wr_prev_grant[s]    = next;
@@ -364,7 +351,7 @@ $display("next  =%d",next);
                 else if (wr_active_master[s] != -1 &&
                          m_awvalid[wr_active_master[s]] &&
                          m_awready[wr_active_master[s]]) begin
-                    $display("DECODER_AW_HANDSHAKE T=%0t Slave=%0d Master=%0d", $time, s, wr_active_master[s]);
+                    // $display("DECODER_AW_HANDSHAKE T=%0t Slave=%0d Master=%0d", $time, s, wr_active_master[s]);
                     wr_active_master[s] = -1;
                     wr_just_released[s] = 1'b1;  // block re-grant for 1 cycle
                 end
@@ -375,11 +362,6 @@ $display("next  =%d",next);
 
     // =========================================================
     // READ ARBITRATION LOGIC
-    // CHANGE 3: Added rd_just_released 1-cycle cooldown.
-    // Same fix as CHANGE 2, applied to the AR channel.
-    // Prevents select_master() from matching the old m_araddr
-    // (still valid at handshake posedge) and granting the wrong
-    // slave to the next AR transaction.
     // =========================================================
     always_ff @(posedge aclk or negedge aresetn) begin
         if (!aresetn) begin
@@ -414,7 +396,6 @@ $display("next  =%d",next);
 
     // =========================================================
     // SEQUENTIAL: Pop B/R response queues on handshake
-    // rd_respOrder and wr_respOrder both owned here exclusively
     // =========================================================
     always_ff @(posedge aclk or negedge aresetn) begin
         if (!aresetn) begin
@@ -446,17 +427,15 @@ $display("next  =%d",next);
     // Address decode
     // =========================================================
     function automatic logic [$clog2(NO_OF_SLAVES):0] map_slave_addr(
-        logic [ADDR_WIDTH-1:0] addr_in = 0
+        logic [ADDR_WIDTH-1:0] addr_in
     );
         for (int i = 0; i < NO_OF_SLAVES; i++) begin
             if (addr_in >= ADDR_WIDTH'(i * (1 << SLAVE_MEM_SIZE)) &&
                 addr_in <  ADDR_WIDTH'((i+1) * (1 << SLAVE_MEM_SIZE))) begin
-                $display("inside map_slave_addr (if) addr = %h for %0d ",addr_in,i);
+                // $display("inside map_slave_addr (if) addr = %h for %0d ",addr_in,i);
                 return i;
             end
-            $display("inside map_slave_addr (outside if) addr = %h for %0d ",addr_in,i);
         end
-        $display("inside map_slave_addr (outside return) addr = %h ",addr_in);
         return '1;
     endfunction
 
@@ -472,16 +451,18 @@ $display("next  =%d",next);
         bit firstReqSeen   =  0;
 
         if (isWrite == 1) begin
-$display("select_master inisde iswrite == 1");
-            for (int m = 0; m < NO_OF_MASTERS; m++)begin
-                localWriteReq[m] = m_awvalid[m] ?
-                    (map_slave_addr(m_awaddr[m]) == ($clog2(NO_OF_SLAVES)+1)'(targetSlave)) : 0;
-                $display("localWriteReq[%0d] = %0d | m_awvalid[%0d] = %0d ",m,localWriteReq[m] , m, m_awvalid[m] );
-                $display(" m_awaddr[%0d] = %0d ",m,m_awaddr[m]);
-                $display("map_slave_addr(m_awaddr[%0d]) = %0d | targetSlave =%0d $clog2(NO_OF_SLAVES)+1)'(targetSlave) = %0d ",m,map_slave_addr(m_awaddr[m]),targetSlave,($clog2(NO_OF_SLAVES)+1)'(targetSlave));
-            end
+            // ----------------------------------------------------
+            // FIX 1: Only decode Address if AWVALID is High
+            // ----------------------------------------------------
             for (int m = 0; m < NO_OF_MASTERS; m++) begin
-                $display("INSIDE highest QoS localWriteReq[%0d] = %0d | m_awvalid[%0d] = %0d ",m,localWriteReq[m] , m, m_awvalid[m] );
+                if (m_awvalid[m]) begin
+                    localWriteReq[m] = (map_slave_addr(m_awaddr[m]) == ($clog2(NO_OF_SLAVES)+1)'(targetSlave));
+                end else begin
+                    localWriteReq[m] = 0;
+                end
+            end
+
+            for (int m = 0; m < NO_OF_MASTERS; m++) begin
                 if (localWriteReq[m]) begin
                     if (!firstReqSeen) begin
                         highestQos = int'(m_awqos[m]); selectedMaster = m; firstReqSeen = 1;
@@ -490,15 +471,18 @@ $display("select_master inisde iswrite == 1");
                     end
                 end
             end
-            if (!firstReqSeen)begin
-$strobe( "inside !firstReqSeen returning -1");
-return -1;
-end
+            
+            if (!firstReqSeen) begin
+                return -1;
+            end
+            
             equal_qos_cnt = 0;
             for (int m = 0; m < NO_OF_MASTERS; m++)
                 if (localWriteReq[m] && int'(m_awqos[m]) == highestQos) equal_qos_cnt++;
+            
             if (equal_qos_cnt == 1) return selectedMaster;
 
+            // Write RR is correctly starting at i=1
             for (int i = 1; i <= NO_OF_MASTERS; i++) begin
                 automatic int nextIdx = (wr_prev_grant[targetSlave] + i) % NO_OF_MASTERS;
                 if (localWriteReq[nextIdx] && int'(m_awqos[nextIdx]) == highestQos)
@@ -507,9 +491,16 @@ end
             return selectedMaster;
 
         end else begin
-            for (int m = 0; m < NO_OF_MASTERS; m++)
-                localReadReq[m] = m_arvalid[m] ?
-                    (map_slave_addr(m_araddr[m]) == ($clog2(NO_OF_SLAVES)+1)'(targetSlave)) : 0;
+            // ----------------------------------------------------
+            // FIX 2: Only decode Address if ARVALID is High
+            // ----------------------------------------------------
+            for (int m = 0; m < NO_OF_MASTERS; m++) begin
+                if (m_arvalid[m]) begin
+                    localReadReq[m] = (map_slave_addr(m_araddr[m]) == ($clog2(NO_OF_SLAVES)+1)'(targetSlave));
+                end else begin
+                    localReadReq[m] = 0;
+                end
+            end
 
             firstReqSeen = 0;
             for (int m = 0; m < NO_OF_MASTERS; m++) begin
@@ -521,14 +512,19 @@ end
                     end
                 end
             end
+            
             if (!firstReqSeen) return -1;
 
             equal_qos_cnt = 0;
             for (int m = 0; m < NO_OF_MASTERS; m++)
                 if (localReadReq[m] && int'(m_arqos[m]) == highestQos) equal_qos_cnt++;
+            
             if (equal_qos_cnt == 1) return selectedMaster;
 
-            for (int i = 0; i < NO_OF_MASTERS; i++) begin
+            // ----------------------------------------------------
+            // FIX 3: Read RR must start at i=1 to prevent starvation
+            // ----------------------------------------------------
+            for (int i = 1; i <= NO_OF_MASTERS; i++) begin
                 automatic int nextIdx = (rd_prev_grant[targetSlave] + i) % NO_OF_MASTERS;
                 if (localReadReq[nextIdx] && int'(m_arqos[nextIdx]) == highestQos)
                     return nextIdx;
