@@ -10,7 +10,7 @@ module axi4_decoder #(
 )(
     input  logic aclk,
     input  logic aresetn,
-
+ 
     input  bit [NO_OF_MASTERS-1:0]      m_awvalid,
     input  logic [ID_WIDTH-1:0]           m_awid    [NO_OF_MASTERS],
     input  logic [ADDR_WIDTH-1:0]         m_awaddr  [NO_OF_MASTERS],
@@ -19,14 +19,14 @@ module axi4_decoder #(
     input  logic [1:0]                    m_awburst [NO_OF_MASTERS],
     input  logic [3:0]                    m_awcache [NO_OF_MASTERS],
     input  logic [3:0]                    m_awqos   [NO_OF_MASTERS],
-
+ 
     input  logic [NO_OF_MASTERS-1:0]      m_wvalid,
     input  logic [DATA_WIDTH-1:0]         m_wdata   [NO_OF_MASTERS],
     input  logic [(DATA_WIDTH/8)-1:0]     m_wstrb   [NO_OF_MASTERS],
     input  logic [NO_OF_MASTERS-1:0]      m_wlast,
-
+ 
     input  logic [NO_OF_MASTERS-1:0]      m_bready,
-
+ 
     input  logic [NO_OF_MASTERS-1:0]      m_arvalid,
     input  logic [ID_WIDTH-1:0]           m_arid    [NO_OF_MASTERS],
     input  logic [ADDR_WIDTH-1:0]         m_araddr  [NO_OF_MASTERS],
@@ -35,23 +35,23 @@ module axi4_decoder #(
     input  logic [1:0]                    m_arburst [NO_OF_MASTERS],
     input  logic [3:0]                    m_arcache [NO_OF_MASTERS],
     input  logic [3:0]                    m_arqos   [NO_OF_MASTERS],
-
+ 
     input  logic [NO_OF_MASTERS-1:0]      m_rready,
-
+ 
     output logic [NO_OF_MASTERS-1:0]      m_bvalid,
     output logic [ID_WIDTH-1:0]           m_bid     [NO_OF_MASTERS],
     output logic [1:0]                    m_bresp   [NO_OF_MASTERS],
-
+ 
     output logic [NO_OF_MASTERS-1:0]      m_rvalid,
     output logic [ID_WIDTH-1:0]           m_rid     [NO_OF_MASTERS],
     output logic [DATA_WIDTH-1:0]         m_rdata   [NO_OF_MASTERS],
     output logic [1:0]                    m_rresp   [NO_OF_MASTERS],
     output logic [NO_OF_MASTERS-1:0]      m_rlast,
-
+ 
     output logic [NO_OF_MASTERS-1:0]      m_arready,
     output logic [NO_OF_MASTERS-1:0]      m_awready,
     output logic [NO_OF_MASTERS-1:0]      m_wready,
-
+ 
     output logic [NO_OF_SLAVES-1:0]       cache_awvalid,
     output logic [EXT_ID_WIDTH-1:0]       cache_awid    [NO_OF_SLAVES],
     output logic [ADDR_WIDTH-1:0]         cache_awaddr  [NO_OF_SLAVES],
@@ -59,12 +59,12 @@ module axi4_decoder #(
     output logic [2:0]                    cache_awsize  [NO_OF_SLAVES],
     output logic [1:0]                    cache_awburst [NO_OF_SLAVES],
     output logic [3:0]                    cache_awcache [NO_OF_SLAVES],
-
+ 
     output logic [NO_OF_SLAVES-1:0]       cache_wvalid,
     output logic [DATA_WIDTH-1:0]         cache_wdata   [NO_OF_SLAVES],
     output logic [(DATA_WIDTH/8)-1:0]     cache_wstrb   [NO_OF_SLAVES],
     output logic [NO_OF_SLAVES-1:0]       cache_wlast,
-
+ 
     output logic [NO_OF_SLAVES-1:0]       cache_arvalid,
     output logic [EXT_ID_WIDTH-1:0]       cache_arid    [NO_OF_SLAVES],
     output logic [ADDR_WIDTH-1:0]         cache_araddr  [NO_OF_SLAVES],
@@ -72,58 +72,45 @@ module axi4_decoder #(
     output logic [2:0]                    cache_arsize  [NO_OF_SLAVES],
     output logic [1:0]                    cache_arburst [NO_OF_SLAVES],
     output logic [3:0]                    cache_arcache [NO_OF_SLAVES],
-
+ 
     output logic [NO_OF_SLAVES-1:0]       cache_rready,
     output logic [NO_OF_SLAVES-1:0]       cache_bready,
-
+ 
     input  logic [NO_OF_SLAVES-1:0]       cache_arready,
     input  logic [NO_OF_SLAVES-1:0]       cache_awready,
     input  logic [NO_OF_SLAVES-1:0]       cache_wready,
-
+ 
     input  logic [NO_OF_SLAVES-1:0]       cache_bvalid,
     input  logic [EXT_ID_WIDTH-1:0]       cache_bid     [NO_OF_SLAVES],
     input  logic [1:0]                    cache_bresp   [NO_OF_SLAVES],
-
+ 
     input  logic [NO_OF_SLAVES-1:0]       cache_rvalid,
     input  logic [DATA_WIDTH-1:0]         cache_rdata   [NO_OF_SLAVES],
     input  logic [EXT_ID_WIDTH-1:0]       cache_rid     [NO_OF_SLAVES],
     input  logic [1:0]                    cache_rresp   [NO_OF_SLAVES],
     input  logic [NO_OF_SLAVES-1:0]       cache_rlast
 );
-
-    // =========================================================
-    // Internal signals
-    // =========================================================
+ 
     int wr_active_master [NO_OF_SLAVES];
     int wr_prev_grant    [NO_OF_SLAVES];
     int rd_active_master [NO_OF_SLAVES];
     int rd_prev_grant    [NO_OF_SLAVES];
-
+ 
     int slave_aw_order  [NO_OF_SLAVES] [$];
     int master_aw_order [NO_OF_MASTERS][$];
-
-    int wr_w_slave [NO_OF_MASTERS]; // -1 = no pending W for this master
-
-    
-
+ 
+    int wr_w_slave [NO_OF_MASTERS];
+ 
     typedef int slave_q_t[$];
     slave_q_t wr_respOrder [NO_OF_MASTERS][int];
     slave_q_t rd_respOrder [NO_OF_MASTERS][int];
-
-    // =========================================================
-    // CHANGE 2 & 3: 1-cycle cooldown registers to prevent
-    // re-grant on the same cycle a handshake completes.
-    // =========================================================
+ 
     logic wr_just_released [NO_OF_SLAVES];
     logic rd_just_released [NO_OF_SLAVES];
-
-    // =========================================================
-    // M2S: Forward master signals to the appropriate slave
-    // =========================================================
+ 
     generate
         for (genvar s = 0; s < NO_OF_SLAVES; s++) begin : M2S
             always_comb begin
-                int selected_m;
                 cache_awvalid[s] = '0;
                 cache_awid[s]    = '0;
                 cache_awaddr[s]  = '0;
@@ -131,12 +118,12 @@ module axi4_decoder #(
                 cache_awsize[s]  = '0;
                 cache_awburst[s] = '0;
                 cache_awcache[s] = '0;
-
+ 
                 cache_wvalid[s]  = '0;
                 cache_wdata[s]   = '0;
                 cache_wstrb[s]   = '0;
                 cache_wlast[s]   = '0;
-
+ 
                 cache_arvalid[s] = '0;
                 cache_arid[s]    = '0;
                 cache_araddr[s]  = '0;
@@ -144,32 +131,21 @@ module axi4_decoder #(
                 cache_arsize[s]  = '0;
                 cache_arburst[s] = '0;
                 cache_arcache[s] = '0;
-
-                
-                selected_m = -1;
-                // Step 1: find all requesting masters for this slave
-                for (int m = 0; m < NO_OF_MASTERS; m++) begin
-                    if (m_awvalid[m] &&
-                        (map_slave_addr(m_awaddr[m]) == s)) begin
-                        selected_m = m;  // simple priority (first match)
-                        break;
+ 
+                if (wr_active_master[s] != -1) begin
+                    int m;
+                    m = wr_active_master[s];
+                    if (map_slave_addr(m_awaddr[m]) == s) begin
+                        cache_awvalid[s] = m_awvalid[m];
+                        cache_awid[s]    = {m[MASTER_BITS-1:0], m_awid[m]};
+                        cache_awaddr[s]  = m_awaddr[m];
+                        cache_awlen[s]   = m_awlen[m];
+                        cache_awsize[s]  = m_awsize[m];
+                        cache_awburst[s] = m_awburst[m];
+                        cache_awcache[s] = m_awcache[m];
                     end
                 end
-                 
-                // Step 2: drive slave signals
-                
-                if (selected_m != -1) begin
-                    cache_awvalid[s] = m_awvalid[selected_m];
-                    cache_awid[s]    = {selected_m[MASTER_BITS-1:0], m_awid[selected_m]};
-                    cache_awaddr[s]  = m_awaddr[selected_m];
-                    cache_awlen[s]   = m_awlen[selected_m];
-                    cache_awsize[s]  = m_awsize[selected_m];
-                    cache_awburst[s] = m_awburst[selected_m];
-                    cache_awcache[s] = m_awcache[selected_m];
-                
-                end
-                 
-
+ 
                 for (int m = 0; m < NO_OF_MASTERS; m++) begin
                     if (wr_w_slave[m] != -1 && wr_w_slave[m] == s) begin
                         cache_wvalid[s] = m_wvalid[m];
@@ -178,9 +154,10 @@ module axi4_decoder #(
                         cache_wlast[s]  = m_wlast[m];
                     end
                 end
-
+ 
                 if (rd_active_master[s] != -1) begin
-                    automatic int m = rd_active_master[s];
+                    int m;
+                    m = rd_active_master[s];
                     cache_arvalid[s] = m_arvalid[m];
                     cache_arid[s]    = {m[MASTER_BITS-1:0], m_arid[m]};
                     cache_araddr[s]  = m_araddr[m];
@@ -192,16 +169,13 @@ module axi4_decoder #(
             end
         end
     endgenerate
-
-    // =========================================================
-    // S2M: Route slave responses back to the correct master
-    // =========================================================
+ 
     always_comb begin
         logic [NO_OF_SLAVES-1:0] b_allowed;
         logic [NO_OF_SLAVES-1:0] r_allowed;
         b_allowed = '0;
         r_allowed = '0;
-
+ 
         for (int m = 0; m < NO_OF_MASTERS; m++) begin
             m_awready[m] = '0;
             m_wready[m]  = '0;
@@ -215,40 +189,38 @@ module axi4_decoder #(
             m_rid[m]     = '0;
             m_rlast[m]   = '0;
         end
-
+ 
         for (int s = 0; s < NO_OF_SLAVES; s++) begin
             cache_bready[s] = '0;
             cache_rready[s] = '0;
         end
-
-        // AW/AR ready pass-through
+ 
         for (int s = 0; s < NO_OF_SLAVES; s++) begin
             if (wr_active_master[s] != -1) begin
                 m_awready[wr_active_master[s]] = cache_awready[s];
-                // $display("DECODER AW/AR ready pass-through write T=%0t wr_active_master[%s] = %d",$time,s,wr_active_master[s]);
+                $display("DECODER AW/AR ready pass-through write T=%0t wr_active_master[%0d] = %0d",
+                         $time, s, wr_active_master[s]);
             end
             if (rd_active_master[s] != -1)
                 m_arready[rd_active_master[s]] = cache_arready[s];
         end
-
+ 
         for (int m = 0; m < NO_OF_MASTERS; m++) begin
-            if (wr_w_slave[m] != -1) begin
+            if (wr_w_slave[m] != -1)
                 m_wready[m] = cache_wready[wr_w_slave[m]];
-            end
         end
-
-        // B routing
+ 
         for (int s = 0; s < NO_OF_SLAVES; s++) begin
             if (cache_bvalid[s]) begin
                 automatic logic [MASTER_BITS-1:0] master_index;
                 automatic logic [ID_WIDTH-1:0]    axi_id;
                 master_index = cache_bid[s][EXT_ID_WIDTH-1 -: MASTER_BITS];
                 axi_id       = cache_bid[s][ID_WIDTH-1:0];
-
+ 
                 if (wr_respOrder[master_index].exists(int'(axi_id)) &&
                     wr_respOrder[master_index][int'(axi_id)].size() > 0 &&
                     wr_respOrder[master_index][int'(axi_id)][0] == s) begin
-
+ 
                     if (!m_bvalid[master_index]) begin
                         m_bvalid[master_index] = cache_bvalid[s];
                         m_bresp[master_index]  = cache_bresp[s];
@@ -261,19 +233,18 @@ module axi4_decoder #(
                 end
             end
         end
-
-        // Ordered R channel routing
+ 
         for (int s = 0; s < NO_OF_SLAVES; s++) begin
             if (cache_rvalid[s]) begin
                 automatic logic [MASTER_BITS-1:0] master_index;
                 automatic logic [ID_WIDTH-1:0]    axi_id;
                 master_index = cache_rid[s][EXT_ID_WIDTH-1 -: MASTER_BITS];
                 axi_id       = cache_rid[s][ID_WIDTH-1:0];
-
+ 
                 if (rd_respOrder[master_index].exists(int'(axi_id)) &&
                     rd_respOrder[master_index][int'(axi_id)].size() > 0 &&
                     rd_respOrder[master_index][int'(axi_id)][0] == s) begin
-
+ 
                     if (m_rvalid[master_index] == 1'b0) begin
                         m_rvalid[master_index] = cache_rvalid[s];
                         m_rdata[master_index]  = cache_rdata[s];
@@ -284,7 +255,7 @@ module axi4_decoder #(
                     end
                 end
             end
-
+ 
             if (r_allowed[s]) begin
                 automatic logic [MASTER_BITS-1:0] m_idx =
                     cache_rid[s][EXT_ID_WIDTH-1 -: MASTER_BITS];
@@ -292,10 +263,7 @@ module axi4_decoder #(
             end
         end
     end
-
-    // =========================================================
-    // WRITE TRACKING LOGIC
-    // =========================================================
+ 
     always_ff @(posedge aclk or negedge aresetn) begin
         if (!aresetn) begin
             for (int m = 0; m < NO_OF_MASTERS; m++) begin
@@ -303,8 +271,6 @@ module axi4_decoder #(
                 wr_w_slave[m] = -1;
             end
         end else begin
-
-            // Track AW handshakes
             for (int m = 0; m < NO_OF_MASTERS; m++) begin
                 if (m_awvalid[m] && m_awready[m]) begin
                     int s;
@@ -314,16 +280,14 @@ module axi4_decoder #(
                     wr_w_slave[m] = master_aw_order[m][0];
                 end
             end
-
-            // Read response tracking
+ 
             for (int m = 0; m < NO_OF_MASTERS; m++) begin
                 if (m_arvalid[m] && m_arready[m]) begin
                     automatic int s = map_slave_addr(m_araddr[m]);
                     rd_respOrder[m][int'(m_arid[m])].push_back(s);
                 end
             end
-
-            // Advance after WLAST
+ 
             for (int m = 0; m < NO_OF_MASTERS; m++) begin
                 if (m_wvalid[m] && m_wready[m] && m_wlast[m]) begin
                     if (master_aw_order[m].size() > 0)
@@ -334,27 +298,20 @@ module axi4_decoder #(
                         wr_w_slave[m] = -1;
                 end
             end
-
         end
     end
-
-    // =========================================================
-    // WRITE ARBITRATION LOGIC
-    // =========================================================
+ 
     always_ff @(posedge aclk or negedge aresetn) begin
         if (!aresetn) begin
-            // $display("DECODER WRITE ARBITRATION LOGIC reset T=%0t",$time);
             for (int s = 0; s < NO_OF_SLAVES; s++) begin
                 wr_active_master[s]  = -1;
                 wr_prev_grant[s]     = -1;
                 wr_just_released[s]  = 1'b0;
             end
         end else begin
-            // $display("DECODER WRITE ARBITRATION LOGIC reset (else) T=%0t",$time);
             for (int s = 0; s < NO_OF_SLAVES; s++) begin
-
-                wr_just_released[s] = 1'b0;  // default: clear each cycle
-                
+                wr_just_released[s] = 1'b0;
+ 
                 if (wr_active_master[s] == -1 && !wr_just_released[s]) begin
                     int next;
                     next = select_master(s, 1);
@@ -366,18 +323,15 @@ module axi4_decoder #(
                 else if (wr_active_master[s] != -1 &&
                          m_awvalid[wr_active_master[s]] &&
                          m_awready[wr_active_master[s]]) begin
-                    // $display("DECODER_AW_HANDSHAKE T=%0t Slave=%0d Master=%0d", $time, s, wr_active_master[s]);
+                    $display("DECODER_AW_HANDSHAKE T=%0t Slave=%0d Master=%0d",
+                             $time, s, wr_active_master[s]);
                     wr_active_master[s] = -1;
-                    wr_just_released[s] = 1'b1;  // block re-grant for 1 cycle
+                    wr_just_released[s] = 1'b1;
                 end
-
             end
         end
     end
-
-    // =========================================================
-    // READ ARBITRATION LOGIC
-    // =========================================================
+ 
     always_ff @(posedge aclk or negedge aresetn) begin
         if (!aresetn) begin
             for (int s = 0; s < NO_OF_SLAVES; s++) begin
@@ -387,9 +341,8 @@ module axi4_decoder #(
             end
         end else begin
             for (int s = 0; s < NO_OF_SLAVES; s++) begin
-
-                rd_just_released[s] = 1'b0;  // default: clear each cycle
-
+                rd_just_released[s] = 1'b0;
+ 
                 if (rd_active_master[s] == -1 && !rd_just_released[s]) begin
                     int next;
                     next = select_master(s, 0);
@@ -402,16 +355,12 @@ module axi4_decoder #(
                          m_arvalid[rd_active_master[s]] &&
                          m_arready[rd_active_master[s]]) begin
                     rd_active_master[s] = -1;
-                    rd_just_released[s] = 1'b1;  // block re-grant for 1 cycle
+                    rd_just_released[s] = 1'b1;
                 end
-
             end
         end
     end
-
-    // =========================================================
-    // SEQUENTIAL: Pop B/R response queues on handshake
-    // =========================================================
+ 
     always_ff @(posedge aclk or negedge aresetn) begin
         if (!aresetn) begin
             for (int m = 0; m < NO_OF_MASTERS; m++) begin
@@ -437,26 +386,18 @@ module axi4_decoder #(
             end
         end
     end
-
-    // =========================================================
-    // Address decode
-    // =========================================================
-    function automatic logic [$clog2(NO_OF_SLAVES)-1:0] map_slave_addr(
+ 
+    function automatic logic [$clog2(NO_OF_SLAVES):0] map_slave_addr(
         logic [ADDR_WIDTH-1:0] addr_in
     );
         for (int i = 0; i < NO_OF_SLAVES; i++) begin
-            if (addr_in >= ADDR_WIDTH'(i * (1 << SLAVE_MEM_SIZE)) &&
-                addr_in <  ADDR_WIDTH'((i+1) * (1 << SLAVE_MEM_SIZE))) begin
-                $display("inside map_slave_addr (if) addr = %h for %0d ",addr_in,i);
+            if (addr_in >= (i * (1 << SLAVE_MEM_SIZE)) &&
+                addr_in <  ((i+1) * (1 << SLAVE_MEM_SIZE)))
                 return i;
-            end
         end
-        return -1;
+        return '0;
     endfunction
-
-    // =========================================================
-    // Arbitration function
-    // =========================================================
+ 
     function automatic int select_master(int targetSlave, int isWrite);
         logic localWriteReq [NO_OF_MASTERS];
         logic localReadReq  [NO_OF_MASTERS];
@@ -464,24 +405,13 @@ module axi4_decoder #(
         int highestQos     = -1;
         int equal_qos_cnt  =  0;
         bit firstReqSeen   =  0;
-
+ 
         if (isWrite == 1) begin
-            // ----------------------------------------------------
-            // FIX 1: Only decode Address if AWVALID is High
-            // ----------------------------------------------------
             for (int m = 0; m < NO_OF_MASTERS; m++) begin
-                if (m_awvalid[m]) begin
-                    localWriteReq[m] = (m_awvalid[m] === 1'b1) && (map_slave_addr(m_awaddr[m]) == targetSlave);
-                 //   localWriteReq[m] = (map_slave_addr(m_awaddr[m]) == ($clog2(NO_OF_SLAVES)+1)'(targetSlave));
-                 $display("map_slave_addr(m_awaddr[%0d]) = %0d | targetSlave =%0d $clog2(NO_OF_SLAVES)+1)'(targetSlave) = %0d ",m,map_slave_addr(m_awaddr[m]),targetSlave,($clog2(NO_OF_SLAVES)+1)'(targetSlave)); 
-                end else begin
-                    localWriteReq[m] = 0;
-                end
-                   $display("localWriteReq[%0d] = %0d | m_awvalid[%0d] = %0d ",m,localWriteReq[m] , m, m_awvalid[m] );
-                $display(" m_awaddr[%0d] = %0d ",m,m_awaddr[m]);
-                // $display("map_slave_addr(m_awaddr[%0d]) = %0d | targetSlave =%0d $clog2(NO_OF_SLAVES)+1)'(targetSlave) = %0d ",m,map_slave_addr(m_awaddr[m]),targetSlave,($clog2(NO_OF_SLAVES)+1)'(targetSlave)); 
+                localWriteReq[m] = m_awvalid[m] ?
+                    (map_slave_addr(m_awaddr[m]) == targetSlave) : 0;
             end
-
+ 
             for (int m = 0; m < NO_OF_MASTERS; m++) begin
                 if (localWriteReq[m]) begin
                     if (!firstReqSeen) begin
@@ -491,37 +421,28 @@ module axi4_decoder #(
                     end
                 end
             end
-            
-            if (!firstReqSeen) begin
-                return -1;
-            end
-            
+ 
+            if (!firstReqSeen) return -1;
+ 
             equal_qos_cnt = 0;
             for (int m = 0; m < NO_OF_MASTERS; m++)
                 if (localWriteReq[m] && int'(m_awqos[m]) == highestQos) equal_qos_cnt++;
-            
+ 
             if (equal_qos_cnt == 1) return selectedMaster;
-
-            // Write RR is correctly starting at i=1
+ 
             for (int i = 1; i <= NO_OF_MASTERS; i++) begin
                 automatic int nextIdx = (wr_prev_grant[targetSlave] + i) % NO_OF_MASTERS;
                 if (localWriteReq[nextIdx] && int'(m_awqos[nextIdx]) == highestQos)
                     return nextIdx;
             end
             return selectedMaster;
-
+ 
         end else begin
-            // ----------------------------------------------------
-            // FIX 2: Only decode Address if ARVALID is High
-            // ----------------------------------------------------
             for (int m = 0; m < NO_OF_MASTERS; m++) begin
-                if (m_arvalid[m]) begin
-                    localReadReq[m] = (map_slave_addr(m_araddr[m]) == ($clog2(NO_OF_SLAVES)+1)'(targetSlave));
-                end else begin
-                    localReadReq[m] = 0;
-                end
+                localReadReq[m] = m_arvalid[m] ?
+                    (map_slave_addr(m_araddr[m]) == targetSlave) : 0;
             end
-
+ 
             firstReqSeen = 0;
             for (int m = 0; m < NO_OF_MASTERS; m++) begin
                 if (localReadReq[m]) begin
@@ -532,18 +453,15 @@ module axi4_decoder #(
                     end
                 end
             end
-            
+ 
             if (!firstReqSeen) return -1;
-
+ 
             equal_qos_cnt = 0;
             for (int m = 0; m < NO_OF_MASTERS; m++)
                 if (localReadReq[m] && int'(m_arqos[m]) == highestQos) equal_qos_cnt++;
-            
+ 
             if (equal_qos_cnt == 1) return selectedMaster;
-
-            // ----------------------------------------------------
-            // FIX 3: Read RR must start at i=1 to prevent starvation
-            // ----------------------------------------------------
+ 
             for (int i = 1; i <= NO_OF_MASTERS; i++) begin
                 automatic int nextIdx = (rd_prev_grant[targetSlave] + i) % NO_OF_MASTERS;
                 if (localReadReq[nextIdx] && int'(m_arqos[nextIdx]) == highestQos)
@@ -552,5 +470,5 @@ module axi4_decoder #(
             return selectedMaster;
         end
     endfunction
-
+ 
 endmodule
