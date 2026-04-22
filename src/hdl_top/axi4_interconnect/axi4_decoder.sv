@@ -104,7 +104,7 @@ module axi4_decoder #(
 
     int wr_w_slave [NO_OF_MASTERS]; // -1 = no pending W for this master
 
-    int selected_m;
+    
 
     typedef int slave_q_t[$];
     slave_q_t wr_respOrder [NO_OF_MASTERS][int];
@@ -123,6 +123,7 @@ module axi4_decoder #(
     generate
         for (genvar s = 0; s < NO_OF_SLAVES; s++) begin : M2S
             always_comb begin
+                int selected_m;
                 cache_awvalid[s] = '0;
                 cache_awid[s]    = '0;
                 cache_awaddr[s]  = '0;
