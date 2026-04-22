@@ -142,18 +142,30 @@ module axi4_decoder #(
                 cache_arburst[s] = '0;
                 cache_arcache[s] = '0;
 
-                if (wr_active_master[s] != -1) begin
-                    automatic int m = wr_active_master[s];
-                    if (map_slave_addr(m_awaddr[m]) == s) begin
-                        cache_awvalid[s] = m_awvalid[m];
-                        cache_awid[s]    = {m[MASTER_BITS-1:0], m_awid[m]};
-                        cache_awaddr[s]  = m_awaddr[m];
-                        cache_awlen[s]   = m_awlen[m];
-                        cache_awsize[s]  = m_awsize[m];
-                        cache_awburst[s] = m_awburst[m];
-                        cache_awcache[s] = m_awcache[m];
+                int selected_m;
+                selected_m = -1;
+                // Step 1: find all requesting masters for this slave
+                for (int m = 0; m < NO_OF_MASTERS; m++) begin
+                    if (m_awvalid[m] &&
+                        (map_slave_addr(m_awaddr[m]) == s)) begin
+                        selected_m = m;  // simple priority (first match)
+                        break;
                     end
                 end
+                 
+                // Step 2: drive slave signals
+                
+                if (selected_m != -1) begin
+                    cache_awvalid[s] = m_awvalid[selected_m];
+                    cache_awid[s]    = {selected_m[MASTER_BITS-1:0], m_awid[selected_m]};
+                    cache_awaddr[s]  = m_awaddr[selected_m];
+                    cache_awlen[s]   = m_awlen[selected_m];
+                    cache_awsize[s]  = m_awsize[selected_m];
+                    cache_awburst[s] = m_awburst[selected_m];
+                    cache_awcache[s] = m_awcache[selected_m];
+                
+                end
+                 
 
                 for (int m = 0; m < NO_OF_MASTERS; m++) begin
                     if (wr_w_slave[m] != -1 && wr_w_slave[m] == s) begin
@@ -456,7 +468,8 @@ module axi4_decoder #(
             // ----------------------------------------------------
             for (int m = 0; m < NO_OF_MASTERS; m++) begin
                 if (m_awvalid[m]) begin
-                    localWriteReq[m] = (map_slave_addr(m_awaddr[m]) == ($clog2(NO_OF_SLAVES)+1)'(targetSlave));
+                    localWriteReq[m] = (m_awvalid[m] === 1'b1) && (map_slave_addr(m_awaddr[m]) == targetSlave);
+                 //   localWriteReq[m] = (map_slave_addr(m_awaddr[m]) == ($clog2(NO_OF_SLAVES)+1)'(targetSlave));
                 end else begin
                     localWriteReq[m] = 0;
                 end
