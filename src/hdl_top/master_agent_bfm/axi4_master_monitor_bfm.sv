@@ -103,13 +103,14 @@ interface axi4_master_monitor_bfm(input bit aclk, input bit aresetn,
   task axi4_write_address_sampling(output axi4_write_transfer_char_s req ,input axi4_transfer_cfg_s cfg);
 
     @(masterMonCb);
+    
     while(masterMonCb.awvalid!==1 || masterMonCb.awready!==1)begin
       @(masterMonCb);
-      $display(" awvalid //// = %b,  awready //// = %b",masterMonCb.awvalid,masterMonCb.awready );
       `uvm_info("FROM MASTER MON BFM",$sformatf("Inside while loop......"),UVM_HIGH)
     end    
     `uvm_info("FROM MASTER MON BFM",$sformatf("after while loop ......."),UVM_HIGH)
-      
+     $display(" awvalid //// = %b,  awready //// = %b",masterMonCb.awvalid,masterMonCb.awready );
+    
     req.awid    = masterMonCb.awid ;
     req.awaddr  = masterMonCb.awaddr;
     req.awlen   = masterMonCb.awlen;
