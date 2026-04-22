@@ -432,7 +432,7 @@ module axi4_decoder #(
         for (int i = 0; i < NO_OF_SLAVES; i++) begin
             if (addr_in >= ADDR_WIDTH'(i * (1 << SLAVE_MEM_SIZE)) &&
                 addr_in <  ADDR_WIDTH'((i+1) * (1 << SLAVE_MEM_SIZE))) begin
-                // $display("inside map_slave_addr (if) addr = %h for %0d ",addr_in,i);
+                $display("inside map_slave_addr (if) addr = %h for %0d ",addr_in,i);
                 return i;
             end
         end
@@ -460,6 +460,9 @@ module axi4_decoder #(
                 end else begin
                     localWriteReq[m] = 0;
                 end
+                   $display("localWriteReq[%0d] = %0d | m_awvalid[%0d] = %0d ",m,localWriteReq[m] , m, m_awvalid[m] );
+                $display(" m_awaddr[%0d] = %0d ",m,m_awaddr[m]);
+                $display("map_slave_addr(m_awaddr[%0d]) = %0d | targetSlave =%0d $clog2(NO_OF_SLAVES)+1)'(targetSlave) = %0d ",m,map_slave_addr(m_awaddr[m]),targetSlave,($clog2(NO_OF_SLAVES)+1)'(targetSlave)); 
             end
 
             for (int m = 0; m < NO_OF_MASTERS; m++) begin
