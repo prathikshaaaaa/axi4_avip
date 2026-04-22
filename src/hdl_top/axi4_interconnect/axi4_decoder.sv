@@ -473,12 +473,13 @@ module axi4_decoder #(
                 if (m_awvalid[m]) begin
                     localWriteReq[m] = (m_awvalid[m] === 1'b1) && (map_slave_addr(m_awaddr[m]) == targetSlave);
                  //   localWriteReq[m] = (map_slave_addr(m_awaddr[m]) == ($clog2(NO_OF_SLAVES)+1)'(targetSlave));
+                 $display("map_slave_addr(m_awaddr[%0d]) = %0d | targetSlave =%0d $clog2(NO_OF_SLAVES)+1)'(targetSlave) = %0d ",m,map_slave_addr(m_awaddr[m]),targetSlave,($clog2(NO_OF_SLAVES)+1)'(targetSlave)); 
                 end else begin
                     localWriteReq[m] = 0;
                 end
                    $display("localWriteReq[%0d] = %0d | m_awvalid[%0d] = %0d ",m,localWriteReq[m] , m, m_awvalid[m] );
                 $display(" m_awaddr[%0d] = %0d ",m,m_awaddr[m]);
-                $display("map_slave_addr(m_awaddr[%0d]) = %0d | targetSlave =%0d $clog2(NO_OF_SLAVES)+1)'(targetSlave) = %0d ",m,map_slave_addr(m_awaddr[m]),targetSlave,($clog2(NO_OF_SLAVES)+1)'(targetSlave)); 
+                // $display("map_slave_addr(m_awaddr[%0d]) = %0d | targetSlave =%0d $clog2(NO_OF_SLAVES)+1)'(targetSlave) = %0d ",m,map_slave_addr(m_awaddr[m]),targetSlave,($clog2(NO_OF_SLAVES)+1)'(targetSlave)); 
             end
 
             for (int m = 0; m < NO_OF_MASTERS; m++) begin
