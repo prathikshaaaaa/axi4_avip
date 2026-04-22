@@ -105,6 +105,7 @@ interface axi4_master_monitor_bfm(input bit aclk, input bit aresetn,
     @(masterMonCb);
     while(masterMonCb.awvalid!==1 || masterMonCb.awready!==1)begin
       @(masterMonCb);
+      $display(" awvalid //// = %b,  awready //// = %b",masterMonCb.awvalid,masterMonCb.awready );
       `uvm_info("FROM MASTER MON BFM",$sformatf("Inside while loop......"),UVM_HIGH)
     end    
     `uvm_info("FROM MASTER MON BFM",$sformatf("after while loop ......."),UVM_HIGH)
