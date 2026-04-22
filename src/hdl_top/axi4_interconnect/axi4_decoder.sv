@@ -104,6 +104,8 @@ module axi4_decoder #(
 
     int wr_w_slave [NO_OF_MASTERS]; // -1 = no pending W for this master
 
+    int selected_m;
+
     typedef int slave_q_t[$];
     slave_q_t wr_respOrder [NO_OF_MASTERS][int];
     slave_q_t rd_respOrder [NO_OF_MASTERS][int];
@@ -142,7 +144,7 @@ module axi4_decoder #(
                 cache_arburst[s] = '0;
                 cache_arcache[s] = '0;
 
-                int selected_m;
+                
                 selected_m = -1;
                 // Step 1: find all requesting masters for this slave
                 for (int m = 0; m < NO_OF_MASTERS; m++) begin
