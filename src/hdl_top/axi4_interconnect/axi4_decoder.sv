@@ -426,7 +426,7 @@ module axi4_decoder #(
     // =========================================================
     // Address decode
     // =========================================================
-    function automatic logic [$clog2(NO_OF_SLAVES):0] map_slave_addr(
+    function automatic logic [$clog2(NO_OF_SLAVES)-1:0] map_slave_addr(
         logic [ADDR_WIDTH-1:0] addr_in
     );
         for (int i = 0; i < NO_OF_SLAVES; i++) begin
@@ -436,7 +436,7 @@ module axi4_decoder #(
                 return i;
             end
         end
-        return '1;
+        return -1;
     endfunction
 
     // =========================================================
