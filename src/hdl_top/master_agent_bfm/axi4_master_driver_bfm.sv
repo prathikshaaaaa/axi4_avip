@@ -145,7 +145,6 @@ task axi4_write_address_channel_task (inout axi4_write_transfer_char_s data_writ
     while(axiMasterCb.awready !== 1);
 
     `uvm_info(name,$sformatf("After_loop_of_Detecting_awready = %0d, awvalid = %0d",awready,awvalid),UVM_HIGH)
-  repeat(5)@(axiMasterCb);
     axiMasterCb.awvalid <= 1'b0;
 
   endtask : axi4_write_address_channel_task
