@@ -156,10 +156,13 @@ endfunction : build_phase
 //--------------------------------------------------------------------------------------------
 function void axi4_master_driver_proxy::end_of_elaboration_phase(uvm_phase phase);
   super.end_of_elaboration_phase(phase);
-  axi4_master_drv_bfm_h.axi4_master_drv_proxy_h = this;
-    if(!uvm_config_db#(virtual axi4_master_driver_bfm)::get( this, "*", $sformatf("axi4_master_driver_bfm_%0d",axi4_master_agent_cfg_h.master_id),axi4_master_drv_bfm_h)) begin
+  
+   if(!uvm_config_db#(virtual axi4_master_driver_bfm)::get( this, "*", $sformatf("axi4_master_driver_bfm_%0d",axi4_master_agent_cfg_h.master_id),axi4_master_drv_bfm_h)) begin
     `uvm_fatal("FATAL_MDP_CANNOT_GET_AXI4_MASTER_DRIVER_BFM", "cannot get() axi4_master_drv_bfm_h");
   end
+  
+  axi4_master_drv_bfm_h.axi4_master_drv_proxy_h = this;
+  
 endfunction : end_of_elaboration_phase
 
 //--------------------------------------------------------------------------------------------
