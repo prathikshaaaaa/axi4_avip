@@ -88,6 +88,9 @@ class axi4_master_driver_proxy extends uvm_driver#(axi4_master_tx);
   int enable_qos_check_for_initial_txn = 1;
   int qos_write_counter;
 
+  
+  int master_id;
+  
   axi4_master_tx qos_queue[$];
 
 
@@ -139,7 +142,6 @@ function void axi4_master_driver_proxy::build_phase(uvm_phase phase);
  //  if(!uvm_config_db#(axi4_master_agent_config)::get(this, "", "axi4_master_agent_config", axi4_master_agent_cfg_h)) begin
  //  `uvm_fatal("CFG", "Cannot get axi4_master_agent_cfg_h")
  // end
-  int master_id;
   if (!$sscanf(get_full_name(), "%*[^[]axi4_master_agent_h[%d]", master_id))
     `uvm_fatal("FATAL_MDP_ID", "Cannot parse master_id from instance path")
  
