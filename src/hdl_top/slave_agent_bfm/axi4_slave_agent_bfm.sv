@@ -167,8 +167,10 @@ module axi4_slave_agent_bfm #(parameter int SLAVE_ID = 0)(axi4_if intf);
   // Setting the virtual handle of BMFs into config_db
   //-------------------------------------------------------
   initial begin
-    uvm_config_db#(virtual axi4_slave_driver_bfm)::set(null,"*", "axi4_slave_driver_bfm", axi4_slave_drv_bfm_h); 
-    uvm_config_db#(virtual axi4_slave_monitor_bfm)::set(null,"*", "axi4_slave_monitor_bfm", axi4_slave_mon_bfm_h);
+    // uvm_config_db#(virtual axi4_slave_driver_bfm)::set(null,"*", "axi4_slave_driver_bfm", axi4_slave_drv_bfm_h); 
+    // uvm_config_db#(virtual axi4_slave_monitor_bfm)::set(null,"*", "axi4_slave_monitor_bfm", axi4_slave_mon_bfm_h);
+    uvm_config_db#(virtual axi4_slave_driver_bfm)::set(null,"*", $sformatf("axi4_slave_driver_bfm_%0d",  SLAVE_ID), axi4_slave_drv_bfm_h);
+    uvm_config_db#(virtual axi4_slave_monitor_bfm)::set(null,"*", $sformatf("axi4_slave_monitor_bfm_%0d", SLAVE_ID), axi4_slave_mon_bfm_h);
   end
 
   initial begin
