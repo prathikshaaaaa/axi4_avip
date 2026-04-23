@@ -136,9 +136,13 @@ endfunction : new
 function void axi4_master_driver_proxy::build_phase(uvm_phase phase);
   super.build_phase(phase);
 
-  if(!uvm_config_db#(axi4_master_agent_config)::get(this, "", "axi4_master_agent_config", axi4_master_agent_cfg_h)) begin
-  `uvm_fatal("CFG", "Cannot get axi4_master_agent_cfg_h")
- end
+ //  if(!uvm_config_db#(axi4_master_agent_config)::get(this, "", "axi4_master_agent_config", axi4_master_agent_cfg_h)) begin
+ //  `uvm_fatal("CFG", "Cannot get axi4_master_agent_cfg_h")
+ // end
+  int master_id;
+  if (!$sscanf(get_full_name(), "%*[^[]axi4_master_agent_h[%d]", master_id))
+    `uvm_fatal("FATAL_MDP_ID", "Cannot parse master_id from instance path")
+ 
   
   if(!uvm_config_db#(virtual axi4_master_driver_bfm)::get( this, "*", $sformatf("axi4_master_driver_bfm_%0d", axi4_master_agent_cfg_h.master_id),axi4_master_drv_bfm_h)) begin
     `uvm_fatal("FATAL_MDP_CANNOT_GET_AXI4_MASTER_DRIVER_BFM", "cannot get() axi4_master_drv_bfm_h");
