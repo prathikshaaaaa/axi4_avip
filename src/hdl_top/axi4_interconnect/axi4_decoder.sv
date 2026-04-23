@@ -270,7 +270,7 @@ module axi4_decoder #(
                 master_aw_order[m].delete();
                 wr_w_slave[m] = -1;
                 m_awvalid[m] = '0;
-                m_awready[m] = '0;
+                m_awaddr[m] = '0;
             end
         end else begin
             for (int m = 0; m < NO_OF_MASTERS; m++) begin
