@@ -142,7 +142,7 @@ endfunction : new
 //--------------------------------------------------------------------------------------------
 function void axi4_slave_driver_proxy::build_phase(uvm_phase phase);
   super.build_phase(phase);
-  if(!uvm_config_db #(virtual axi4_slave_driver_bfm)::get(this,"","axi4_slave_driver_bfm",axi4_slave_drv_bfm_h)) begin
+  if(!uvm_config_db#(virtual axi4_slave_driver_bfm)::get(this,"",$sformatf("axi4_slave_driver_bfm_%0d", axi4_slave_agent_cfg_h.slave_id),axi4_slave_drv_bfm_h))begin
     `uvm_fatal("FATAL_MDP_CANNOT_GET_tx_DRIVER_BFM","cannot get() axi4_slave_drv_bfm_h");
   end
 endfunction : build_phase
