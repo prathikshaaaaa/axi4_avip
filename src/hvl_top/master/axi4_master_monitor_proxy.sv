@@ -87,9 +87,6 @@ endfunction : new
 //--------------------------------------------------------------------------------------------
 function void axi4_master_monitor_proxy::build_phase(uvm_phase phase);
   super.build_phase(phase);
-  if(!uvm_config_db #(virtual axi4_master_monitor_bfm)::get(this,"",$sformatf("axi4_master_monitor_bfm_%0d", axi4_master_agent_cfg_h.master_id),axi4_master_mon_bfm_h)) begin
-    `uvm_fatal("FATAL_MDP_CANNOT_GET_AXI4_MASTER_MONITOR_BFM","cannot get() axi4_master_mon_bfm_h");
-  end 
 endfunction : build_phase
 
 //--------------------------------------------------------------------------------------------
@@ -113,6 +110,9 @@ endfunction : connect_phase
 function void axi4_master_monitor_proxy::end_of_elaboration_phase(uvm_phase phase);
   super.end_of_elaboration_phase(phase);
   axi4_master_mon_bfm_h.axi4_master_mon_proxy_h = this;
+   if(!uvm_config_db #(virtual axi4_master_monitor_bfm)::get(this,"",$sformatf("axi4_master_monitor_bfm_%0d", axi4_master_agent_cfg_h.master_id),axi4_master_mon_bfm_h)) begin
+    `uvm_fatal("FATAL_MDP_CANNOT_GET_AXI4_MASTER_MONITOR_BFM","cannot get() axi4_master_mon_bfm_h");
+  end 
 endfunction : end_of_elaboration_phase
 
 
