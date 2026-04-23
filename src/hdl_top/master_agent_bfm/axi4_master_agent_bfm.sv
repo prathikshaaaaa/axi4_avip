@@ -114,8 +114,8 @@ axi4_master_driver_bfm axi4_master_drv_bfm_h (.aclk(intf.aclk),
   // Setting the virtual handle of BMFs into config_db
   //-------------------------------------------------------
   initial begin
-    uvm_config_db#(virtual axi4_master_driver_bfm)::set(null,"*", "axi4_master_driver_bfm", axi4_master_drv_bfm_h); 
-    uvm_config_db#(virtual axi4_master_monitor_bfm)::set(null,"*", "axi4_master_monitor_bfm", axi4_master_mon_bfm_h);
+    uvm_config_db#(virtual axi4_master_driver_bfm)::set( null, "*", $sformatf("axi4_master_driver_bfm_%0d", MASTER_ID), axi4_master_drv_bfm_h);
+    uvm_config_db#(virtual axi4_master_monitor_bfm)::set(null, "*", $sformatf("axi4_master_monitor_bfm_%0d", MASTER_ID), axi4_master_mon_bfm_h);
   end
 /*
   bind axi4_master_monitor_bfm master_assertions M_A (.aclk(aclk),
