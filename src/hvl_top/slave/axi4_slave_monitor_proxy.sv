@@ -94,10 +94,13 @@ endfunction : build_phase
 //------------------------------------------------------------------------------------------
 function void axi4_slave_monitor_proxy::end_of_elaboration_phase(uvm_phase phase);
   super.end_of_elaboration_phase(phase);
-  axi4_slave_mon_bfm_h.axi4_slave_mon_proxy_h = this;
-   if(!uvm_config_db#(virtual axi4_slave_monitor_bfm)::get(this,"",$sformatf("axi4_slave_monitor_bfm_%0d", axi4_slave_agent_cfg_h.slave_id),axi4_slave_mon_bfm_h)) begin
+ 
+  if(!uvm_config_db#(virtual axi4_slave_monitor_bfm)::get(this,"",$sformatf("axi4_slave_monitor_bfm_%0d", axi4_slave_agent_cfg_h.slave_id),axi4_slave_mon_bfm_h)) begin
      `uvm_fatal("FATAL_SMP_MON_BFM",$sformatf("Couldn't get S_MON_BFM in axi4_slave_monitor_proxy"));  
   end 
+  
+  axi4_slave_mon_bfm_h.axi4_slave_mon_proxy_h = this;
+   
 endfunction : end_of_elaboration_phase
 
 
