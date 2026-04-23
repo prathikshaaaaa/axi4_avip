@@ -272,7 +272,7 @@ module axi4_decoder #(
             end
         end else begin
             for (int m = 0; m < NO_OF_MASTERS; m++) begin
-                $display("%0t:in always block m_awvalid[%d] = %b | m_awaddr[%d] = %b", $time,m_awvalid[m], m_awaddr[m]);
+                $display("%0t:in always block m_awvalid[%d] = %b | m_awaddr[%d] = %b", $time,,m,m_awvalid[m],m, m_awaddr[m]);
                 if (m_awvalid[m] && m_awready[m]) begin
                     int s;
                     s = map_slave_addr(m_awaddr[m]);
