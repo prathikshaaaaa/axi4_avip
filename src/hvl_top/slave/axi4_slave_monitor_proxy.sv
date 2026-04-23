@@ -83,7 +83,7 @@ endfunction : new
 //--------------------------------------------------------------------------------------------
 function void axi4_slave_monitor_proxy::build_phase(uvm_phase phase);
   super.build_phase(phase);
-   if(!uvm_config_db#(virtual axi4_slave_monitor_bfm)::get(this,"","axi4_slave_monitor_bfm",axi4_slave_mon_bfm_h)) begin
+   if(!uvm_config_db#(virtual axi4_slave_monitor_bfm)::get(this,"",$sformatf("axi4_slave_monitor_bfm_%0d", axi4_slave_agent_cfg_h.slave_id),axi4_slave_mon_bfm_h)) begin
      `uvm_fatal("FATAL_SMP_MON_BFM",$sformatf("Couldn't get S_MON_BFM in axi4_slave_monitor_proxy"));  
   end 
 endfunction : build_phase
