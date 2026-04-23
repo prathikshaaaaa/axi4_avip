@@ -70,7 +70,7 @@ module hdl_top;
   genvar j;
   generate
     for (j=0; j<NO_OF_SLAVES; j++) begin : SLAVE_BFM
-      axi4_slave_agent_bfm #(.SLAVE_ID(i)) slave_bfm (
+      axi4_slave_agent_bfm #(.SLAVE_ID(j)) slave_bfm (
         .intf(slave_if[j])  
       );
     end
