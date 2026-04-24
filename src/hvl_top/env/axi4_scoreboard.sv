@@ -553,7 +553,7 @@ endfunction
 function void axi4_scoreboard::init_l3_cache_model();
 
   `uvm_info("L3_CACHE_INIT",
-    $sformatf(
+    $sformatf({
       "L3 Cache Model Configuration (SHARED):\n"
       "  L3 Cache Size    : %0d bytes (%0d KB)\n"
       "  Line Size        : %0d bytes\n"
@@ -563,7 +563,8 @@ function void axi4_scoreboard::init_l3_cache_model();
       "  Offset Bits      : %0d\n"
       "  Index Bits       : %0d\n"
       "  Tag Bits         : %0d\n"
-      "  Words Per Line   : %0d\n",
+      "  Words Per Line   : %0d\n"
+    },
       L3_CACHE_SIZE_BYTES,
       L3_CACHE_SIZE_BYTES/1024,
       L3_CACHE_LINE_SIZE_BYTES,
