@@ -316,7 +316,8 @@ typedef struct {
   extern virtual function void report_phase(uvm_phase phase);
   
   // L3 cache functions
-
+  extern virtual function void init_l3_cache_model();
+    
   extern virtual function void l3_cache_decode_address(
     input  bit [ADDRESS_WIDTH-1:0] addr,
     output bit [L3_TAG_BITS-1:0]   tag,
@@ -541,6 +542,98 @@ function void axi4_scoreboard::report_phase(uvm_phase phase);
   super.report_phase(phase);
 endfunction
 
+
+
+
+
+//=============================================================================
+// Function: init_l3_cache_model 
+//=============================================================================
+function void axi4_scoreboard::init_l3_cache_model();
+
+  `uvm_info("L3_CACHE_INIT",
+    $sformatf(
+      "L3 Cache Model Configuration (SHARED):\n"
+      "  L3 Cache Size    : %0d bytes (%0d KB)\n"
+      "  Line Size        : %0d bytes\n"
+      "  Associativity    : %0d-way\n"
+      "  Number of Lines  : %0d\n"
+      "  Number of Sets   : %0d\n"
+      "  Offset Bits      : %0d\n"
+      "  Index Bits       : %0d\n"
+      "  Tag Bits         : %0d\n"
+      "  Words Per Line   : %0d\n",
+      L3_CACHE_SIZE_BYTES,
+      L3_CACHE_SIZE_BYTES/1024,
+      L3_CACHE_LINE_SIZE_BYTES,
+      L3_CACHE_ASSOCIATIVITY,
+      L3_NUM_CACHE_LINES,
+      L3_NUM_CACHE_SETS,
+      L3_OFFSET_BITS,
+      L3_INDEX_BITS,
+      L3_TAG_BITS,
+      WORDS_PER_LINE
+    ), UVM_LOW)
+
+  if(ADDR_WIDTH != L3_TAG_BITS + L3_INDEX_BITS + L3_OFFSET_BITS) begin
+    `uvm_fatal("ADDR_DECODE", $sformatf("Address split mismatch: ADDR=%0d TAG+IDX+OFF=%0d", ADDR_WIDTH, L3_TAG_BITS+L3_INDEX_BITS+L3_OFFSET_BITS))
+  end  
+
+  // CACHE ARRAY RESET
+  for(int s = 0; s < L3_NUM_CACHE_SETS; s++) begin
+    for(int w = 0; w < L3_CACHE_ASSOCIATIVITY; w++) begin
+      l3_cache[s][w].valid = 0;
+      l3_cache[s][w].tag   = '0;
+      l3_cache[s][w].state = L3_INVALID;
+
+      foreach(l3_cache[s][w].data[i]) begin
+        l3_cache[s][w].data[i] = '0;
+      end
+
+      l3_lru_counter[s][w] = w;
+    end
+  end
+
+  // GLOBAL STATE RESET
+  l3_total_read_hits      = 0;
+  l3_total_read_misses    = 0;
+  l3_total_write_hits     = 0;
+  l3_total_write_misses   = 0;
+  l3_evictions            = 0;
+  l3_writebacks_to_memory = 0;
+  l3_writeback_errors     = 0;
+
+  l3_global_lru_tick  = 0;
+
+  // Initialize MSHR array
+  for(int i = 0; i < MAX_MSHR; i++) begin
+    scb_mshr[i].valid = 0;
+    scb_mshr[i].done = 0;
+    scb_mshr[i].ar_sent = 0;
+    scb_mshr[i].wb_done = 0;
+    scb_mshr[i].wb_error = 0;
+    scb_mshr[i].resp_code = 2'b00;
+  end
+
+  // Initialize write ownership (FIX ISSUE #5)
+  scb_write_locked = 0;
+  scb_write_owner  = -1;
+  scb_write_owner_set = -1;
+  scb_write_owner_way = -1;
+  scb_write_owner_is_hit = 0;
+
+  // Initialize R-channel tracking (FIX ISSUE #2)
+  for(int s = 0; s < NO_OF_SLAVES; s++) begin
+    active_r_valid[s] = 0;
+    active_r_mshr[s] = -1;
+  end
+
+endfunction : init_l3_cache_model
+
+
+   
+
+   
 //=============================================================================
 // Function: axi_decode_cache_policy
 //=============================================================================
