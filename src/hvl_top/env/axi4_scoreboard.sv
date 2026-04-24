@@ -783,7 +783,7 @@ function int unsigned axi4_scoreboard::l3_find_lru_way(int unsigned set_index);
   // Prefer INVALID ways (fast allocation, no eviction)
   for(int w = 0; w < L3_CACHE_ASSOCIATIVITY; w++) begin
     if(l3_cache[set_index][w].state == L3_INVALID) begin
-      `uvm_info("L3_LRU_DEBUG",
+      `uvm_info("L3_INAVLID_WAY_LOOP",
         $sformatf("Set=%0d | Selected INVALID way=%0d", set_index, w),
         UVM_LOW)
       return w;
@@ -808,7 +808,7 @@ function int unsigned axi4_scoreboard::l3_find_lru_way(int unsigned set_index);
   end
 
   if(victim_way != -1) begin
-    `uvm_info("L3_LRU_DEBUG",
+    `uvm_info("L3_LRU_LOOP",
       $sformatf("Set=%0d | Selected LRU way=%0d | LRU value=%0d",
         set_index, victim_way, max_lru),
       UVM_LOW)
@@ -1016,14 +1016,16 @@ function int axi4_scoreboard::scb_allocate_mshr(
       scb_mshr[i].needs_writeback =
         (l3_cache[index][way].valid &&
          l3_cache[index][way].state == L3_DIRTY);
-      `uvm_info("MSHR_DEBUG",
-      $sformatf("i=%0d | cache_valid=%0d state=%0d | needs_writeback=%0d",
-        i,
-        l3_cache[index][way].valid,
-        l3_cache[index][way].state,
-        scb_mshr[i].needs_writeback
-      ),
-      UVM_LOW)
+    `uvm_info("MSHR_DEBUG",
+  $sformatf("set=%0d way=%0d | mshr_index=%0d | cache_valid=%0d state=%0d | needs_writeback=%0d",
+    index,
+    way,
+    i,
+    l3_cache[index][way].valid,
+    l3_cache[index][way].state,
+    scb_mshr[i].needs_writeback
+  ),
+  UVM_LOW)
 
       scb_mshr[i].valid       = 1;
       scb_mshr[i].done        = 0;
