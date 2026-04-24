@@ -578,7 +578,7 @@ function void axi4_scoreboard::init_l3_cache_model();
 ), UVM_LOW)
 
   if(ADDRESS_WIDTH != L3_TAG_BITS + L3_INDEX_BITS + L3_OFFSET_BITS) begin
-    `uvm_fatal("ADDR_DECODE", $sformatf("Address split mismatch: ADDR=%0d TAG+IDX+OFF=%0d", ADDR_WIDTH, L3_TAG_BITS+L3_INDEX_BITS+L3_OFFSET_BITS))
+    `uvm_fatal("ADDR_DECODE", $sformatf("Address split mismatch: ADDR=%0d TAG+IDX+OFF=%0d", ADDRESS_WIDTH, L3_TAG_BITS+L3_INDEX_BITS+L3_OFFSET_BITS))
   end  
 
   // CACHE ARRAY RESET
