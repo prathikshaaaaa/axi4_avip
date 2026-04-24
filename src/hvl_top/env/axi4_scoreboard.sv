@@ -553,29 +553,29 @@ endfunction
 function void axi4_scoreboard::init_l3_cache_model();
 
   `uvm_info("L3_CACHE_INIT",
-    $sformatf({
-      "L3 Cache Model Configuration (SHARED):\n"
-      "  L3 Cache Size    : %0d bytes (%0d KB)\n"
-      "  Line Size        : %0d bytes\n"
-      "  Associativity    : %0d-way\n"
-      "  Number of Lines  : %0d\n"
-      "  Number of Sets   : %0d\n"
-      "  Offset Bits      : %0d\n"
-      "  Index Bits       : %0d\n"
-      "  Tag Bits         : %0d\n"
-      "  Words Per Line   : %0d\n"
-    },
-      L3_CACHE_SIZE_BYTES,
-      L3_CACHE_SIZE_BYTES/1024,
-      L3_CACHE_LINE_SIZE_BYTES,
-      L3_CACHE_ASSOCIATIVITY,
-      L3_NUM_CACHE_LINES,
-      L3_NUM_CACHE_SETS,
-      L3_OFFSET_BITS,
-      L3_INDEX_BITS,
-      L3_TAG_BITS,
-      WORDS_PER_LINE
-    ), UVM_LOW)
+  $sformatf({
+    "L3 Cache Model Configuration (SHARED):\n",
+    "  L3 Cache Size    : %0d bytes (%0d KB)\n",
+    "  Line Size        : %0d bytes\n",
+    "  Associativity    : %0d-way\n",
+    "  Number of Lines  : %0d\n",
+    "  Number of Sets   : %0d\n",
+    "  Offset Bits      : %0d\n",
+    "  Index Bits       : %0d\n",
+    "  Tag Bits         : %0d\n",
+    "  Words Per Line   : %0d\n"
+  },
+  L3_CACHE_SIZE_BYTES,
+  L3_CACHE_SIZE_BYTES/1024,
+  L3_CACHE_LINE_SIZE_BYTES,
+  L3_CACHE_ASSOCIATIVITY,
+  L3_NUM_CACHE_LINES,
+  L3_NUM_CACHE_SETS,
+  L3_OFFSET_BITS,
+  L3_INDEX_BITS,
+  L3_TAG_BITS,
+  WORDS_PER_LINE
+), UVM_LOW)
 
   if(ADDR_WIDTH != L3_TAG_BITS + L3_INDEX_BITS + L3_OFFSET_BITS) begin
     `uvm_fatal("ADDR_DECODE", $sformatf("Address split mismatch: ADDR=%0d TAG+IDX+OFF=%0d", ADDR_WIDTH, L3_TAG_BITS+L3_INDEX_BITS+L3_OFFSET_BITS))
