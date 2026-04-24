@@ -452,6 +452,7 @@ function void axi4_scoreboard::build_phase(uvm_phase phase);
   end
   
   // Initialize L3 cache model
+  init_l3_cache_model();
   
   // Allocate arrays for masters
   axi4_master_read_address_analysis_fifo = new[NO_OF_MASTERS];
