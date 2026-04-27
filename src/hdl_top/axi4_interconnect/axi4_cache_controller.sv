@@ -892,9 +892,9 @@ module axi_cache_controller #(
             if (!conflict) begin
               for (int i = 0; i < NUM_MSHR; i++) begin
                 if (!mshr[i].valid && !allocated) begin
-                  $display("Inside CACHE WRITE MSHR ALLOCATION BLOCK");
                   automatic logic [$clog2(ASSOCIATIVITY)-1:0] vway;
                   vway = find_victim_way(wr_index[m]);
+                  $display("Inside CACHE WRITE MSHR ALLOCATION BLOCK");
                   mshr[i].valid           <= 1'b1;
                   mshr[i].is_write        <= 1'b1;
                   mshr[i].master          <= m[$clog2(NO_OF_SLAVES)-1:0];
