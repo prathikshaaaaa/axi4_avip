@@ -742,7 +742,11 @@ module axi_cache_controller #(
           mshr[i].ar_sent               <= 1'b1;
           active_r_valid[mshr[i].slave] <= 1'b1;
           active_r_mshr [mshr[i].slave] <= i[$clog2(NUM_MSHR)-1:0];
+          $display("[%0t] CACHE AR_SENT: slave=%0d mshr=%0d | addr=%0h | WB_done=%0b | active_r_valid->1",$time,mshr[i].slave,i,mshr[i].addr,mshr[i].wb_done);
         end
+        else if (mshr[i].valid && !mshr[i].ar_sent) begin
+          $display("[%0t] CACHE AR_BLOCKED: mshr=%0d slave=%0d | arvalid=%0b arready=%0b WB_needed=%0b WB_done=%0b active_r_valid=%0b",$time,i,mshr[i].slave,s_arvalid[mshr[i].slave],s_arready[mshr[i].slave],mshr[i].needs_writeback,mshr[i].wb_done,active_r_valid[mshr[i].slave]);
+end
         if (!mshr[i].valid)
           mshr[i].ar_sent <= 1'b0;
       end
@@ -752,13 +756,14 @@ module axi_cache_controller #(
         if (active_r_valid[s]) begin
           int i;
           i = int'(active_r_mshr[s]);
+          $display("[%0t] CACHE ACTIVE_R: slave=%0d -> mshr=%0d | ar_sent=%0b beat=%0d done=%0b",$time,s,i,mshr[i].ar_sent,mshr[i].beat,mshr[i].done);
 
           // -------------------------
           // PART 1: Capture read data
           // -------------------------
           if (mshr[i].valid && s_rvalid[s] &&
               s_rid[s] == mshr[i].axi_id) begin
-
+            $display("[%0t] CACHE R_BEAT: slave=%0d mshr=%0d | beat=%0d rlast=%0b",$time,s,i,mshr[i].beat,s_rlast[s]);
             mshr[i].beat <= mshr[i].beat + 1'b1;
 
             if (s_rresp[s] != 2'b00)
