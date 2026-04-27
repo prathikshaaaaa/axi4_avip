@@ -773,6 +773,9 @@ end
               mshr[i].rlast_seen <= 1'b1; // optional (can keep or remove)
             end
           end
+          else begin
+            $display("CACHE [%0t] R_BEAT_SKIP: slave=%0d mshr=%0d | valid=%0b rvalid=%0b rid=%0d exp_id=%0d match=%0b", $time,s,i,mshr[i].valid,s_rvalid[s], s_rid[s],mshr[i].axi_id,(s_rid[s] == mshr[i].axi_id));
+          end
 
           // -------------------------
           // PART 2: DONE logic (FIXED)
