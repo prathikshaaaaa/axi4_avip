@@ -452,7 +452,7 @@ module axi_cache_controller #(
             end
           end
           wr_cache_miss[gm] = ~wr_cache_hit[gm];
-          $display("[%0t] slave=%0d wr_req_valid=%0b w_locked=%0b set_index=%0d tag=%0h -> HIT=%0b MISS=%0b WAY=%0d",
+          $display("CACHE_DEBUG [%0t] slave=%0d wr_req_valid=%0b w_locked=%0b set_index=%0d tag=%0h -> HIT=%0b MISS=%0b WAY=%0d",
           $time, gm, wr_req_valid[gm], w_locked, wr_index[gm], wr_tag[gm],
           wr_cache_hit[gm], wr_cache_miss[gm], wr_hit_way[gm]);
         end
