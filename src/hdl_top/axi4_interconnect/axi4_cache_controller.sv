@@ -789,7 +789,7 @@ module axi_cache_controller #(
               if (s_rvalid[s] && s_rready[s] && s_rlast[s] &&
                   mshr[i].wlast_seen) begin
 
-                $display("[DEBUG] WRITE DONE time=%0t | mshr=%0d", $time, i);
+                $display("[CACHE_DEBUG] WRITE DONE time=%0t | mshr=%0d", $time, i);
 
                 mshr[i].done <= 1'b1;
                 active_r_valid[s] <= 1'b0;   // clear AFTER handshake
@@ -917,6 +917,8 @@ module axi_cache_controller #(
                     mshr[i].wdata_buf[wb] <= '0;
                     mshr[i].wstrb_buf[wb] <= '0;
                   end
+                  $display("[%0t] CACHE_MSHR_ALLOC: slave=%0d -> mshr_idx=%0d | addr=%0h index=%0d tag=%0h way=%0d | write=%0b | victim_dirty=%0b",
+                           $time,m,i,wr_req_addr[m],wr_index[m],wr_tag[m],vway,1'b1,valid_array[wr_index[m]][vway] && dirty_array[wr_index[m]][vway]);
                   allocated = 1'b1;
                 end
               end
