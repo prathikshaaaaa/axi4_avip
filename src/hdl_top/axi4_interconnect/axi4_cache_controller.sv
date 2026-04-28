@@ -1000,7 +1000,9 @@ end
                $time, i, s, mshr[i].index, mshr[i].way, mshr[i].beat, s_rdata[s], s_rlast[s]);
             
             if (s_rlast[s]) begin
+              $display(" inside if s_rlast[s]");
               if (mshr[i].resp_code == 2'b00) begin
+                $display("mshr[i].resp_code == 2'b00");
                 tag_array  [mshr[i].index][mshr[i].way] <= mshr[i].tag;
                 valid_array[mshr[i].index][mshr[i].way] <= 1'b1;
                 if (mshr[i].is_write) begin
