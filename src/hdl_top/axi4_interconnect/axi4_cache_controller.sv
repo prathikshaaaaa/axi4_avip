@@ -1004,6 +1004,8 @@ end
                 tag_array  [mshr[i].index][mshr[i].way] <= mshr[i].tag;
                 valid_array[mshr[i].index][mshr[i].way] <= 1'b1;
                 if (mshr[i].is_write) begin
+                   $display("[PRE_MERGE_CHECK] mshr=%0d wbeat_count=%0d wlast_seen=%0b", 
+             i, mshr[i].wbeat_count, mshr[i].wlast_seen);
                   for (int wb = 0; wb < WORDS_PER_LINE; wb++) begin
                     for (int b = 0; b < DATA_WIDTH/8; b++) begin
                       if (mshr[i].wstrb_buf[wb][b])
@@ -1018,6 +1020,8 @@ end
                   dirty_array[mshr[i].index][mshr[i].way] <= 1'b1;
                 end else begin
                   dirty_array[mshr[i].index][mshr[i].way] <= 1'b0;
+                  $display("[PRE_MERGE_CHECK_ELSE] mshr=%0d wbeat_count=%0d wlast_seen=%0b", 
+             i, mshr[i].wbeat_count, mshr[i].wlast_seen);
                 end
               end
             end
