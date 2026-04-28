@@ -825,6 +825,8 @@ end
             if (widx < WORDS_PER_LINE) begin
               mshr[i].wdata_buf[widx] <= wr_data_g[m];
               mshr[i].wstrb_buf[widx] <= wr_strb_g[m];
+        $display("[WBUF_COLLECT] time=%0t mshr=%0d widx=%0d wdata=0x%0h wstrb=0x%0h beat_count=%0d",
+                 $time, i, widx,  wr_data_g[m], wr_strb_g[m], mshr[i].wbeat_count);
             end
             if (!wr_data_last_g[m])
               mshr[i].wbeat_count <= mshr[i].wbeat_count + 1;
@@ -994,6 +996,9 @@ end
             // Write word-by-word using mshr beat (read from E-4 which increments it)
             // Use current beat value before E-4 increments it this cycle
             data_array[mshr[i].index][mshr[i].way][mshr[i].beat] <= s_rdata[s];
+               $display("[REFILL_STORE] time=%0t mshr=%0d slave=%0d set=%0d way=%0d beat=%0d rdata=0x%0h rlast=%0b",
+               $time, i, s, mshr[i].index, mshr[i].way, mshr[i].beat, s_rdata[s], s_rlast[s]);
+            
             if (s_rlast[s]) begin
               if (mshr[i].resp_code == 2'b00) begin
                 tag_array  [mshr[i].index][mshr[i].way] <= mshr[i].tag;
@@ -1006,6 +1011,9 @@ end
                           <= mshr[i].wdata_buf[wb][8*b +: 8];
                        
                     end
+                     $display("[WBUF_MERGE] time=%0t mshr=%0d word=%0d wdata=0x%0h wstrb=0x%0h -> cache[%0d][%0d][%0d]",
+                       $time, i, wb, mshr[i].wdata_buf[wb], mshr[i].wstrb_buf[wb],
+                       mshr[i].index, mshr[i].way, wb);
                   end
                   dirty_array[mshr[i].index][mshr[i].way] <= 1'b1;
                 end else begin
