@@ -532,6 +532,12 @@ function void axi4_scoreboard::build_phase(uvm_phase phase);
       rr_read_pending_cnt[s][m] = 0;
     end
   end
+
+  for(int i=0;i<NO_OF_SLAVES; i++) begin
+    for(int j=0;j<4096*NO_OF_SLAVES;j++) begin
+      referenceData[i][j]=j;
+    end
+  end
   
 endfunction : build_phase
 
