@@ -711,6 +711,11 @@ module axi_cache_controller #(
         if (mshr[i].done &&
             ((mshr[i].is_write  && wr_resp_valid[m] && cache_bready[m]) ||
              (!mshr[i].is_write && rd_data_valid[m] && cache_rready[m]))) begin
+          if (mshr[i].is_write) begin
+            $display("[CACHE_LINE_FINAL_DATA] time=%0t mshr=%0d set=%0d way=%0d tag=0x%0h",$time, i, mshr[i].index, mshr[i].way, mshr[i].tag);
+            for (int wb = 0; wb < WORDS_PER_LINE; wb++)
+                $display("  word[%0d] = 0x%0h", wb, data_array[mshr[i].index][mshr[i].way][wb]);
+          end
           mshr[i].valid   <= 1'b0;
           mshr[i].done    <= 1'b0;
           mshr[i].ar_sent <= 1'b0;
@@ -771,8 +776,12 @@ end
 
             if (s_rlast[s]) begin
               mshr[i].rlast_seen <= 1'b1; // optional (can keep or remove)
-            end
+              $display("[REFILL_COMPLETE] time=%0t mshr=%0d set=%0d way=%0d — printing existing data_array BEFORE merge:",$time, i, mshr[i].index, mshr[i].way);
+              for (int wb = 0; wb < WORDS_PER_LINE; wb++)
+                $display("  word[%0d] = 0x%0h", wb, data_array[mshr[i].index][mshr[i].way][wb]);
+             end
           end
+          
           else begin
             $display("CACHE [%0t] R_BEAT_SKIP: slave=%0d mshr=%0d | valid=%0b rvalid=%0b rid=%0d exp_id=%0d match=%0b", $time,s,i,mshr[i].valid,s_rvalid[s], s_rid[s],mshr[i].axi_id,(s_rid[s] == mshr[i].axi_id));
           end
