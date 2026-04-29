@@ -33,6 +33,9 @@ endclass : axi4_slave_memory
 //--------------------------------------------------------------------------------------------
 function axi4_slave_memory::new(string name = "axi4_slave_memory");
   super.new(name); 
+  for(int i=0;i<8192;i++) begin 
+    slave_memory[i] = i;
+  end  
 endfunction : new
 
 
