@@ -11,7 +11,7 @@ import axi4_globals_pkg::*;
 interface axi4_if(input logic aclk, input logic aresetn);
 
   //Write_address_channel
-  logic     [3: 0] awid     ;
+  logic [($clog2(axi4_globals_pkg::NO_OF_MASTERS)+4)-1:0] awid     ;
   logic     [ADDRESS_WIDTH-1: 0] awaddr ;
   logic     [3: 0] awlen     ;
   logic     [2: 0] awsize    ;
@@ -38,7 +38,7 @@ interface axi4_if(input logic aclk, input logic aresetn);
   logic            bvalid    ;
   logic            bready    ;
   //Read Address Channel
-  logic     [3: 0] arid     ;
+  logic     [($clog2(axi4_globals_pkg::NO_OF_MASTERS)+4)-1:0]arid     ;
   logic     [ADDRESS_WIDTH-1:0] araddr  ;
   logic     [7:0] arlen      ;
   logic     [2:0] arsize     ;

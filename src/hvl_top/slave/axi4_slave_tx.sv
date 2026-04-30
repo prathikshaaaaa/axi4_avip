@@ -19,7 +19,7 @@ class axi4_slave_tx extends uvm_sequence_item;
 
   //Variable : awid
   //Used to identify the write transaction for the adress
-  awid_e awid;
+  bit[($clog2(axi4_globals_pkg::NO_OF_MASTERS)+4)-1:0] awid;
 
   //Variable : alen
   //Used to represent the no.of beats in a transaction
@@ -354,7 +354,6 @@ function void axi4_slave_tx::do_print(uvm_printer printer);
   printer.print_string("tx_type",tx_type.name());
   if(tx_type == WRITE) begin
     //`uvm_info("------------------------------------------WRITE_ADDRESS_CHANNEL","------------------------------------",UVM_LOW);
-    printer.print_string("awid",awid.name());
     printer.print_field("awaddr",awaddr,$bits(awaddr),UVM_HEX);
     printer.print_field("awlen",awlen,$bits(awlen),UVM_DEC);
     printer.print_string("awsize",awsize.name());

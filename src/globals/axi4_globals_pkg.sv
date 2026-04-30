@@ -190,7 +190,7 @@ package axi4_globals_pkg;
 
   //Enum: awid_e
   //Used to declare the enum type of write address id
-  typedef enum bit [15:0] {
+  typedef enum bit [3:0] {
     AWID_0  = 16'd0,
     AWID_1  = 16'd1,
     AWID_2  = 16'd2,
@@ -351,7 +351,7 @@ package axi4_globals_pkg;
   //This struct datatype consists of all write signals which are used for seq item conversion
   typedef struct {
     //Write Address Channel Signals
-    bit [3:0]               awid;
+    bit [($clog2(axi4_globals_pkg::NO_OF_MASTERS)+4)-1:0]               awid;
     bit [ADDRESS_WIDTH-1:0] awaddr;
     bit [7:0]               awlen;
     bit [2:0]               awsize;
@@ -386,7 +386,7 @@ package axi4_globals_pkg;
   //This struct datatype consists of all read signals which are used for seq item conversion
   typedef struct {
     //Read Address Channel Signals
-    bit               [3:0] arid;
+    bit [($clog2(axi4_globals_pkg::NO_OF_MASTERS)+4)-1:0] arid;
     bit [ADDRESS_WIDTH-1:0] araddr;
     bit               [7:0] arlen;
     bit               [2:0] arsize;

@@ -10,7 +10,7 @@ import axi4_globals_pkg::*;
 interface axi4_slave_driver_bfm(input                     aclk    , 
                                 input                     aresetn ,
                                 //Write_address_channel
-                                input [3:0]               awid    ,
+                                input [($clog2(axi4_globals_pkg::NO_OF_MASTERS)+4)-1:0]  awid    ,
                                 input [ADDRESS_WIDTH-1:0] awaddr  ,
                                 input [3: 0]              awlen   ,
                                 input [2: 0]              awsize  ,
@@ -38,7 +38,7 @@ interface axi4_slave_driver_bfm(input                     aclk    ,
                                 input		                    bready ,
 
                                 //Read Address Channel
-                                input [3: 0]                arid    ,
+                                input [($clog2(axi4_globals_pkg::NO_OF_MASTERS)+4)-1:0]  arid ,
                                 input [ADDRESS_WIDTH-1: 0]  araddr  ,
                                 input [7:0]                 arlen   ,
                                 input [2:0]                 arsize  ,
