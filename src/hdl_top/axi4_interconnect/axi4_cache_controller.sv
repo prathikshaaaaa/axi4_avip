@@ -503,7 +503,7 @@ module axi_cache_controller #(
         end
         if (!mshr_full && !conflict)begin  //added begin-end and display
           wr_req_ready[m] = 1'b1;
-          $display("inside if (!mshr_full && !conflict) wr_req_ready[m] = 1'b1; == %b ",wr_req_ready[m]);
+          $display("at time %0t: inside if (!mshr_full && !conflict) wr_req_ready[%b] = 1'b1; == %b ",$time,m,wr_req_ready[m]);
         end
         
       end
