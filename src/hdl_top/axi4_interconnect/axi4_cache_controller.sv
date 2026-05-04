@@ -769,8 +769,7 @@ end
           // -------------------------
           // PART 1: Capture read data
           // -------------------------
-          if (mshr[i].valid && s_rvalid[s] &&
-              s_rid[s] == mshr[i].axi_id[ID_WIDTH-1:0]) begin
+          if (mshr[i].valid && s_rvalid[s] && s_rid[s] == mshr[i].axi_id) begin
             $display("[%0t] CACHE R_BEAT: slave=%0d mshr=%0d | beat=%0d rlast=%0b",$time,s,i,mshr[i].beat,s_rlast[s]);
             mshr[i].beat <= mshr[i].beat + 1'b1;
 
@@ -1008,8 +1007,8 @@ end
             // Write word-by-word using mshr beat (read from E-4 which increments it)
             // Use current beat value before E-4 increments it this cycle
             data_array[mshr[i].index][mshr[i].way][mshr[i].beat] <= s_rdata[s];
-               $display("[REFILL_STORE] time=%0t mshr=%0d slave=%0d set=%0d way=%0d beat=%0d rdata=0x%0h rlast=%0b",
-               $time, i, s, mshr[i].index, mshr[i].way, mshr[i].beat, s_rdata[s], s_rlast[s]);
+            $display("[REFILL_STORE] time=%0t mshr=%0d slave=%0d ID=%h set=%0d way=%0d beat=%0d rdata=0x%0h rlast=%0b",
+                     $time, i, s,mshr[i].axi_id,mshr[i].index, mshr[i].way, mshr[i].beat, s_rdata[s], s_rlast[s]);
             
             if (s_rlast[s]) begin
               $display(" inside if s_rlast[s] mshr[i].resp_code == %b ",mshr[i].resp_code);
