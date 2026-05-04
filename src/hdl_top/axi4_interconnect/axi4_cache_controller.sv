@@ -501,8 +501,11 @@ module axi_cache_controller #(
               mshr[i].tag   == wr_tag[m])
             conflict = 1'b1;
         end
-        if (!mshr_full && !conflict)
+        if (!mshr_full && !conflict)begin  //added begin-end and display
           wr_req_ready[m] = 1'b1;
+          $display("inside if (!mshr_full && !conflict) wr_req_ready[m] = 1'b1; == %b ",wr_req_ready[m]);
+        end
+        
       end
     end
   end
@@ -1011,7 +1014,7 @@ end
             if (s_rlast[s]) begin
               $display(" inside if s_rlast[s] mshr[i].resp_code == %b ",mshr[i].resp_code);
               if (mshr[i].resp_code == 2'b00) begin
-                $display("mshr[i].resp_code == 2'b00");
+                $display("at time %0t :mshr[i].resp_code == 2'b00 and making valid_array[mshr[i].index][mshr[i].way] <= 1'b1; ",$time);
                 tag_array  [mshr[i].index][mshr[i].way] <= mshr[i].tag;
                 valid_array[mshr[i].index][mshr[i].way] <= 1'b1;
                 if (mshr[i].is_write) begin
