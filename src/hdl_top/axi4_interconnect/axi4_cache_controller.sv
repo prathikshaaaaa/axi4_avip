@@ -1001,7 +1001,7 @@ end
           int i;
           i = int'(active_r_mshr[s]);
           if (mshr[i].valid && s_rvalid[s] &&
-              s_rid[s] == mshr[i].axi_id) begin
+               s_rid[s][ID_WIDTH-1:0] == mshr[i].axi_id[ID_WIDTH-1:0]) begin // s_rid[s] == mshr[i].axi_id
             // Write word-by-word using mshr beat (read from E-4 which increments it)
             // Use current beat value before E-4 increments it this cycle
             data_array[mshr[i].index][mshr[i].way][mshr[i].beat] <= s_rdata[s];
