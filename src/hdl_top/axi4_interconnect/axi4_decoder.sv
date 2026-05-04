@@ -324,8 +324,8 @@ module axi4_decoder #(
                 else if (wr_active_master[s] != -1 &&
                          m_awvalid[wr_active_master[s]] &&
                          m_awready[wr_active_master[s]]) begin
-                    $display("DECODER_AW_HANDSHAKE T=%0t Slave=%0d Master=%0d",
-                             $time, s, wr_active_master[s]);
+                    $display("DECODER_AW_HANDSHAKE T=%0t Slave=%0d Master=%0d ID=%0d",
+                             $time, s, wr_active_master[s],{wr_active_master[s][MASTER_BITS-1:0],m_awid[wr_active_master[s]]});
                     wr_active_master[s] = -1;
                     wr_just_released[s] = 1'b1;
                 end
