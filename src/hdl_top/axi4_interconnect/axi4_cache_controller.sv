@@ -1006,8 +1006,8 @@ end
             // Write word-by-word using mshr beat (read from E-4 which increments it)
             // Use current beat value before E-4 increments it this cycle
             data_array[mshr[i].index][mshr[i].way][mshr[i].beat] <= s_rdata[s];
-            $display("[REFILL_STORE] time=%0t mshr=%0d slave=%0d ID=%h set=%0d way=%0d beat=%0d rdata=0x%0h rlast=%0b",
-                     $time, i, s,mshr[i].axi_id,mshr[i].index, mshr[i].way, mshr[i].beat, s_rdata[s], s_rlast[s]);
+            $display("[REFILL_STORE] time=%0t mshr=%0d slave=%0d slave_id=%h mshr_id=%h set=%0d way=%0d beat=%0d rdata=0x%0h rlast=%0b",
+                     $time, i, s,s_rid[s],mshr[i].axi_id,mshr[i].index, mshr[i].way, mshr[i].beat, s_rdata[s], s_rlast[s]);
             
             if (s_rlast[s]) begin
               $display(" inside if s_rlast[s] mshr[i].resp_code == %b ",mshr[i].resp_code);
