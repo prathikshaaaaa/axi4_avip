@@ -986,15 +986,17 @@ end
         if ((wr_cache_hit[m] || w_locked) && wr_data_valid_g[m] &&
             (m[$clog2(NO_OF_SLAVES)-1:0] == w_owner)) begin
           for (int b = 0; b < (DATA_WIDTH/8); b++) begin
-            if (wr_strb_g[m][b])
-//               $display("inside write hit byte upadte %0d",b
-              data_array[wr_index[m]][wr_hit_way[m]]
-                        [wr_hit_beat[m]][8*b +: 8]
-                <= wr_data_g[m][8*b +: 8];
-          end
-          dirty_array[wr_index[m]][wr_hit_way[m]] <= 1'b1;
+            if (wr_strb_g[m][b]) begin
+              $display("inside write hit byte update %0d");
+              data_array[wr_index[m]][wr_hit_way[m]][wr_hit_beat[m]][8*b +: 8] <=  wr_data_g[m][8*b +: 8];
+            end
+            if ((b % 4 == 3)) begin
+              $display("WRITE HIT WORD WRITE (bytes %0d-%0d): old=%0h new=%0h",b-3, b,data_array[wr_index[m]][wr_hit_way[m]][wr_hit_beat[m]][32*(b/4) +: 32],wr_data_g[m][32*(b/4) +: 32]);
+            end
         end
+          dirty_array[wr_index[m]][wr_hit_way[m]] <= 1'b1;
       end
+    end
 
       // F-3: Read data line fill
       for (int s = 0; s < NO_OF_SLAVES; s++) begin
