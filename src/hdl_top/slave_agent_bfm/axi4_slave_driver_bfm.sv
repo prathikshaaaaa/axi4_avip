@@ -53,7 +53,7 @@ interface axi4_slave_driver_bfm(input                     aclk    ,
                                 output reg                  arready ,
 
                                 //Read Data Channel
-                                output reg [3:0]                rid    ,
+                                output reg [($clog2(axi4_globals_pkg::NO_OF_MASTERS)+4)-1:0] rid    ,
                                 output reg [DATA_WIDTH-1: 0]    rdata  ,
                                 output reg [1:0]                rresp  ,
                                 output reg                      rlast  ,
