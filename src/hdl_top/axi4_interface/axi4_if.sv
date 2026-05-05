@@ -52,7 +52,7 @@ interface axi4_if(input logic aclk, input logic aresetn);
   logic           arvalid    ;
  	logic	          arready    ;
   //Read Data Channel
-  logic     [3: 0] rid      ;
+  logic     [($clog2(axi4_globals_pkg::NO_OF_MASTERS)+4)-1:0] rid      ;
   logic     [DATA_WIDTH-1: 0] rdata     ;
   logic     [1:0] rresp      ;
   logic           rlast      ;
