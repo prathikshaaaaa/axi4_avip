@@ -795,7 +795,7 @@ end
 
             // READ MISS COMPLETE
             if (!mshr[i].is_write) begin
-              if (s_rvalid[s] && s_rready[s] && s_rlast[s]) begin
+              if (s_rvalid[s] && s_rready[s] && s_rlast[s] && s_rid[s] == mshr[i].axi_id) begin
                 $display("[DEBUG] READ DONE time=%0t | mshr=%0d", $time, i);
 
                 mshr[i].done <= 1'b1;
@@ -805,8 +805,7 @@ end
 
             //  WRITE MISS COMPLETE
             else begin
-              if (s_rvalid[s] && s_rready[s] && s_rlast[s] &&
-                  mshr[i].wlast_seen) begin
+              if (s_rvalid[s] && s_rready[s] && s_rlast[s] && mshr[i].wlast_seen && s_rid[s] == mshr[i].axi_id) begin
 
                 $display("[CACHE_DEBUG] WRITE DONE time=%0t | mshr=%0d", $time, i);
 
