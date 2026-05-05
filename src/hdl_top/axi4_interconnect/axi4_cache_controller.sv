@@ -785,7 +785,7 @@ end
           end
           
           else begin
-            $display("CACHE [%0t] R_BEAT_SKIP: slave=%0d mshr=%0d | valid=%0b rvalid=%0b rid=%0d exp_id=%0d match=%0b", $time,s,i,mshr[i].valid,s_rvalid[s], s_rid[s],mshr[i].axi_id,(s_rid[s] == mshr[i].axi_id));
+            $display("CACHE [%0t] R_BEAT_SKIP: slave=%0d mshr=%0d | valid=%0b rvalid=%0b rid=%h exp_id=%h match=%0b", $time,s,i,mshr[i].valid,s_rvalid[s], s_rid[s],mshr[i].axi_id,(s_rid[s] == mshr[i].axi_id));
           end
 
           // -------------------------
