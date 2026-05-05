@@ -983,7 +983,7 @@ end
 
       // F-2: Write-hit byte update
       for (int m = 0; m < NO_OF_SLAVES; m++) begin
-        if ((wr_cache_hit[m] || w_locked) && wr_data_valid_g[m] &&
+        if ((wr_cache_hit[m]) && wr_data_valid_g[m] &&   //removed || w_locked
             (m[$clog2(NO_OF_SLAVES)-1:0] == w_owner)) begin
            $display("inside write hit byte update");
           for (int b = 0; b < (DATA_WIDTH/8); b++) begin
