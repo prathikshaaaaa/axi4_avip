@@ -769,7 +769,7 @@ end
           // -------------------------
           // PART 1: Capture read data
           // -------------------------
-          if (mshr[i].valid && s_rvalid[s] && s_rid[s] == mshr[i].axi_id) begin
+          if (mshr[i].valid && s_rvalid[s] &&   s_rid[s][ID_WIDTH-1:0] == mshr[i].axi_id[ID_WIDTH-1:0]) begin //s_rid[s] == mshr[i].axi_id
             $display("[%0t] CACHE R_BEAT: slave=%0d mshr=%0d | beat=%0d rlast=%0b",$time,s,i,mshr[i].beat,s_rlast[s]);
             mshr[i].beat <= mshr[i].beat + 1'b1;
 
