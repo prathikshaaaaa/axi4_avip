@@ -398,7 +398,7 @@ package axi4_globals_pkg;
     bit               [3:0] aruser;
     bit                     arlock;
     //Read Data Channel Signals
-    bit                         [3:0] rid;
+    bit  [($clog2(axi4_globals_pkg::NO_OF_MASTERS)+4)-1:0] rid;
     bit [2**LENGTH:0][DATA_WIDTH-1:0] rdata;
     bit            [2**LENGTH:0][1:0] rresp; 
     bit            [2**LENGTH:0][3:0] ruser;
