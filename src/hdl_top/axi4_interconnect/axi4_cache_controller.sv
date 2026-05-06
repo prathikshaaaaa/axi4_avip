@@ -985,7 +985,7 @@ end
       for (int m = 0; m < NO_OF_SLAVES; m++) begin
         if ((wr_cache_hit[m]) && wr_data_valid_g[m] &&   //removed || w_locked
             (m[$clog2(NO_OF_SLAVES)-1:0] == w_owner)) begin
-           $display("inside write hit byte update");
+          $display("[%0t] inside write hit byte update m[$clog2(NO_OF_SLAVES)-1:0] == %b | w_owner = %b ",$time,m[$clog2(NO_OF_SLAVES)-1:0],w_owner);
           for (int b = 0; b < (DATA_WIDTH/8); b++) begin
             if (wr_strb_g[m][b]) begin
               data_array[wr_index[m]][wr_hit_way[m]][wr_hit_beat[m]][8*b +: 8] <=  wr_data_g[m][8*b +: 8];
