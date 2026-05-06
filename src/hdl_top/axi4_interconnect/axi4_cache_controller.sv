@@ -552,12 +552,15 @@ module axi_cache_controller #(
           if (wr_req_valid[m] && wr_req_ready[m]) begin
             w_locked <= 1'b1;
             w_owner  <= m[$clog2(NO_OF_SLAVES)-1:0];
+            $display(" [%0t] BLOCK A : (non blocking) w_locked <= 1 w_owner <= %b",$time,m[$clog2(NO_OF_SLAVES)-1:0]);
             break;
           end
         end
       end
-      if (w_locked && wr_complete[w_owner])
+      if (w_locked && wr_complete[w_owner]) begin // added begin-end display
         w_locked <= 1'b0;
+        $display("%0t: BLOCK A : (non blocking) w_locked <= 1'b0 | wr_complete[%b] = %b ",$time, w_owner, wr_complete[w_owner]);
+      end
     end
   end
 
