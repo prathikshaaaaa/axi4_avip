@@ -490,7 +490,7 @@ module axi_cache_controller #(
   always_comb begin
     for (int m = 0; m < NO_OF_SLAVES; m++) begin
       wr_req_ready[m] = 1'b0;
-      if (wr_cache_hit[m]) begin
+      if (wr_cache_hit[m] && !w_locked) begin
         wr_req_ready[m] = 1'b1;
       end else begin
         bit conflict;
