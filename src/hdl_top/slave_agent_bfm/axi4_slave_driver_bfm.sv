@@ -106,7 +106,7 @@ interface axi4_slave_driver_bfm(input                     aclk    ,
   reg [ 3	: 0]	            mem_wqos    [2**LENGTH];
   bit                       mem_wlast   [2**LENGTH];
   
-  reg [	3 : 0]	            mem_arid	  [2**LENGTH];
+  reg [($clog2(axi4_globals_pkg::NO_OF_MASTERS)+4)-1:0] mem_arid [2**LENGTH];
   reg [	ADDRESS_WIDTH-1: 0]	mem_raddr	  [2**LENGTH];
   reg [	7	: 0]	            mem_rlen	  [2**LENGTH];
   reg [	2	: 0]	            mem_rsize	  [2**LENGTH];
