@@ -232,45 +232,45 @@ package axi4_globals_pkg;
 
   //Enum: arid_e
   //Used to declare the enum type of read address id
-  typedef enum bit [15:0] {
-    ARID_0  = 16'd0,
-    ARID_1  = 16'd1,
-    ARID_2  = 16'd2,
-    ARID_3  = 16'd3,
-    ARID_4  = 16'd4,
-    ARID_5  = 16'd5,
-    ARID_6  = 16'd6,
-    ARID_7  = 16'd7,
-    ARID_8  = 16'd8,
-    ARID_9  = 16'd9,
-    ARID_10 = 16'd10,
-    ARID_11 = 16'd11,
-    ARID_12 = 16'd12,
-    ARID_13 = 16'd13,
-    ARID_14 = 16'd14,
-    ARID_15 = 16'd15
-  } arid_e;
+  typedef enum bit[5:0] {
+  ARID_0=0, ARID_1=1, ARID_2=2, ARID_3=3,
+  ARID_4=4, ARID_5=5, ARID_6=6, ARID_7=7,
+  ARID_8=8, ARID_9=9, ARID_10=10, ARID_11=11,
+  ARID_12=12, ARID_13=13, ARID_14=14, ARID_15=15,
+  ARID_16=16, ARID_17=17, ARID_18=18, ARID_19=19,
+  ARID_20=20, ARID_21=21, ARID_22=22, ARID_23=23,
+  ARID_24=24, ARID_25=25, ARID_26=26, ARID_27=27,
+  ARID_28=28, ARID_29=29, ARID_30=30, ARID_31=31,
+  ARID_32=32, ARID_33=33, ARID_34=34, ARID_35=35,
+  ARID_36=36, ARID_37=37, ARID_38=38, ARID_39=39,
+  ARID_40=40, ARID_41=41, ARID_42=42, ARID_43=43,
+  ARID_44=44, ARID_45=45, ARID_46=46, ARID_47=47,
+  ARID_48=48, ARID_49=49, ARID_50=50, ARID_51=51,
+  ARID_52=52, ARID_53=53, ARID_54=54, ARID_55=55,
+  ARID_56=56, ARID_57=57, ARID_58=58, ARID_59=59,
+  ARID_60=60, ARID_61=61, ARID_62=62, ARID_63=63
+} arid_e;
 
   //Enum: rid_e
   //Used to declare the enum type of read data/response id
   typedef enum bit [15:0] {
-    RID_0  = 16'd0,
-    RID_1  = 16'd1,
-    RID_2  = 16'd2,
-    RID_3  = 16'd3,
-    RID_4  = 16'd4,
-    RID_5  = 16'd5,
-    RID_6  = 16'd6,
-    RID_7  = 16'd7,
-    RID_8  = 16'd8,
-    RID_9  = 16'd9,
-    RID_10 = 16'd10,
-    RID_11 = 16'd11,
-    RID_12 = 16'd12,
-    RID_13 = 16'd13,
-    RID_14 = 16'd14,
-    RID_15 = 16'd15
-  } rid_e;
+    RID_0  = 16'd0,   RID_1  = 16'd1,   RID_2  = 16'd2,   RID_3  = 16'd3,
+    RID_4  = 16'd4,   RID_5  = 16'd5,   RID_6  = 16'd6,   RID_7  = 16'd7,
+    RID_8  = 16'd8,   RID_9  = 16'd9,   RID_10 = 16'd10,  RID_11 = 16'd11,
+    RID_12 = 16'd12,  RID_13 = 16'd13,  RID_14 = 16'd14,  RID_15 = 16'd15,
+    RID_16 = 16'd16,  RID_17 = 16'd17,  RID_18 = 16'd18,  RID_19 = 16'd19,
+    RID_20 = 16'd20,  RID_21 = 16'd21,  RID_22 = 16'd22,  RID_23 = 16'd23,
+    RID_24 = 16'd24,  RID_25 = 16'd25,  RID_26 = 16'd26,  RID_27 = 16'd27,
+    RID_28 = 16'd28,  RID_29 = 16'd29,  RID_30 = 16'd30,  RID_31 = 16'd31,
+    RID_32 = 16'd32,  RID_33 = 16'd33,  RID_34 = 16'd34,  RID_35 = 16'd35,
+    RID_36 = 16'd36,  RID_37 = 16'd37,  RID_38 = 16'd38,  RID_39 = 16'd39,
+    RID_40 = 16'd40,  RID_41 = 16'd41,  RID_42 = 16'd42,  RID_43 = 16'd43,
+    RID_44 = 16'd44,  RID_45 = 16'd45,  RID_46 = 16'd46,  RID_47 = 16'd47,
+    RID_48 = 16'd48,  RID_49 = 16'd49,  RID_50 = 16'd50,  RID_51 = 16'd51,
+    RID_52 = 16'd52,  RID_53 = 16'd53,  RID_54 = 16'd54,  RID_55 = 16'd55,
+    RID_56 = 16'd56,  RID_57 = 16'd57,  RID_58 = 16'd58,  RID_59 = 16'd59,
+    RID_60 = 16'd60,  RID_61 = 16'd61,  RID_62 = 16'd62,  RID_63 = 16'd63
+} rid_e;
 
   //Enum: bresp_e
   //Used to declare the enum type of write response
