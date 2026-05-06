@@ -490,7 +490,7 @@ module axi_cache_controller #(
   always_comb begin
     for (int m = 0; m < NO_OF_SLAVES; m++) begin
       wr_req_ready[m] = 1'b0;
-      if (wr_cache_hit[m] && !w_locked) begin
+      if (wr_cache_hit[m] && !w_locked) begin 
         wr_req_ready[m] = 1'b1;
         $display("%0t: Sending  wr_req_ready = 1 becuase wr_cache_hit[%0b] = %b && !w_locked = %b",$time,m,wr_cache_hit[m],w_locked);
       end else begin
@@ -502,7 +502,7 @@ module axi_cache_controller #(
               mshr[i].tag   == wr_tag[m])
             conflict = 1'b1;
         end
-        if (!mshr_full && !conflict)begin  //added begin-end and display
+        if (!mshr_full && !conflict && !wr_cache_hit[m] )begin  //added && !wr_cache_hit[m] (for next hit , it was coming here , becuase no mshr and no conflict )
           wr_req_ready[m] = 1'b1;
           $display("at time %0t: inside if (!mshr_full && !conflict) wr_req_ready[%b] = 1'b1; == %b ",$time,m,wr_req_ready[m]);
         end
