@@ -492,6 +492,7 @@ module axi_cache_controller #(
       wr_req_ready[m] = 1'b0;
       if (wr_cache_hit[m] && !w_locked) begin
         wr_req_ready[m] = 1'b1;
+        $display("%0t: Sending  wr_req_ready = 1 becuase wr_cache_hit[%0b] = %b && !w_locked = %b",$time,m,wr_cache_hit[m],w_locked);
       end else begin
         bit conflict;
         conflict = 1'b0;
