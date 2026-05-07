@@ -302,23 +302,23 @@ module axi4_decoder #(
         end
     end
  
-    always_ff @(posedge aclk or negedge aresetn) begin
+    always_ff @(posedge aclk or negedge aresetn) begin   //changed to non blocking assignment
         if (!aresetn) begin
             for (int s = 0; s < NO_OF_SLAVES; s++) begin
-                wr_active_master[s]  = -1;
-                wr_prev_grant[s]     = -1;
-                wr_just_released[s]  = 1'b0;
+                wr_active_master[s]  <= -1;
+                wr_prev_grant[s]     <= -1;
+                wr_just_released[s]  <= 1'b0;
             end
         end else begin
             for (int s = 0; s < NO_OF_SLAVES; s++) begin
-                wr_just_released[s] = 1'b0;
+                wr_just_released[s] <= 1'b0;
  
                 if (wr_active_master[s] == -1 && !wr_just_released[s]) begin
                     int next;
                     next = select_master(s, 1);
                     if (next != -1) begin
-                        wr_active_master[s] = next;
-                        wr_prev_grant[s]    = next;
+                        wr_active_master[s] <= next;
+                        wr_prev_grant[s]    <= next;
                     end
                 end
                 else if (wr_active_master[s] != -1 &&
@@ -326,8 +326,8 @@ module axi4_decoder #(
                          m_awready[wr_active_master[s]]) begin
                     $display("DECODER_AW_HANDSHAKE T=%0t Slave=%0d Master=%0d ID=%h",
                              $time, s, wr_active_master[s],{wr_active_master[s][MASTER_BITS-1:0],m_awid[wr_active_master[s]]});
-                    wr_active_master[s] = -1;
-                    wr_just_released[s] = 1'b1;
+                    wr_active_master[s] <= -1;
+                    wr_just_released[s] <= 1'b1;
                 end
             end
         end
