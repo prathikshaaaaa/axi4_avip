@@ -1192,7 +1192,7 @@ end
       wr_resp_id[m]    = '0;
     end
     for (int i = 0; i < NUM_MSHR; i++) begin
-      if (mshr[i].valid && mshr[i].done && mshr[i].is_write) begin
+      if (mshr[i].valid && mshr[i].done && mshr[i].is_write && !wr_cache_hit[m]) begin
         int m;
         m = int'(mshr[i].master);
         wr_complete[m]   = 1'b1;
