@@ -1192,16 +1192,18 @@ end
       wr_resp_id[m]    = '0;
     end
     for (int i = 0; i < NUM_MSHR; i++) begin
-      if (mshr[i].valid && mshr[i].done && mshr[i].is_write && !wr_cache_hit[m]) begin
+      if (mshr[i].valid && mshr[i].done && mshr[i].is_write) begin
         int m;
         m = int'(mshr[i].master);
+        if(!wr_cache_hit[m]) begin
         wr_complete[m]   = 1'b1;
         wr_resp_valid[m] = 1'b1;
         wr_resp[m]       = mshr[i].resp_code;
         wr_resp_id[m]    = mshr[i].axi_id;
         $display("%0t inisde WRITE RESPONSE GENERATION  : if (mshr[i].valid && mshr[i].done && mshr[i].is_write) making wr_complete[m] = 1'b1;);  master = %d ",$time,m);
       end
-    end
+  end
+end
     for (int m = 0; m < NO_OF_SLAVES; m++) begin
       bit has_mshr;
       has_mshr = 1'b0;
