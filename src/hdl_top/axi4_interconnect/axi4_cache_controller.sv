@@ -442,7 +442,7 @@ module axi_cache_controller #(
         wr_cache_hit[gm]  = 1'b0;
         wr_cache_miss[gm] = 1'b0;
         wr_hit_way[gm]    = '0;
-        if ((wr_req_valid[gm] || (w_locked && w_owner == gm[$clog2(NO_OF_SLAVES)-1:0])) && !wb_active && !line_under_refill(wr_index[gm], wr_tag[gm])) begin   //  added || w_locked and w_owner == gm[$clog2(NO_OF_SLAVES)-1:0])
+        if ((wr_req_valid[gm] || w_locked) && !wb_active && !line_under_refill(wr_index[gm], wr_tag[gm])) begin   //  added || w_locked 
           for (int w = 0; w < ASSOCIATIVITY; w++) begin   //added line_under_refill
             if (valid_array[wr_index[gm]][w] &&
                 tag_array[wr_index[gm]][w] == wr_tag[gm]) begin
