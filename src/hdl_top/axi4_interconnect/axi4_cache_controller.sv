@@ -1199,6 +1199,7 @@ end
         wr_resp_valid[m] = 1'b1;
         wr_resp[m]       = mshr[i].resp_code;
         wr_resp_id[m]    = mshr[i].axi_id;
+        $display("%0t inisde WRITE RESPONSE GENERATION  : if (mshr[i].valid && mshr[i].done && mshr[i].is_write) making wr_complete[m] = 1'b1;);  master = %d ",$time,m);
       end
     end
     for (int m = 0; m < NO_OF_SLAVES; m++) begin
@@ -1222,6 +1223,7 @@ end
         wr_resp[m]       = 2'b00;
         wr_resp_id[m]    = wr_hit_id[m];
         $display("inside !has_mshr");
+        $display("%0t inisde WRITE RESPONSE GENERATION  :if (!has_mshr && wr_cache_hit[m] && wr_data_last_g[m] && (m[$clog2(NO_OF_SLAVES)-1:0] == w_owner))  master = %d ",$time,m);
       end
     end
   end
