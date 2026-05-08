@@ -1209,9 +1209,7 @@ end
         if (mshr[i].valid && int'(mshr[i].master) == m)begin
           has_mshr = 1'b1;
         end
-//         $display("[DEBUG-BGEN] time=%0t m=%0d has_mshr=%b wr_cache_hit=%b wr_data_last_g=%b w_owner=%0d w_locked=%b",
-//                $time, m, has_mshr, wr_cache_hit[m], wr_data_last_g[m], w_owner, w_locked);
-        
+        $display("[DEBUG-BGEN] time=%0t m=%0d has_mshr=%b wr_cache_hit=%b wr_data_last_g=%b w_owner=%0d w_locked=%b",$time, m, has_mshr, wr_cache_hit[m], wr_data_last_g[m], w_owner, w_locked);      
       end
 //       $display("has_mshr = %0d  wr_cache_hit[m] = %0d ",has_mshr,wr_cache_hit[m]);
       if (!has_mshr &&
