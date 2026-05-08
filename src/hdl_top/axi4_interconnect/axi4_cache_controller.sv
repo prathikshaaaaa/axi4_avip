@@ -339,6 +339,7 @@ module axi_cache_controller #(
   // =========================================================================
   logic                            w_locked;
   logic [$clog2(NO_OF_SLAVES)-1:0] w_owner;
+  logic [EXT_ID_WIDTH-1:0] w_locked_id;
 
   logic                        wr_data_valid_g [NO_OF_SLAVES];
   logic                        wr_data_last_g  [NO_OF_SLAVES];
@@ -546,12 +547,14 @@ module axi_cache_controller #(
     if (!aresetn) begin
       w_locked <= 1'b0;
       w_owner  <= '0;
+      w_locked_id <= '0;
     end else begin
       if (!w_locked) begin
         for (int m = 0; m < NO_OF_SLAVES; m++) begin
           if (wr_req_valid[m] && wr_req_ready[m]) begin
             w_locked <= 1'b1;
             w_owner  <= m[$clog2(NO_OF_SLAVES)-1:0];
+            w_locked_id <= cache_awid[m];          //added w_locked_id
             $display(" [%0t] BLOCK A : (non blocking) w_locked <= 1 w_owner <= %b",$time,m[$clog2(NO_OF_SLAVES)-1:0]);
             break;
           end
@@ -559,6 +562,7 @@ module axi_cache_controller #(
       end
       if (w_locked && wr_complete[w_owner]) begin // added begin-end display
         w_locked <= 1'b0;
+        w_locked_id <= '0;
         $display("%0t: BLOCK A : (non blocking) w_locked <= 1'b0 | wr_complete[%b] = %b ",$time, w_owner, wr_complete[w_owner]);
       end
     end
@@ -1192,7 +1196,7 @@ end
       wr_resp_id[m]    = '0;
     end
     for (int i = 0; i < NUM_MSHR; i++) begin
-      if (mshr[i].valid && mshr[i].done && mshr[i].is_write) begin
+      if (mshr[i].valid && mshr[i].done && mshr[i].is_write && w_locked && mshr[i].axi_id == w_locked_id) begin   //added && w_locked && mshr[i].axi_id == w_locked_id
         int m;
         m = int'(mshr[i].master);
         wr_complete[m]   = 1'b1;
