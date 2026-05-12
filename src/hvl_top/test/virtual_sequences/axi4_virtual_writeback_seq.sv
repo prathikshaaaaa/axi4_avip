@@ -63,14 +63,12 @@ class axi4_virtual_writeback_seq extends axi4_virtual_base_seq;
           fork
             local_seq.start(
               p_sequencer.axi4_master_write_seqr_h[local_mst]);
-          join
+          join_none
 
-          `uvm_info(get_type_name(),
-            $sformatf("Done TXN[%0d] M[%0d] addr=0x%0h",
-                      local_i, local_mst, local_seq.txn_addr),
+          `uvm_info(get_type_name(),$sformatf("Done TXN[%0d] M[%0d] addr=0x%0h",local_i, local_mst, local_seq.txn_addr),
             UVM_LOW)
         end
-        // FIX: removed wait fork — not needed with fork-join above
+          wait fork;
       end
 
     join // Thread1 exits fast, Thread2 blocks till all 5 txns done
