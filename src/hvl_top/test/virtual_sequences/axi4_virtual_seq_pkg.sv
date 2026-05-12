@@ -106,6 +106,7 @@ package axi4_virtual_seq_pkg;
   // `include "axi4_virtual_nbk_qos_write_read_seq.sv"
 
   `include "axi4_virtual_stress_seq.sv"
+  `include "axi4_virtual_writeback_seq.sv"
 endpackage : axi4_virtual_seq_pkg
 
 `endif
