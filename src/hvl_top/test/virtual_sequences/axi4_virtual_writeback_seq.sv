@@ -4,7 +4,6 @@
 class axi4_virtual_writeback_seq extends axi4_virtual_base_seq;
   `uvm_object_utils(axi4_virtual_writeback_seq)
 
-  // FIX: removed shared m_wb_seq handle — now automatic local in loop
   axi4_slave_writeback_seq   s_wb_seq    [NO_OF_SLAVES];
   axi4_slave_refill_seq      s_refill_seq[NO_OF_SLAVES]; // FIX: was s_ref_seq
 
@@ -44,39 +43,74 @@ class axi4_virtual_writeback_seq extends axi4_virtual_base_seq;
       // T4→eviction triggered
       // T0→M0, T1→M1, T2→M2, T3→M0, T4→M1
       // ---------------------------------------------------
+ begin
+  int master_sel[5] = '{0,1,2,0,1};
+
+  // -------------------------------------------------
+  // PHASE 1 : Launch first 3 txns in parallel
+  // -------------------------------------------------
+  for(int i = 0; i < 3; i++) begin
+
+    automatic axi4_master_writeback_seq local_seq;
+    automatic int local_i   = i;
+    automatic int local_mst = master_sel[i];
+
+    local_seq = axi4_master_writeback_seq::type_id::create($sformatf("m_wb_seq_%0d", local_i));
+
+    local_seq.txn_addr = (local_i << 10) | 32'h1;
+    local_seq.txn_num  = local_i;
+
+    fork
       begin
-        int master_sel[5] = '{0, 1, 2, 0, 1};
+        local_seq.start(
+          p_sequencer.axi4_master_write_seqr_h[local_mst]);
 
-        for (int i = 0; i < 5; i++) begin
-          // FIX: automatic so each iteration has its own copies
-          automatic axi4_master_writeback_seq local_seq;
-          automatic int local_mst = master_sel[i];
-          automatic int local_i   = i;
-
-          local_seq          = axi4_master_writeback_seq::type_id::create(
-                                 $sformatf("m_wb_seq_%0d", local_i));
-          local_seq.txn_addr = (local_i << 10) | 32'h1;
-          local_seq.txn_num  = local_i;
-
-          // FIX: fork-join (was join_none) — ensures each txn
-          // completes before next starts so set fills in order
-          fork
-            local_seq.start(
-              p_sequencer.axi4_master_write_seqr_h[local_mst]);
-          join_none
-
-          `uvm_info(get_type_name(),$sformatf("Done TXN[%0d] M[%0d] addr=0x%0h",local_i, local_mst, local_seq.txn_addr),
-            UVM_LOW)
-        end
-          wait fork;
+        `uvm_info(get_type_name(),$sformatf("DONE TXN[%0d] M[%0d] ADDR=0x%0h",local_i, local_mst, local_seq.txn_addr),UVM_LOW)
       end
+    join_none
 
-    join // Thread1 exits fast, Thread2 blocks till all 5 txns done
+  end
 
-    `uvm_info(get_type_name(), "WRITEBACK TEST COMPLETE", UVM_LOW)
-  endtask
+  // Wait for first 3 masters to finish
+  wait fork;
+
+  // -------------------------------------------------
+  // PHASE 2 : Remaining 2 txns
+  // -------------------------------------------------
+
+for(int i = 3; i < 5; i++) begin
+
+  automatic axi4_master_writeback_seq local_seq;
+  automatic int local_i   = i;
+  automatic int local_mst = master_sel[i];
+
+  local_seq = axi4_master_writeback_seq::type_id::create(
+                $sformatf("m_wb_seq_%0d", local_i));
+
+  local_seq.txn_addr = (local_i << 10) | 32'h1;
+  local_seq.txn_num  = local_i;
+
+  fork
+    begin
+      local_seq.start(
+        p_sequencer.axi4_master_write_seqr_h[local_mst]);
+
+      `uvm_info(get_type_name(),$sformatf("DONE TXN[%0d] M[%0d]",local_i, local_mst),UVM_LOW)
+    end
+  join_none
+
+end
+
+wait fork;
+
+end
+
+join // Thread1 exits fast, Thread2 blocks till all 5 txns done
+
+`uvm_info(get_type_name(), "WRITEBACK TEST COMPLETE", UVM_LOW)
+  
+endtask
 
 endclass
 
 `endif
- 
