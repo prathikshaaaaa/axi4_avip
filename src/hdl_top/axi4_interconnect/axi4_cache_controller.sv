@@ -908,6 +908,8 @@ end
 
         // Priority 2: write miss
         for (int m = 0; m < NO_OF_SLAVES; m++) begin
+          bit allocated_m;                    //added inside loop so it resets everytime
+          allocated_m = 1'b0;
           if (wr_req_valid[m] && wr_cache_miss[m] && !allocated && !mshr_full) begin
             bit conflict;
             conflict = 1'b0;
