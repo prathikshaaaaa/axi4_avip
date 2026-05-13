@@ -443,15 +443,8 @@ module axi_cache_controller #(
         wr_cache_hit[gm]  = 1'b0;
         wr_cache_miss[gm] = 1'b0;
         wr_hit_way[gm]    = '0;
-      // Do not evaluate hit/miss while this master has an undone MSHR in-flight
-      // Prevents premature awready and second handshake before refill completes
-        bit mshr_in_flight;
-        mshr_in_flight = 1'b0;
-        for (int i = 0; i < NUM_MSHR; i++) begin
-          if (mshr[i].valid && !mshr[i].done && int'(mshr[i].master) == gm)
-            mshr_in_flight = 1'b1;
-
-          if ((wr_req_valid[gm] || w_locked) && !wb_active && !line_under_refill(wr_index[gm], wr_tag[gm]) && !mshr_in_flight) begin   //  added || w_locked 
+        
+          if ((wr_req_valid[gm] || w_locked) && !wb_active && !line_under_refill(wr_index[gm], wr_tag[gm])) begin   //  added || w_locked 
           for (int w = 0; w < ASSOCIATIVITY; w++) begin   //added line_under_refill
             if (valid_array[wr_index[gm]][w] &&
                 tag_array[wr_index[gm]][w] == wr_tag[gm]) begin
