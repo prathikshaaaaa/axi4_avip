@@ -490,9 +490,9 @@ module axi_cache_controller #(
 
   always_comb begin
     for (int m = 0; m < NO_OF_SLAVES; m++) begin
+      bit mshr_in_flight;   //logic to check whether there's an active mshr for the slave
       wr_req_ready[m] = 1'b0;
       
-      bit mshr_in_flight;   //logic to check whether there's an active mshr for the slave
       mshr_in_flight = 1'b0;
     for (int i = 0; i < NUM_MSHR; i++) begin
       if (mshr[i].valid && !mshr[i].done && int'(mshr[i].master) == m)
