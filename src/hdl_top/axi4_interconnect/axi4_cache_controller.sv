@@ -1,5 +1,3 @@
-
-​
 module axi_cache_controller #(
   parameter int NO_OF_SLAVES    = 2,
   parameter int ADDRESS_WIDTH   = 32,
