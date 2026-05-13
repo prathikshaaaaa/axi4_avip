@@ -4,8 +4,9 @@
 class axi4_virtual_writeback_seq extends axi4_virtual_base_seq;
   `uvm_object_utils(axi4_virtual_writeback_seq)
 
+  axi4_master_writeback_seq  m_wb_seq    [NO_OF_MASTERS];
   axi4_slave_writeback_seq   s_wb_seq    [NO_OF_SLAVES];
-  axi4_slave_refill_seq      s_refill_seq[NO_OF_SLAVES]; // FIX: was s_ref_seq
+  axi4_slave_refill_seq      s_refill_seq[NO_OF_SLAVES];
 
   function new(string name = "axi4_virtual_writeback_seq");
     super.new(name);
@@ -16,100 +17,66 @@ class axi4_virtual_writeback_seq extends axi4_virtual_base_seq;
 
     fork
 
-      // ---------------------------------------------------
-      // THREAD 1: Slave background sequences
-      // ---------------------------------------------------
+      // ------------------------------------------------------------------
+      // THREAD 1: SLAVE BACKGROUND THREADS
+      // Spawns forever loops as children of Thread 1, then exits immediately.
+      // ------------------------------------------------------------------
       begin
         for (int s = 0; s < NO_OF_SLAVES; s++) begin
-          automatic int slv_idx = s; // FIX: automatic to capture correct index
-
-          s_wb_seq[s]     = axi4_slave_writeback_seq::type_id::create(
-                              $sformatf("s_wb_seq[%0d]", s));
-          s_refill_seq[s] = axi4_slave_refill_seq::type_id::create(
-                              $sformatf("s_refill_seq[%0d]", s));
+          automatic int slv_idx = s;
+          s_wb_seq[s]     = axi4_slave_writeback_seq::type_id::create($sformatf("s_wb_seq[%0d]", s));
+          s_refill_seq[s] = axi4_slave_refill_seq::type_id::create($sformatf("s_refill_seq[%0d]", s));
           fork
-            forever s_wb_seq[slv_idx].start(
-                      p_sequencer.axi4_slave_write_seqr_h[slv_idx]);
-            forever s_refill_seq[slv_idx].start(
-                      p_sequencer.axi4_slave_read_seqr_h[slv_idx]);
+            forever s_wb_seq[slv_idx].start(p_sequencer.axi4_slave_write_seqr_h[slv_idx]);
+            forever s_refill_seq[slv_idx].start(p_sequencer.axi4_slave_read_seqr_h[slv_idx]);
           join_none
         end
-        // exits immediately, slaves run in background
       end
 
-      // ---------------------------------------------------
-      // THREAD 2: Master transactions — strictly sequential
-      // T0→way0 dirty, T1→way1, T2→way2, T3→way3 (set full)
-      // T4→eviction triggered
-      // T0→M0, T1→M1, T2→M2, T3→M0, T4→M1
-      // ---------------------------------------------------
- begin
-  int master_sel[5] = '{0,1,2,0,1};
-
-  // -------------------------------------------------
-  // PHASE 1 : Launch first 3 txns in parallel
-  // -------------------------------------------------
-  for(int i = 0; i < 3; i++) begin
-
-    automatic axi4_master_writeback_seq local_seq;
-    automatic int local_i   = i;
-    automatic int local_mst = master_sel[i];
-
-    local_seq = axi4_master_writeback_seq::type_id::create($sformatf("m_wb_seq_%0d", local_i));
-
-    local_seq.txn_addr = (local_i << 10) | 32'h1;
-    local_seq.txn_num  = local_i;
-
-    fork
+      // ------------------------------------------------------------------
+      // THREAD 2: MASTER THREADS — all 5 fire in parallel
+      //
+      // Address scheme:
+      //   addr = (i << 10) | 32'h1
+      //   Bits[3:0]   = byte offset  (4-beat line, 4-byte word -> 4 bits)
+      //   Bits[9:4]   = set index    (fixed 0 -> all hit same cache set)
+      //   Bits[31:10] = tag          (unique per master -> unique way fill)
+      //
+      //   TXN0 -> tag=0 -> fills way0
+      //   TXN1 -> tag=1 -> fills way1
+      //   TXN2 -> tag=2 -> fills way2
+      //   TXN3 -> tag=3 -> fills way3  (set full, ASSOCIATIVITY=4)
+      //   TXN4 -> tag=4 -> triggers eviction + writeback of dirty way
+      //
+      // M0->TXN0, M1->TXN1, M2->TXN2, M3->TXN3, M4->TXN4
+      // One txn per master — no awvalid contention on same sequencer.
+      // ------------------------------------------------------------------
       begin
-        local_seq.start(
-          p_sequencer.axi4_master_write_seqr_h[local_mst]);
-
-        `uvm_info(get_type_name(),$sformatf("DONE TXN[%0d] M[%0d] ADDR=0x%0h",local_i, local_mst, local_seq.txn_addr),UVM_LOW)
+        for (int m = 0; m < NO_OF_MASTERS; m++) begin
+          automatic int local_m   = m;
+          automatic int local_num = m;
+          m_wb_seq[m]          = axi4_master_writeback_seq::type_id::create($sformatf("m_wb_seq_%0d", m));
+          m_wb_seq[m].txn_addr = (local_num << 10) | 32'h1;
+          m_wb_seq[m].txn_num  = local_num;
+          fork
+            begin
+              m_wb_seq[local_m].start(p_sequencer.axi4_master_write_seqr_h[local_m]);
+              `uvm_info(get_type_name(),
+                $sformatf("DONE TXN[%0d] M[%0d] addr=0x%0h",
+                           local_num, local_m, m_wb_seq[local_m].txn_addr),
+                UVM_LOW)
+            end
+          join_none
+        end
+        // Scoped to Thread 2's process — sees ONLY the master join_none
+        // threads above, NOT Thread 1's slave forever loops
+        wait fork;
       end
-    join_none
 
-  end
+    join
 
-  // Wait for first 3 masters to finish
-  wait fork;
-
-  // -------------------------------------------------
-  // PHASE 2 : Remaining 2 txns
-  // -------------------------------------------------
-
-for(int i = 3; i < 5; i++) begin
-
-  automatic axi4_master_writeback_seq local_seq;
-  automatic int local_i   = i;
-  automatic int local_mst = master_sel[i];
-
-  local_seq = axi4_master_writeback_seq::type_id::create(
-                $sformatf("m_wb_seq_%0d", local_i));
-
-  local_seq.txn_addr = (local_i << 10) | 32'h1;
-  local_seq.txn_num  = local_i;
-
-  fork
-    begin
-      local_seq.start(
-        p_sequencer.axi4_master_write_seqr_h[local_mst]);
-
-      `uvm_info(get_type_name(),$sformatf("DONE TXN[%0d] M[%0d]",local_i, local_mst),UVM_LOW)
-    end
-  join_none
-
-end
-
-wait fork;
-
-end
-
-join // Thread1 exits fast, Thread2 blocks till all 5 txns done
-
-`uvm_info(get_type_name(), "WRITEBACK TEST COMPLETE", UVM_LOW)
-  
-endtask
+    `uvm_info(get_type_name(), "WRITEBACK TEST COMPLETE", UVM_LOW)
+  endtask
 
 endclass
 
