@@ -20,7 +20,7 @@ package axi4_globals_pkg;
 
   //Parameter: NO_OF_MASTERS
   //Used to set number of masters required
-  parameter int NO_OF_MASTERS = 3;
+  parameter int NO_OF_MASTERS = 5;
 
   //Parameter: NO_OF_SLAVES
   //Used to set number of slaves required
