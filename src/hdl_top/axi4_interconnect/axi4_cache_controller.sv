@@ -869,12 +869,13 @@ end
 
       // E-6: MSHR allocation
       begin
-        bit allocated;
-        allocated = 1'b0;
-
+        bit being_allocated [NUM_MSHR];
+        for (int i = 0; i < NUM_MSHR; i++)
+          being_allocated[i] = 1'b0;
+ 
         // Priority 1: read miss
         for (int m = 0; m < NO_OF_SLAVES; m++) begin
-          if (cache_arvalid[m] && rd_cache_miss[m] && !allocated && !mshr_full) begin
+          if (cache_arvalid[m] && rd_cache_miss[m] && !mshr_full) begin
             bit conflict;
             conflict = 1'b0;
             for (int j = 0; j < NUM_MSHR; j++) begin
@@ -885,9 +886,10 @@ end
             end
             if (!conflict) begin
               for (int i = 0; i < NUM_MSHR; i++) begin
-                if (!mshr[i].valid && !allocated) begin
+                if (!mshr[i].valid && !being_allocated[i]) begin
                   automatic logic [$clog2(ASSOCIATIVITY)-1:0] vway;
                   vway = find_victim_way(rd_index[m]);
+                  being_allocated[i]      = 1'b1;
                   mshr[i].valid           <= 1'b1;
                   mshr[i].is_write        <= 1'b0;
                   mshr[i].master          <= m[$clog2(NO_OF_SLAVES)-1:0];
@@ -904,22 +906,20 @@ end
                   mshr[i].wb_error        <= 1'b0;
                   mshr[i].resp_code       <= 2'b00;
                   mshr[i].wbeat_count     <= '0;
-                  mshr[i].wlast_seen <= 1'b0;
+                  mshr[i].wlast_seen      <= 1'b0;
                   mshr[i].needs_writeback <=
                     valid_array[rd_index[m]][vway] &&
                     dirty_array[rd_index[m]][vway];
-                  allocated = 1'b1;
+                  break;
                 end
               end
             end
           end
         end
-
+ 
         // Priority 2: write miss
         for (int m = 0; m < NO_OF_SLAVES; m++) begin
-          bit allocated_m;                    //added inside loop so it resets everytime
-          allocated_m = 1'b0;
-          if (wr_req_valid[m] && wr_cache_miss[m] && !allocated && !mshr_full) begin
+          if (wr_req_valid[m] && wr_cache_miss[m] && !mshr_full) begin
             bit conflict;
             conflict = 1'b0;
             for (int j = 0; j < NUM_MSHR; j++) begin
@@ -930,9 +930,10 @@ end
             end
             if (!conflict) begin
               for (int i = 0; i < NUM_MSHR; i++) begin
-                if (!mshr[i].valid && !allocated) begin
+                if (!mshr[i].valid && !being_allocated[i]) begin
                   automatic logic [$clog2(ASSOCIATIVITY)-1:0] vway;
                   vway = find_victim_way(wr_index[m]);
+                  being_allocated[i]      = 1'b1;
                   $display("Inside CACHE WRITE MSHR ALLOCATION BLOCK");
                   mshr[i].valid           <= 1'b1;
                   mshr[i].is_write        <= 1'b1;
@@ -958,15 +959,16 @@ end
                     mshr[i].wstrb_buf[wb] <= '0;
                   end
                   $display("[%0t] CACHE_MSHR_ALLOC: slave=%0d -> mshr_idx=%0d | addr=%0h index=%0d tag=%0h way=%0d | write=%0b | victim_dirty=%0b",
-                           $time,m,i,wr_req_addr[m],wr_index[m],wr_tag[m],vway,1'b1,valid_array[wr_index[m]][vway] && dirty_array[wr_index[m]][vway]);
-                  allocated = 1'b1;
+                           $time,m,i,wr_req_addr[m],wr_index[m],wr_tag[m],vway,1'b1,
+                           valid_array[wr_index[m]][vway] && dirty_array[wr_index[m]][vway]);
+                  break;
                 end
               end
             end
           end
         end
-      end // allocated scope
-
+      end // being_allocated scope
+      
     end // else
   end // BLOCK E
 
