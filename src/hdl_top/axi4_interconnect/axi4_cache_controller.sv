@@ -835,35 +835,30 @@ end
       end
       
       // E-5: Write-miss data capture
-      for (int i = 0; i < NUM_MSHR; i++) begin
-        if (mshr[i].valid && mshr[i].is_write && mshr[i].axi_id == w_locked_id) begin  //added id check 
-          int m;
-          m = int'(mshr[i].master);
-          if (wr_data_valid_g[m] &&
-              (m[$clog2(NO_OF_SLAVES)-1:0] == w_owner)) begin
-            
-            automatic logic [$clog2(WORDS_PER_LINE)-1:0] base;
-            automatic logic [$clog2(WORDS_PER_LINE)-1:0] widx;
-            
-            base = get_word_index(mshr[i].addr);  // unalligend will be wrong
-            widx = base + mshr[i].wbeat_count;
-            if (widx < WORDS_PER_LINE) begin
-              mshr[i].wdata_buf[widx] <= wr_data_g[m];
-              mshr[i].wstrb_buf[widx] <= wr_strb_g[m];
+for (int i = 0; i < NUM_MSHR; i++) begin
+  if (mshr[i].valid && mshr[i].is_write && !mshr[i].wlast_seen) begin
+    int m;
+    m = int'(mshr[i].master);
+    // Each MSHR listens to its own master port directly
+    // No w_owner/w_locked check needed for miss path
+    if (wr_data_valid_g[m] && cache_wready[m]) begin
+      automatic logic [$clog2(WORDS_PER_LINE)-1:0] base;
+      automatic logic [$clog2(WORDS_PER_LINE)-1:0] widx;
+      base = get_word_index(mshr[i].addr);
+      widx = base + mshr[i].wbeat_count;
+      if (widx < WORDS_PER_LINE) begin
+        mshr[i].wdata_buf[widx] <= wr_data_g[m];
+        mshr[i].wstrb_buf[widx] <= wr_strb_g[m];
         $display("[WBUF_COLLECT] time=%0t mshr=%0d widx=%0d wdata=0x%0h wstrb=0x%0h beat_count=%0d",
-                 $time, i, widx,  wr_data_g[m], wr_strb_g[m], mshr[i].wbeat_count);
-            end
-            if (!wr_data_last_g[m])
-              mshr[i].wbeat_count <= mshr[i].wbeat_count + 1;
-
-            if (wr_data_last_g[m]) begin
-              mshr[i].wlast_seen <= 1'b1;
-            end
-            $display("[DEBUG] WDATA captured time=%0t | beat=%0d | wlast=%0b",
-         $time, mshr[i].wbeat_count, wr_data_last_g[m]);
-          end
-        end
+                 $time, i, widx, wr_data_g[m], wr_strb_g[m], mshr[i].wbeat_count);
       end
+      if (!wr_data_last_g[m])
+        mshr[i].wbeat_count <= mshr[i].wbeat_count + 1;
+      if (wr_data_last_g[m])
+        mshr[i].wlast_seen <= 1'b1;
+    end
+  end
+end
 
    // E-6: MSHR allocation
       begin
