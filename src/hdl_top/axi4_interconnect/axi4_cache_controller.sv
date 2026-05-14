@@ -367,26 +367,26 @@ module axi_cache_controller #(
       if (!mshr[i].valid) mshr_full = 1'b0;
   end
 
-  // =========================================================================
-  // VICTIM WAY SELECTION
-  // =========================================================================
-  function automatic logic [$clog2(ASSOCIATIVITY)-1:0] find_victim_way(
-    input logic [INDEX_BITS-1:0] idx
-  );
-    logic [7:0] max_lru;
-    logic [$clog2(ASSOCIATIVITY)-1:0] victim_way;
-    for (int w = 0; w < ASSOCIATIVITY; w++)
-      if (!valid_array[idx][w]) return w[$clog2(ASSOCIATIVITY)-1:0];
-    max_lru    = lru_counter[idx][0];
-    victim_way = 0;
-    for (int w = 1; w < ASSOCIATIVITY; w++) begin
-      if (lru_counter[idx][w] > max_lru) begin
+// Modified find_victim_way — takes way_being_used as input ref
+function automatic logic [$clog2(ASSOCIATIVITY)-1:0] find_victim_way(
+  input  logic [$clog2(NUM_SETS)-1:0]    idx,
+  ref    bit   way_being_used [NUM_SETS][ASSOCIATIVITY]   //pass by reference
+);
+  logic [7:0] max_lru;
+  logic [$clog2(ASSOCIATIVITY)-1:0] victim_way;
+  max_lru    = '0;
+  victim_way = '0;
+  for (int w = 0; w < ASSOCIATIVITY; w++) begin
+    if (!way_being_used[idx][w]) begin
+      if (lru_counter[idx][w] >= max_lru) begin
         max_lru    = lru_counter[idx][w];
         victim_way = w[$clog2(ASSOCIATIVITY)-1:0];
       end
     end
-    return victim_way;
-  endfunction
+  end
+  way_being_used[idx][victim_way] = 1'b1;    // Mark the chosen way as claimed for this evaluation
+  return victim_way;
+endfunction
 
   // =========================================================================
   // LINE-UNDER-REFILL HELPER
