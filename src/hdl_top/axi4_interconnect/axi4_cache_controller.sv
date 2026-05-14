@@ -1131,7 +1131,7 @@ end
                           {OFFSET_BITS{1'b0}}};
           s_arlen[s]   = 8'(WORDS_PER_LINE - 1);
           s_arid[s]    = mshr[i].axi_id;
-          $display("[CACHE_AR_ISSUE] time=%0t | mshr=%0d | slave=%0d | valid=%0b | ar_sent=%0b | needs_wb=%0b | wb_done=%0b | mshr_addr=0x%0h | slave_addr=0x%0h | id=%0d | len=%0d",$time,i,s,mshr[i].valid,mshr[i].ar_sent,mshr[i].needs_writeback,mshr[i].wb_done,mshr[i].addr,s_araddr[s],mshr[i].axi_id,(WORDS_PER_LINE - 1));
+         // $display("[CACHE_AR_ISSUE] time=%0t | mshr=%0d | slave=%0d | valid=%0b | ar_sent=%0b | needs_wb=%0b | wb_done=%0b | mshr_addr=0x%0h | slave_addr=0x%0h | id=%0d | len=%0d",$time,i,s,mshr[i].valid,mshr[i].ar_sent,mshr[i].needs_writeback,mshr[i].wb_done,mshr[i].addr,s_araddr[s],mshr[i].axi_id,(WORDS_PER_LINE - 1));
           break;
         end
       end
