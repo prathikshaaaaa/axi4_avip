@@ -1229,6 +1229,7 @@ end
         $display("%0t inside WRITE RESPONSE GENERATION: hit path !has_mshr && wr_cache_hit[m] && wr_data_last_g[m] && w_locked[m] master=%0d", $time, m);
     end
   end
+end
 
   always_comb begin
     for (int m = 0; m < NO_OF_SLAVES; m++) begin
