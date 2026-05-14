@@ -373,6 +373,13 @@ function automatic logic [$clog2(ASSOCIATIVITY)-1:0] find_victim_way(
 );
   logic [7:0] max_lru;
   logic [$clog2(ASSOCIATIVITY)-1:0] victim_way;
+
+   // Mark ways already owned by in-flight MSHRs for this index
+  for (int i = 0; i < NUM_MSHR; i++) begin
+    if (mshr[i].valid && mshr[i].index == idx)
+      way_being_used[idx][mshr[i].way] = 1'b1;  // already in use
+  end
+
   // First: prefer invalid ways not yet claimed this cycle
   for (int w = 0; w < ASSOCIATIVITY; w++) begin
     if (!valid_array[idx][w] && !way_being_used[idx][w]) begin
