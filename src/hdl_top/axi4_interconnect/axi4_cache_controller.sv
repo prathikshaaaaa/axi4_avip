@@ -456,9 +456,7 @@ endfunction
             end
           end
           wr_cache_miss[gm] = ~wr_cache_hit[gm];
-          $display("CACHE_DEBUG [%0t] slave=%0d wr_req_valid=%0b w_locked=%0b set_index=%0d tag=%0h -> HIT=%0b MISS=%0b WAY=%0d",
-          $time, gm, wr_req_valid[gm], w_locked, wr_index[gm], wr_tag[gm],
-          wr_cache_hit[gm], wr_cache_miss[gm], wr_hit_way[gm]);
+         $display("CACHE_DEBUG [%0t] slave=%0d wr_req_valid=%0b w_locked=%0b set_index=%0d tag=%0h -> HIT=%0b MISS=%0b WAY=%0d",$time, gm, wr_req_valid[gm], w_locked[gm], wr_index[gm], wr_tag[gm],wr_cache_hit[gm], wr_cache_miss[gm], wr_hit_way[gm]);
         end
       end
     end
@@ -494,9 +492,9 @@ endfunction
   always_comb begin
     for (int m = 0; m < NO_OF_SLAVES; m++) begin
       wr_req_ready[m] = 1'b0;
-      if (wr_cache_hit[m] && !w_locked) begin 
+      if (wr_cache_hit[m] && !w_locked[m]) begin 
         wr_req_ready[m] = 1'b1;
-        $display("%0t: Sending  wr_req_ready = 1 becuase wr_cache_hit[%0b] = %b && !w_locked = %b",$time,m,wr_cache_hit[m],w_locked);
+        $display("%0t: Sending wr_req_ready = 1 becuase wr_cache_hit[%0b] = %b && !w_locked[m] = %b",$time, m, wr_cache_hit[m], w_locked[m]);
       end else begin
         bit conflict;
         conflict = 1'b0;
@@ -583,7 +581,7 @@ end
           wr_hit_id[m] <= cache_awid[m];
           wr_hit_beat[m] <= get_word_index(cache_awaddr[m]); // start at base word
         end
-        else if (wr_data_valid_g[m] && cache_wready[m] && (m[$clog2(NO_OF_SLAVES)-1:0] == w_owner))
+        else if (wr_data_valid_g[m] && cache_wready[m] && w_locked[m])
           wr_hit_beat[m] <= wr_hit_beat[m] + 1'b1;
         end
     end
@@ -607,8 +605,7 @@ end
         end
       end
       for (int m = 0; m < NO_OF_SLAVES; m++) begin
-        if (wr_cache_hit[m] && wr_data_last_g[m] &&
-            (m[$clog2(NO_OF_SLAVES)-1:0] == w_owner)) begin
+        if (wr_cache_hit[m] && wr_data_last_g[m] && w_locked[m]) begin
           for (int w = 0; w < ASSOCIATIVITY; w++)
             if (lru_counter[wr_index[m]][w] < 8'hFF)
               lru_counter[wr_index[m]][w] <= lru_counter[wr_index[m]][w] + 1;
@@ -996,7 +993,7 @@ end
       // F-2: Write-hit byte update
      for (int m = 0; m < NO_OF_SLAVES; m++) begin
          if (wr_cache_hit[m] && wr_data_valid_g[m] && w_locked[m]) begin
-             $display("[%0t] inside write hit byte update m[$clog2(NO_OF_SLAVES)-1:0] == %b | w_owner = %b ",$time,m[$clog2(NO_OF_SLAVES)-1:0],w_owner);
+           $display("[%0t] inside write hit byte update slave_port=%0d w_locked=%0b w_locked_id=%0h",$time, m, w_locked[m], w_locked_id[m]);
           for (int b = 0; b < (DATA_WIDTH/8); b++) begin
             if (wr_strb_g[m][b]) begin
               data_array[wr_index[m]][wr_hit_way[m]][wr_hit_beat[m]][8*b +: 8] <=  wr_data_g[m][8*b +: 8];
@@ -1215,10 +1212,10 @@ end
       bit has_mshr;
       has_mshr = 1'b0;
       for (int i = 0; i < NUM_MSHR; i++) begin
-        if (mshr[i].valid && int'(mshr[i].master) == m && && mshr[i].axi_id == w_locked_id[m])begin   //added w_locked_id here
+        if (mshr[i].valid && int'(mshr[i].master) == m && mshr[i].axi_id == w_locked_id[m])begin   //added w_locked_id here
           has_mshr = 1'b1;
         end
-        $display("[DEBUG-BGEN] time=%0t m=%0d has_mshr=%b wr_cache_hit=%b wr_data_last_g=%b w_owner=%0d w_locked=%b",$time, m, has_mshr, wr_cache_hit[m], wr_data_last_g[m], w_owner, w_locked);      
+        $display("[DEBUG-BGEN] time=%0t m=%0d has_mshr=%b wr_cache_hit=%b wr_data_last_g=%b w_locked=%b w_locked_id=%0h",$time, m, has_mshr, wr_cache_hit[m], wr_data_last_g[m], w_locked[m], w_locked_id[m]);    
       end
 //       $display("has_mshr = %0d  wr_cache_hit[m] = %0d ",has_mshr,wr_cache_hit[m]);
       if (!has_mshr &&
