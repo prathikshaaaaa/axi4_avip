@@ -336,9 +336,8 @@ module axi_cache_controller #(
   // =========================================================================
   // WRITE DATA OWNERSHIP
   // =========================================================================
-  logic                            w_locked;
-  logic [$clog2(NO_OF_SLAVES)-1:0] w_owner;
-  logic [EXT_ID_WIDTH-1:0] w_locked_id;
+  logic [NO_OF_SLAVES-1:0]         w_locked;      // one bit per slave port
+  logic [EXT_ID_WIDTH-1:0]         w_locked_id [NO_OF_SLAVES];  // one id per slave port
 
   logic                        wr_data_valid_g [NO_OF_SLAVES];
   logic                        wr_data_last_g  [NO_OF_SLAVES];
@@ -425,10 +424,7 @@ endfunction
             if (valid_array[rd_index[gm]][w] &&
                 tag_array[rd_index[gm]][w] == rd_tag[gm] &&
                 !line_under_refill(rd_index[gm], rd_tag[gm])) begin
-              if (!(w_locked &&
-                    wr_cache_hit[w_owner] &&
-                    wr_index[w_owner] == rd_index[gm] &&
-                    wr_hit_way[w_owner] == w[$clog2(ASSOCIATIVITY)-1:0])) begin
+              if (!(w_locked[gm] && wr_cache_hit[gm] && wr_index[gm] == rd_index[gm] && wr_hit_way[gm] == w[$clog2(ASSOCIATIVITY)-1:0])) begin
                 rd_cache_hit[gm] = 1'b1;
                 rd_hit_way[gm]   = w[$clog2(ASSOCIATIVITY)-1:0];
               end
@@ -450,7 +446,7 @@ endfunction
         wr_cache_hit[gm]  = 1'b0;
         wr_cache_miss[gm] = 1'b0;
         wr_hit_way[gm]    = '0;
-        if ((wr_req_valid[gm] || w_locked) && !wb_active && !line_under_refill(wr_index[gm], wr_tag[gm])) begin   //  added || w_locked 
+        if ((wr_req_valid[gm] || w_locked[gm]) && !wb_active && !line_under_refill(wr_index[gm], wr_tag[gm])) begin   //  added || w_locked 
           for (int w = 0; w < ASSOCIATIVITY; w++) begin   //added line_under_refill
             if (valid_array[wr_index[gm]][w] &&
                 tag_array[wr_index[gm]][w] == wr_tag[gm]) begin
@@ -524,56 +520,53 @@ endfunction
   end
 
   always_comb begin
-    for (int m = 0; m < NO_OF_SLAVES; m++)
-      cache_wready[m] = (w_locked && (w_owner == m[$clog2(NO_OF_SLAVES)-1:0]));
+  for (int m = 0; m < NO_OF_SLAVES; m++)
+    cache_wready[m] = w_locked[m];
   end
 
   // =========================================================================
   // GATED WRITE SIGNALS  (combinational)
   // =========================================================================
   always_comb begin
-    for (int m = 0; m < NO_OF_SLAVES; m++) begin
-      if (w_locked && (w_owner == m[$clog2(NO_OF_SLAVES)-1:0])) begin
-        wr_data_valid_g[m] = cache_wvalid[m];
-        wr_data_last_g[m]  = wr_data_last[m];
-        wr_data_g[m]       = wr_data[m];
-        wr_strb_g[m]       = wr_strb[m];
-      end else begin
-        wr_data_valid_g[m] = 1'b0;
-        wr_data_last_g[m]  = 1'b0;
-        wr_data_g[m]       = '0;
-        wr_strb_g[m]       = '0;
-      end
+  for (int m = 0; m < NO_OF_SLAVES; m++) begin
+    if (w_locked[m]) begin
+      wr_data_valid_g[m] = cache_wvalid[m];
+      wr_data_last_g[m]  = wr_data_last[m];
+      wr_data_g[m]       = wr_data[m];
+      wr_strb_g[m]       = wr_strb[m];
+    end else begin
+      wr_data_valid_g[m] = 1'b0;
+      wr_data_last_g[m]  = 1'b0;
+      wr_data_g[m]       = '0;
+      wr_strb_g[m]       = '0;
     end
   end
+end
 
   // =========================================================================
   // BLOCK A — w_locked, w_owner
   // =========================================================================
   always_ff @(posedge aclk or negedge aresetn) begin
-    if (!aresetn) begin
-      w_locked <= 1'b0;
-      w_owner  <= '0;
-      w_locked_id <= '0;
-    end else begin
-      if (!w_locked) begin
-        for (int m = 0; m < NO_OF_SLAVES; m++) begin
-          if (wr_req_valid[m] && wr_req_ready[m]) begin
-            w_locked <= 1'b1;
-            w_owner  <= m[$clog2(NO_OF_SLAVES)-1:0];
-            w_locked_id <= cache_awid[m];          //added w_locked_id
-            $display(" [%0t] BLOCK A : (non blocking) w_locked <= 1 w_owner <= %b",$time,m[$clog2(NO_OF_SLAVES)-1:0]);
-            break;
-          end
-        end
+  if (!aresetn) begin
+    for (int m = 0; m < NO_OF_SLAVES; m++) begin
+      w_locked[m]    <= 1'b0;
+      w_locked_id[m] <= '0;
+    end
+  end else begin
+    for (int m = 0; m < NO_OF_SLAVES; m++) begin
+      // Lock when handshake happens on this slave port
+      if (!w_locked[m] && wr_req_valid[m] && wr_req_ready[m]) begin
+        w_locked[m]    <= 1'b1;
+        w_locked_id[m] <= cache_awid[m];
       end
-      if (w_locked && wr_complete[w_owner]) begin // added begin-end display
-        w_locked <= 1'b0;
-        w_locked_id <= '0;
-        $display("%0t: BLOCK A : (non blocking) w_locked <= 1'b0 | wr_complete[%b] = %b ",$time, w_owner, wr_complete[w_owner]);
+      // Release when transaction completes on this slave port
+      if (w_locked[m] && wr_complete[m]) begin
+        w_locked[m]    <= 1'b0;
+        w_locked_id[m] <= '0;
       end
     end
   end
+end
 
   // =========================================================================
   // BLOCK B — wr_hit_id[]
@@ -1001,10 +994,9 @@ end
       end
 
       // F-2: Write-hit byte update
-      for (int m = 0; m < NO_OF_SLAVES; m++) begin
-        if ((wr_cache_hit[m]) && wr_data_valid_g[m] &&   //removed || w_locked
-            (m[$clog2(NO_OF_SLAVES)-1:0] == w_owner)) begin
-          $display("[%0t] inside write hit byte update m[$clog2(NO_OF_SLAVES)-1:0] == %b | w_owner = %b ",$time,m[$clog2(NO_OF_SLAVES)-1:0],w_owner);
+     for (int m = 0; m < NO_OF_SLAVES; m++) begin
+         if (wr_cache_hit[m] && wr_data_valid_g[m] && w_locked[m]) begin
+             $display("[%0t] inside write hit byte update m[$clog2(NO_OF_SLAVES)-1:0] == %b | w_owner = %b ",$time,m[$clog2(NO_OF_SLAVES)-1:0],w_owner);
           for (int b = 0; b < (DATA_WIDTH/8); b++) begin
             if (wr_strb_g[m][b]) begin
               data_array[wr_index[m]][wr_hit_way[m]][wr_hit_beat[m]][8*b +: 8] <=  wr_data_g[m][8*b +: 8];
@@ -1207,9 +1199,10 @@ end
       wr_resp_id[m]    = '0;
     end
     for (int i = 0; i < NUM_MSHR; i++) begin
-      if (mshr[i].valid && mshr[i].done && mshr[i].is_write && w_locked && mshr[i].axi_id == w_locked_id) begin   //added && w_locked && mshr[i].axi_id == w_locked_id
+      if (mshr[i].valid && mshr[i].done && mshr[i].is_write ) begin   
         int m;
         m = int'(mshr[i].master);
+        if (w_locked[m] && mshr[i].axi_id == w_locked_id[m]) begin
         wr_complete[m]   = 1'b1;
         wr_resp_valid[m] = 1'b1;
         wr_resp[m]       = mshr[i].resp_code;
@@ -1217,11 +1210,12 @@ end
         $display("%0t inisde WRITE RESPONSE GENERATION  : if (mshr[i].valid && mshr[i].done && mshr[i].is_write) making wr_complete[m] = 1'b1;);  master = %d ",$time,m);
     end
   end
+end
     for (int m = 0; m < NO_OF_SLAVES; m++) begin
       bit has_mshr;
       has_mshr = 1'b0;
       for (int i = 0; i < NUM_MSHR; i++) begin
-        if (mshr[i].valid && int'(mshr[i].master) == m && mshr[i].axi_id == w_locked_id)begin   //added w_locked_id here
+        if (mshr[i].valid && int'(mshr[i].master) == m && && mshr[i].axi_id == w_locked_id[m])begin   //added w_locked_id here
           has_mshr = 1'b1;
         end
         $display("[DEBUG-BGEN] time=%0t m=%0d has_mshr=%b wr_cache_hit=%b wr_data_last_g=%b w_owner=%0d w_locked=%b",$time, m, has_mshr, wr_cache_hit[m], wr_data_last_g[m], w_owner, w_locked);      
@@ -1229,8 +1223,7 @@ end
 //       $display("has_mshr = %0d  wr_cache_hit[m] = %0d ",has_mshr,wr_cache_hit[m]);
       if (!has_mshr &&
           wr_cache_hit[m] &&
-          wr_data_last_g[m] &&
-          (m[$clog2(NO_OF_SLAVES)-1:0] == w_owner)) begin
+          wr_data_last_g[m] && w_locked[m]) begin
         wr_complete[m]   = 1'b1;
         wr_resp_valid[m] = 1'b1;
         wr_resp[m]       = 2'b00;
