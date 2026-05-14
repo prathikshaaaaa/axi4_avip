@@ -765,7 +765,7 @@ endfunction
           mshr[i].ar_sent               <= 1'b1;
           active_r_valid[mshr[i].slave] <= 1'b1;
           active_r_mshr [mshr[i].slave] <= i[$clog2(NUM_MSHR)-1:0];
-          $display("[%0t] CACHE AR_SENT: slave=%0d mshr=%0d | addr=%0h | WB_done=%0b | active_r_valid->1",$time,mshr[i].slave,i,mshr[i].addr,mshr[i].wb_done);
+         $display("[%0t] CACHE_AR_SENT: mshr=%0d slave=%0d addr=0x%0h id=%0h",$time, i, mshr[i].slave, mshr[i].addr, mshr[i].axi_id);
         end
         else if (mshr[i].valid && !mshr[i].ar_sent) begin
           $display("[%0t] CACHE AR_BLOCKED: mshr=%0d slave=%0d | arvalid=%0b arready=%0b WB_needed=%0b WB_done=%0b active_r_valid=%0b",$time,i,mshr[i].slave,s_arvalid[mshr[i].slave],s_arready[mshr[i].slave],mshr[i].needs_writeback,mshr[i].wb_done,active_r_valid[mshr[i].slave]);
