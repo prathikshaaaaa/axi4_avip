@@ -369,11 +369,19 @@ module axi_cache_controller #(
 
 // Modified find_victim_way — takes way_being_used as input ref
 function automatic logic [$clog2(ASSOCIATIVITY)-1:0] find_victim_way(
-  input  logic [$clog2(NUM_SETS)-1:0]    idx,
-  ref    bit   way_being_used [NUM_SETS][ASSOCIATIVITY]   //pass by reference
+  input logic [INDEX_BITS-1:0] idx,
+  ref   bit                    way_being_used [NUM_SETS][ASSOCIATIVITY]
 );
   logic [7:0] max_lru;
   logic [$clog2(ASSOCIATIVITY)-1:0] victim_way;
+  // First: prefer invalid ways not yet claimed this cycle
+  for (int w = 0; w < ASSOCIATIVITY; w++) begin
+    if (!valid_array[idx][w] && !way_being_used[idx][w]) begin
+      way_being_used[idx][w] = 1'b1;
+      return w[$clog2(ASSOCIATIVITY)-1:0];
+    end
+  end
+  // All ways valid: pick LRU way not yet claimed this cycle
   max_lru    = '0;
   victim_way = '0;
   for (int w = 0; w < ASSOCIATIVITY; w++) begin
@@ -384,7 +392,7 @@ function automatic logic [$clog2(ASSOCIATIVITY)-1:0] find_victim_way(
       end
     end
   end
-  way_being_used[idx][victim_way] = 1'b1;    // Mark the chosen way as claimed for this evaluation
+  way_being_used[idx][victim_way] = 1'b1;
   return victim_way;
 endfunction
 
@@ -860,8 +868,13 @@ end
    // E-6: MSHR allocation
       begin
         bit being_allocated [NUM_MSHR];
+        bit way_being_used    [NUM_SETS][ASSOCIATIVITY];
+        
         for (int i = 0; i < NUM_MSHR; i++)
           being_allocated[i] = 1'b0;
+        for (int s = 0; s < NUM_SETS; s++)
+          for (int w = 0; w < ASSOCIATIVITY; w++)
+             way_being_used[s][w] = 1'b0;
 
         // Priority 1: read miss
         for (int m = 0; m < NO_OF_SLAVES; m++) begin
@@ -878,7 +891,7 @@ end
               for (int i = 0; i < NUM_MSHR; i++) begin
                 if (!mshr[i].valid && !being_allocated[i]) begin
                   automatic logic [$clog2(ASSOCIATIVITY)-1:0] vway;
-                  vway = find_victim_way(rd_index[m]);
+                  vway = find_victim_way(rd_index[m],way_being_used);
                   being_allocated[i]      = 1'b1;
                   mshr[i].valid           <= 1'b1;
                   mshr[i].is_write        <= 1'b0;
@@ -922,7 +935,7 @@ end
               for (int i = 0; i < NUM_MSHR; i++) begin
                 if (!mshr[i].valid && !being_allocated[i]) begin
                   automatic logic [$clog2(ASSOCIATIVITY)-1:0] vway;
-                  vway = find_victim_way(wr_index[m]);
+                  vway = find_victim_way(wr_index[m],way_being_used);
                   being_allocated[i]      = 1'b1;
                   $display("Inside CACHE WRITE MSHR ALLOCATION BLOCK");
                   mshr[i].valid           <= 1'b1;
