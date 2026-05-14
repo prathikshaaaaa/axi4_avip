@@ -836,7 +836,7 @@ end
       
       // E-5: Write-miss data capture
       for (int i = 0; i < NUM_MSHR; i++) begin
-        if (mshr[i].valid && mshr[i].is_write) begin
+        if (mshr[i].valid && mshr[i].is_write && mshr[i].axi_id == w_locked_id) begin  //added id check 
           int m;
           m = int'(mshr[i].master);
           if (wr_data_valid_g[m] &&
