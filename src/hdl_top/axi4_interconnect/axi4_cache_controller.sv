@@ -839,7 +839,7 @@ for (int i = 0; i < NUM_MSHR; i++) begin
     m = int'(mshr[i].master);
     // Each MSHR listens to its own master port directly
     // No w_owner/w_locked check needed for miss path
-    if (wr_data_valid_g[m] && cache_wready[m]) begin
+    if (wr_data_valid_g[m] && cache_wready[m] && mshr[i].axi_id == w_locked_id[m]) begin
       automatic logic [$clog2(WORDS_PER_LINE)-1:0] base;
       automatic logic [$clog2(WORDS_PER_LINE)-1:0] widx;
       base = get_word_index(mshr[i].addr);
