@@ -563,7 +563,7 @@ end
       if (!w_locked[m] && wr_req_valid[m] && wr_req_ready[m]) begin
         w_locked[m]    <= 1'b1;
         w_locked_id[m] <= cache_awid[m];
-        $display("(Non blocking) w_locked=1 id=%0d",cache_awid[m]);
+        $display("(Non blocking) w_locked=1 id=%0h",cache_awid[m]);
       end
       // Release when transaction completes on this slave port
       if (w_locked[m] && wr_complete[m]) begin
