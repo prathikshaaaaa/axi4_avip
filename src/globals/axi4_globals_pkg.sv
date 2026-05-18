@@ -42,7 +42,7 @@ package axi4_globals_pkg;
 
   //Parameter: SLAVE_MEMORY_GAP
   //Sets the memory gap size of the slave
-  parameter int SLAVE_MEMORY_GAP = 2;
+  parameter int SLAVE_MEMORY_GAP = 0;
 
   //Parameter: MEMORY_WIDTH
   //Sets the width it can store in each location
