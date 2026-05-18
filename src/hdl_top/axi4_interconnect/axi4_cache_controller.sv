@@ -569,6 +569,7 @@ end
       if (w_locked[m] && wr_complete[m]) begin
         w_locked[m]    <= 1'b0;
         w_locked_id[m] <= '0;
+        $display("(Non blocking) w_locked=0 id=0");
       end
     end
   end
