@@ -809,12 +809,16 @@ end
             // READ MISS COMPLETE
             if (!mshr[i].is_write) begin
               if (s_rvalid[s] && s_rready[s] && s_rlast[s] && s_rid[s] == mshr[i].axi_id) begin
-                $display("[DEBUG] READ DONE time=%0t | mshr=%0d", $time, i);
+                 $display("[DEBUG] READ DONE time=%0t | mshr=%0d | rvalid=%0b | rready=%0b | rlast=%0b | rid=%0d | axi_id=%0d",$time, i,s_rvalid[s],s_rready[s],s_rlast[s],s_rid[s],mshr[i].axi_id);
 
-                mshr[i].done <= 1'b1;
-                active_r_valid[s] <= 1'b0;   // clear AFTER handshake
-              end
-            end
+               mshr[i].done <= 1'b1;
+               active_r_valid[s] <= 1'b0;
+
+           end
+           else begin
+              $display("[DEBUG] READ NOT DONE time=%0t | mshr=%0d | rvalid=%0b | rready=%0b | rlast=%0b | rid=%0d | axi_id=%0d | id_match=%0b",$time, i,s_rvalid[s], s_rready[s],s_rlast[s],s_rid[s],mshr[i].axi_id,(s_rid[s] == mshr[i].axi_id));
+         end
+      end
 
             //  WRITE MISS COMPLETE
             else begin
