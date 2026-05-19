@@ -560,7 +560,7 @@ end
   end else begin
     for (int m = 0; m < NO_OF_SLAVES; m++) begin
       // Lock when handshake happens on this slave port
-      if (!w_locked[m] && wr_req_valid[m] && wr_req_ready[m]) begin
+      if (!w_locked[m] && wr_req_valid[m] && wr_req_ready[m]) begin    //only for starting first transaction on that slave port.
         w_locked[m]    <= 1'b1;
         w_locked_id[m] <= cache_awid[m];
         $display("(Non blocking) w_locked=1 id=%0h",cache_awid[m]);
@@ -570,10 +570,17 @@ end
         w_locked[m]    <= 1'b0;
         w_locked_id[m] <= '0;
         $display("(Non blocking) w_locked=0 id=0");
-      end
+        for (int i = 0; i < NUM_MSHR; i++) begin     //Immediately check for any pending write MSHR on same slave port
+          if (mshr[i].valid && mshr[i].is_write && int'(mshr[i].master) == m && !mshr[i].wlast_seen && mshr[i].axi_id != w_locked_id[m]) begin
+            w_locked[m]    <= 1'b1;
+            w_locked_id[m] <= mshr[i].axi_id;
+            break;
+        end
+       end
     end
   end
 end
+  end
 
   // =========================================================================
   // BLOCK B — wr_hit_id[]
