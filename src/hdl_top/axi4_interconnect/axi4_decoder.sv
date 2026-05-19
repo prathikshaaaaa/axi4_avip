@@ -100,6 +100,7 @@ module axi4_decoder #(
     int master_aw_order [NO_OF_MASTERS][$];
  
     int wr_w_slave [NO_OF_MASTERS];
+    int w_owner [NO_OF_SLAVES];  //for w_channel reservation
  
     typedef int slave_q_t[$];
     slave_q_t wr_respOrder [NO_OF_MASTERS][int];
@@ -205,9 +206,9 @@ module axi4_decoder #(
                 m_arready[rd_active_master[s]] = cache_arready[s];
         end
  
-        for (int m = 0; m < NO_OF_MASTERS; m++) begin
-            if (wr_w_slave[m] != -1)
-                m_wready[m] = cache_wready[wr_w_slave[m]];
+       for (int m = 0; m < NO_OF_MASTERS; m++) begin
+           if (wr_w_slave[m] != -1 && w_owner[wr_w_slave[m]] == m)
+                 m_wready[m] = cache_wready[wr_w_slave[m]];
         end
  
         for (int s = 0; s < NO_OF_SLAVES; s++) begin
@@ -331,6 +332,28 @@ module axi4_decoder #(
                 end
             end
         end
+    end
+
+    always_ff @(posedge aclk or negedge aresetn) begin
+    if (!aresetn) begin
+        for (int s = 0; s < NO_OF_SLAVES; s++)
+            w_owner[s] = -1;
+    end else begin
+        for (int s = 0; s < NO_OF_SLAVES; s++) begin
+            // Assign owner to first master that has wr_w_slave pointing here
+            if (w_owner[s] == -1) begin
+                for (int m = 0; m < NO_OF_MASTERS; m++) begin
+                    if (wr_w_slave[m] == s) begin
+                        w_owner[s] = m;
+                        break;
+                    end
+                 end
+              end
+               // Release when current owner sends wlast
+              if (w_owner[s] != -1 && m_wvalid[w_owner[s]] && m_wready[w_owner[s]] && m_wlast[w_owner[s]])
+                w_owner[s] = -1;
+           end
+       end
     end
  
     always_ff @(posedge aclk or negedge aresetn) begin
