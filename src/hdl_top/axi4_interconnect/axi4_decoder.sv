@@ -271,6 +271,8 @@ module axi4_decoder #(
                 master_aw_order[m].delete();
                 wr_w_slave[m] = -1;
             end
+            for (int s = 0; s < NO_OF_SLAVES; s++)   
+                slave_aw_order[s].delete();
         end else begin
             for (int m = 0; m < NO_OF_MASTERS; m++) begin
                 $display("%0t:in always block m_awvalid[%d] = %b | m_awaddr[%d] = %b", $time,m,m_awvalid[m],m, m_awaddr[m]);
@@ -280,6 +282,7 @@ module axi4_decoder #(
                     master_aw_order[m].push_back(s);
                     wr_respOrder[m][int'(m_awid[m])].push_back(s);
                     wr_w_slave[m] = master_aw_order[m][0];
+                    slave_aw_order[s].push_back(m);   //added for w_locked logic instead of master loop iteration
                 end
             end
  
@@ -292,6 +295,10 @@ module axi4_decoder #(
  
             for (int m = 0; m < NO_OF_MASTERS; m++) begin
                 if (m_wvalid[m] && m_wready[m] && m_wlast[m]) begin
+                    int s;
+                    s = wr_w_slave[m];
+                    if (s != -1 && slave_aw_order[s].size() > 0)  // ← ADD THIS
+                        void'(slave_aw_order[s].pop_front());       // pop completed owner
                     if (master_aw_order[m].size() > 0)
                         void'(master_aw_order[m].pop_front());
                     if (master_aw_order[m].size() > 0)
@@ -342,12 +349,8 @@ module axi4_decoder #(
         for (int s = 0; s < NO_OF_SLAVES; s++) begin
             // Assign owner to first master that has wr_w_slave pointing here
             if (w_owner[s] == -1) begin
-                for (int m = 0; m < NO_OF_MASTERS; m++) begin
-                    if (wr_w_slave[m] == s) begin
-                        w_owner[s] = m;
-                        break;
-                    end
-                 end
+               if (slave_aw_order[s].size() > 0)
+                    w_owner[s] = slave_aw_order[s][0];  // front = oldest AW
               end
                // Release when current owner sends wlast
               if (w_owner[s] != -1 && m_wvalid[w_owner[s]] && m_wready[w_owner[s]] && m_wlast[w_owner[s]])
