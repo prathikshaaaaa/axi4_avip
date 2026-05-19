@@ -147,13 +147,13 @@ module axi4_decoder #(
                     end
                 end
  
-                for (int m = 0; m < NO_OF_MASTERS; m++) begin
-                    if (wr_w_slave[m] != -1 && wr_w_slave[m] == s) begin
-                        cache_wvalid[s] = m_wvalid[m];
-                        cache_wdata[s]  = m_wdata[m];
-                        cache_wstrb[s]  = m_wstrb[m];
-                        cache_wlast[s]  = m_wlast[m];
-                    end
+                if (w_owner[s] != -1) begin
+                 int m;
+                 m = w_owner[s];
+                 cache_wvalid[s] = m_wvalid[m];
+                 cache_wdata[s]  = m_wdata[m];
+                 cache_wstrb[s]  = m_wstrb[m];
+                 cache_wlast[s]  = m_wlast[m];
                 end
  
                 if (rd_active_master[s] != -1) begin
