@@ -95,6 +95,7 @@ module axi4_decoder #(
     int wr_prev_grant    [NO_OF_SLAVES];
     int rd_active_master [NO_OF_SLAVES];
     int rd_prev_grant    [NO_OF_SLAVES];
+    int wr_busy_master   [NO_OF_SLAVES];
  
     int slave_aw_order  [NO_OF_SLAVES] [$];
     int master_aw_order [NO_OF_MASTERS][$];
@@ -303,27 +304,30 @@ module axi4_decoder #(
         end
     end
  
-    always_ff @(posedge aclk or negedge aresetn) begin 
+always_ff @(posedge aclk or negedge aresetn) begin 
     if (!aresetn) begin
         for (int s = 0; s < NO_OF_SLAVES; s++) begin
             wr_active_master[s]  = -1;
             wr_prev_grant[s]     = -1;
             wr_just_released[s]  = 1'b0;
-            wr_slave_busy[s]     = 1'b0;  // ← 1: reset
+            wr_slave_busy[s]     = 1'b0;
+            wr_busy_master[s]    = -1;   // ← reset
         end
     end else begin
         for (int s = 0; s < NO_OF_SLAVES; s++) begin
             wr_just_released[s] = 1'b0;
 
-            // ← 2: clear busy when B-response handshake happens
-            if (wr_slave_busy[s] && cache_bvalid[s]) begin
-                automatic logic [MASTER_BITS-1:0] midx;
-                midx = cache_bid[s][EXT_ID_WIDTH-1 -: MASTER_BITS];
-                if (m_bready[midx])
-                    wr_slave_busy[s] = 1'b0;
+            // Clear busy when the owning master accepts its B-response
+            if (wr_slave_busy[s]             &&
+                wr_busy_master[s] != -1      &&
+                m_bvalid[wr_busy_master[s]]  &&
+                m_bready[wr_busy_master[s]]) begin
+                wr_slave_busy[s]  = 1'b0;
+                wr_busy_master[s] = -1;
             end
 
-            if (wr_active_master[s] == -1 && !wr_just_released[s] && !wr_slave_busy[s]) begin  // ← 3: gate
+            // Only select next master when slave is fully free
+            if (wr_active_master[s] == -1 && !wr_just_released[s] && !wr_slave_busy[s]) begin
                 int next;
                 next = select_master(s, 1);
                 if (next != -1) begin
@@ -334,12 +338,11 @@ module axi4_decoder #(
             else if (wr_active_master[s] != -1 &&
                      m_awvalid[wr_active_master[s]] &&
                      m_awready[wr_active_master[s]]) begin
-                $display("DECODER_AW_HANDSHAKE T=%0t Slave=%0d Master=%0d ID=%h",
-                         $time, s, wr_active_master[s],
-                         {wr_active_master[s][MASTER_BITS-1:0], m_awid[wr_active_master[s]]});
+                $display("DECODER_AW_HANDSHAKE T=%0t Slave=%0d Master=%0d ID=%h",$time, s, wr_active_master[s],{wr_active_master[s][MASTER_BITS-1:0], m_awid[wr_active_master[s]]});
+                wr_busy_master[s]   = wr_active_master[s]; // ← record owner before clearing
                 wr_active_master[s] = -1;
                 wr_just_released[s] = 1'b1;
-                wr_slave_busy[s]    = 1'b1;  // ← 4: set busy on AW handshake
+                wr_slave_busy[s]    = 1'b1;
             end
         end
     end
