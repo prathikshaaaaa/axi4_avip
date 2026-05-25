@@ -95,7 +95,6 @@ module axi4_decoder #(
     int wr_prev_grant    [NO_OF_SLAVES];
     int rd_active_master [NO_OF_SLAVES];
     int rd_prev_grant    [NO_OF_SLAVES];
-    int wr_busy_master   [NO_OF_SLAVES];
  
     int slave_aw_order  [NO_OF_SLAVES] [$];
     int master_aw_order [NO_OF_MASTERS][$];
@@ -107,7 +106,6 @@ module axi4_decoder #(
     slave_q_t rd_respOrder [NO_OF_MASTERS][int];
  
     logic wr_just_released [NO_OF_SLAVES];
-    logic wr_slave_busy    [NO_OF_SLAVES];
     logic rd_just_released [NO_OF_SLAVES];
  
     generate
@@ -304,49 +302,36 @@ module axi4_decoder #(
         end
     end
  
-always_ff @(posedge aclk or negedge aresetn) begin 
-    if (!aresetn) begin
-        for (int s = 0; s < NO_OF_SLAVES; s++) begin
-            wr_active_master[s]  = -1;
-            wr_prev_grant[s]     = -1;
-            wr_just_released[s]  = 1'b0;
-            wr_slave_busy[s]     = 1'b0;
-            wr_busy_master[s]    = -1;   // ← reset
-        end
-    end else begin
-        for (int s = 0; s < NO_OF_SLAVES; s++) begin
-            wr_just_released[s] = 1'b0;
-
-            // Clear busy when the owning master accepts its B-response
-            if (wr_slave_busy[s]             &&
-                wr_busy_master[s] != -1      &&
-                m_bvalid[wr_busy_master[s]]  &&
-                m_bready[wr_busy_master[s]]) begin
-                wr_slave_busy[s]  = 1'b0;
-                wr_busy_master[s] = -1;
+    always_ff @(posedge aclk or negedge aresetn) begin 
+        if (!aresetn) begin
+            for (int s = 0; s < NO_OF_SLAVES; s++) begin
+                wr_active_master[s]  = -1;
+                wr_prev_grant[s]     = -1;
+                wr_just_released[s]  = 1'b0;
             end
-
-            // Only select next master when slave is fully free
-            if (wr_active_master[s] == -1 && !wr_just_released[s] && !wr_slave_busy[s]) begin
-                int next;
-                next = select_master(s, 1);
-                if (next != -1) begin
-                    wr_active_master[s] = next;
-                    wr_prev_grant[s]    = next;
+        end else begin
+            for (int s = 0; s < NO_OF_SLAVES; s++) begin
+                wr_just_released[s] = 1'b0;
+ 
+                if (wr_active_master[s] == -1 && !wr_just_released[s]) begin
+                    int next;
+                    next = select_master(s, 1);
+                    if (next != -1) begin
+                        wr_active_master[s] = next;
+                        wr_prev_grant[s]    = next;
+                    end
                 end
-            end
-            else if (wr_active_master[s] != -1 &&
-                     m_awvalid[wr_active_master[s]] &&
-                     m_awready[wr_active_master[s]]) begin
-                $display("DECODER_AW_HANDSHAKE T=%0t Slave=%0d Master=%0d ID=%h",$time, s, wr_active_master[s],{wr_active_master[s][MASTER_BITS-1:0], m_awid[wr_active_master[s]]});
-                wr_busy_master[s]   = wr_active_master[s]; // ← record owner before clearing
-                wr_active_master[s] = -1;
-                wr_just_released[s] = 1'b1;
-                wr_slave_busy[s]    = 1'b1;
+                else if (wr_active_master[s] != -1 &&
+                         m_awvalid[wr_active_master[s]] &&
+                         m_awready[wr_active_master[s]]) begin
+                    $display("DECODER_AW_HANDSHAKE T=%0t Slave=%0d Master=%0d ID=%h",
+                             $time, s, wr_active_master[s],{wr_active_master[s][MASTER_BITS-1:0],m_awid[wr_active_master[s]]});
+                    wr_active_master[s] = -1;
+                    wr_just_released[s] = 1'b1;
+                end
             end
         end
     end
-end
  
     always_ff @(posedge aclk or negedge aresetn) begin
         if (!aresetn) begin
