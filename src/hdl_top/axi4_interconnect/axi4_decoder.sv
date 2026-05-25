@@ -100,14 +100,12 @@ module axi4_decoder #(
     int master_aw_order [NO_OF_MASTERS][$];
  
     int wr_w_slave [NO_OF_MASTERS];
-    int w_owner [NO_OF_SLAVES];  //for w_channel reservation
  
     typedef int slave_q_t[$];
     slave_q_t wr_respOrder [NO_OF_MASTERS][int];
     slave_q_t rd_respOrder [NO_OF_MASTERS][int];
  
     logic wr_just_released [NO_OF_SLAVES];
-    logic wr_slave_busy [NO_OF_SLAVES];  // add after wr_just_released declaration
     logic rd_just_released [NO_OF_SLAVES];
  
     generate
@@ -148,13 +146,13 @@ module axi4_decoder #(
                     end
                 end
  
-                if (w_owner[s] != -1) begin
-                 int m;
-                 m = w_owner[s];
-                 cache_wvalid[s] = m_wvalid[m];
-                 cache_wdata[s]  = m_wdata[m];
-                 cache_wstrb[s]  = m_wstrb[m];
-                 cache_wlast[s]  = m_wlast[m];
+                for (int m = 0; m < NO_OF_MASTERS; m++) begin
+                    if (wr_w_slave[m] != -1 && wr_w_slave[m] == s) begin
+                        cache_wvalid[s] = m_wvalid[m];
+                        cache_wdata[s]  = m_wdata[m];
+                        cache_wstrb[s]  = m_wstrb[m];
+                        cache_wlast[s]  = m_wlast[m];
+                    end
                 end
  
                 if (rd_active_master[s] != -1) begin
@@ -207,9 +205,9 @@ module axi4_decoder #(
                 m_arready[rd_active_master[s]] = cache_arready[s];
         end
  
-       for (int m = 0; m < NO_OF_MASTERS; m++) begin
-           if (wr_w_slave[m] != -1 && w_owner[wr_w_slave[m]] == m)
-                 m_wready[m] = cache_wready[wr_w_slave[m]];
+        for (int m = 0; m < NO_OF_MASTERS; m++) begin
+            if (wr_w_slave[m] != -1)
+                m_wready[m] = cache_wready[wr_w_slave[m]];
         end
  
         for (int s = 0; s < NO_OF_SLAVES; s++) begin
@@ -272,8 +270,6 @@ module axi4_decoder #(
                 master_aw_order[m].delete();
                 wr_w_slave[m] = -1;
             end
-            for (int s = 0; s < NO_OF_SLAVES; s++)   
-                slave_aw_order[s].delete();
         end else begin
             for (int m = 0; m < NO_OF_MASTERS; m++) begin
                 $display("%0t:in always block m_awvalid[%d] = %b | m_awaddr[%d] = %b", $time,m,m_awvalid[m],m, m_awaddr[m]);
@@ -283,7 +279,6 @@ module axi4_decoder #(
                     master_aw_order[m].push_back(s);
                     wr_respOrder[m][int'(m_awid[m])].push_back(s);
                     wr_w_slave[m] = master_aw_order[m][0];
-                    slave_aw_order[s].push_back(m);   //added for w_locked logic instead of master loop iteration
                 end
             end
  
@@ -296,10 +291,6 @@ module axi4_decoder #(
  
             for (int m = 0; m < NO_OF_MASTERS; m++) begin
                 if (m_wvalid[m] && m_wready[m] && m_wlast[m]) begin
-                    int s;
-                    s = wr_w_slave[m];
-                    if (s != -1 && slave_aw_order[s].size() > 0)  // ← ADD THIS
-                        void'(slave_aw_order[s].pop_front());       // pop completed owner
                     if (master_aw_order[m].size() > 0)
                         void'(master_aw_order[m].pop_front());
                     if (master_aw_order[m].size() > 0)
@@ -311,55 +302,35 @@ module axi4_decoder #(
         end
     end
  
-  always_ff @(posedge aclk or negedge aresetn) begin 
-    if (!aresetn) begin
-        for (int s = 0; s < NO_OF_SLAVES; s++) begin
-            wr_active_master[s]  = -1;
-            wr_prev_grant[s]     = -1;
-            wr_just_released[s]  = 1'b0;
-            wr_slave_busy[s]     = 1'b0;  // ← reset
-        end
-    end else begin
-        for (int s = 0; s < NO_OF_SLAVES; s++) begin
-            wr_just_released[s] = 1'b0;
-
-            if (wr_active_master[s] == -1 && !wr_just_released[s] && !wr_slave_busy[s]) begin  // ← gate on busy
-                int next;
-                next = select_master(s, 1);
-                if (next != -1) begin
-                    wr_active_master[s] = next;
-                    wr_prev_grant[s]    = next;
+    always_ff @(posedge aclk or negedge aresetn) begin 
+        if (!aresetn) begin
+            for (int s = 0; s < NO_OF_SLAVES; s++) begin
+                wr_active_master[s]  = -1;
+                wr_prev_grant[s]     = -1;
+                wr_just_released[s]  = 1'b0;
+            end
+        end else begin
+            for (int s = 0; s < NO_OF_SLAVES; s++) begin
+                wr_just_released[s] = 1'b0;
+ 
+                if (wr_active_master[s] == -1 && !wr_just_released[s]) begin
+                    int next;
+                    next = select_master(s, 1);
+                    if (next != -1) begin
+                        wr_active_master[s] = next;
+                        wr_prev_grant[s]    = next;
+                    end
+                end
+                else if (wr_active_master[s] != -1 &&
+                         m_awvalid[wr_active_master[s]] &&
+                         m_awready[wr_active_master[s]]) begin
+                    $display("DECODER_AW_HANDSHAKE T=%0t Slave=%0d Master=%0d ID=%h",
+                             $time, s, wr_active_master[s],{wr_active_master[s][MASTER_BITS-1:0],m_awid[wr_active_master[s]]});
+                    wr_active_master[s] = -1;
+                    wr_just_released[s] = 1'b1;
                 end
             end
-            else if (wr_active_master[s] != -1 && m_awvalid[wr_active_master[s]] && m_awready[wr_active_master[s]]) begin
-                wr_active_master[s] = -1;
-                wr_just_released[s] = 1'b1;
-                wr_slave_busy[s]    = 1'b1;  // ← set busy on AW handshake
-                $display("DECODER_AW_HANDSHAKE T=%0t Slave=%0d Master=%0d ID=%h",$time, s, wr_active_master[s],{wr_active_master[s][MASTER_BITS-1:0],m_awid[wr_active_master[s]]});
-            end
-            // Clear busy when B-response accepted  // ← new block
-            if (wr_slave_busy[s] && cache_bvalid[s] && cache_bready[s])
-                wr_slave_busy[s] = 1'b0;
         end
-    end
-end
-
-    always_ff @(posedge aclk or negedge aresetn) begin
-    if (!aresetn) begin
-        for (int s = 0; s < NO_OF_SLAVES; s++)
-            w_owner[s] = -1;
-    end else begin
-        for (int s = 0; s < NO_OF_SLAVES; s++) begin
-            // Assign owner to first master that has wr_w_slave pointing here
-            if (w_owner[s] == -1) begin
-               if (slave_aw_order[s].size() > 0)
-                    w_owner[s] = slave_aw_order[s][0];  // front = oldest AW
-              end
-               // Release when current owner sends wlast
-              if (w_owner[s] != -1 && m_wvalid[w_owner[s]] && m_wready[w_owner[s]] && m_wlast[w_owner[s]])
-                w_owner[s] = -1;
-           end
-       end
     end
  
     always_ff @(posedge aclk or negedge aresetn) begin
