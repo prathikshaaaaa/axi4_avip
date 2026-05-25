@@ -106,6 +106,7 @@ module axi4_decoder #(
     slave_q_t rd_respOrder [NO_OF_MASTERS][int];
  
     logic wr_just_released [NO_OF_SLAVES];
+    logic wr_slave_busy    [NO_OF_SLAVES];
     logic rd_just_released [NO_OF_SLAVES];
  
     generate
@@ -303,35 +304,46 @@ module axi4_decoder #(
     end
  
     always_ff @(posedge aclk or negedge aresetn) begin 
-        if (!aresetn) begin
-            for (int s = 0; s < NO_OF_SLAVES; s++) begin
-                wr_active_master[s]  = -1;
-                wr_prev_grant[s]     = -1;
-                wr_just_released[s]  = 1'b0;
+    if (!aresetn) begin
+        for (int s = 0; s < NO_OF_SLAVES; s++) begin
+            wr_active_master[s]  = -1;
+            wr_prev_grant[s]     = -1;
+            wr_just_released[s]  = 1'b0;
+            wr_slave_busy[s]     = 1'b0;  // ← 1: reset
+        end
+    end else begin
+        for (int s = 0; s < NO_OF_SLAVES; s++) begin
+            wr_just_released[s] = 1'b0;
+
+            // ← 2: clear busy when B-response handshake happens
+            if (wr_slave_busy[s] && cache_bvalid[s]) begin
+                automatic logic [MASTER_BITS-1:0] midx;
+                midx = cache_bid[s][EXT_ID_WIDTH-1 -: MASTER_BITS];
+                if (m_bready[midx])
+                    wr_slave_busy[s] = 1'b0;
             end
-        end else begin
-            for (int s = 0; s < NO_OF_SLAVES; s++) begin
-                wr_just_released[s] = 1'b0;
- 
-                if (wr_active_master[s] == -1 && !wr_just_released[s]) begin
-                    int next;
-                    next = select_master(s, 1);
-                    if (next != -1) begin
-                        wr_active_master[s] = next;
-                        wr_prev_grant[s]    = next;
-                    end
+
+            if (wr_active_master[s] == -1 && !wr_just_released[s] && !wr_slave_busy[s]) begin  // ← 3: gate
+                int next;
+                next = select_master(s, 1);
+                if (next != -1) begin
+                    wr_active_master[s] = next;
+                    wr_prev_grant[s]    = next;
                 end
-                else if (wr_active_master[s] != -1 &&
-                         m_awvalid[wr_active_master[s]] &&
-                         m_awready[wr_active_master[s]]) begin
-                    $display("DECODER_AW_HANDSHAKE T=%0t Slave=%0d Master=%0d ID=%h",
-                             $time, s, wr_active_master[s],{wr_active_master[s][MASTER_BITS-1:0],m_awid[wr_active_master[s]]});
-                    wr_active_master[s] = -1;
-                    wr_just_released[s] = 1'b1;
-                end
+            end
+            else if (wr_active_master[s] != -1 &&
+                     m_awvalid[wr_active_master[s]] &&
+                     m_awready[wr_active_master[s]]) begin
+                $display("DECODER_AW_HANDSHAKE T=%0t Slave=%0d Master=%0d ID=%h",
+                         $time, s, wr_active_master[s],
+                         {wr_active_master[s][MASTER_BITS-1:0], m_awid[wr_active_master[s]]});
+                wr_active_master[s] = -1;
+                wr_just_released[s] = 1'b1;
+                wr_slave_busy[s]    = 1'b1;  // ← 4: set busy on AW handshake
             end
         end
     end
+end
  
     always_ff @(posedge aclk or negedge aresetn) begin
         if (!aresetn) begin
