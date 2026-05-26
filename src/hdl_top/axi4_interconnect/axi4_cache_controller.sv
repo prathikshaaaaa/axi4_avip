@@ -966,6 +966,10 @@ end
                   mshr[i].needs_writeback <=
                     valid_array[wr_index[m]][vway] &&
                     dirty_array[wr_index[m]][vway];
+                  if(valid_array[wr_index[m]][vway] && dirty_array[wr_index[m]][vway])
+                    begin
+                      $display("Needs writeback made 1 for way=%0d",vway);
+                    end
                   for (int wb = 0; wb < WORDS_PER_LINE; wb++) begin
                     mshr[i].wdata_buf[wb] <= '0;
                     mshr[i].wstrb_buf[wb] <= '0;
