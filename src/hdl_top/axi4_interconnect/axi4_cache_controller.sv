@@ -1219,13 +1219,12 @@ end
       if (mshr[i].valid && mshr[i].done && mshr[i].is_write ) begin   
         int m;
         m = int'(mshr[i].master);
-        if (w_locked[m] && mshr[i].axi_id == w_locked_id[m]) begin
-        wr_complete[m]   = 1'b1;
+        if (w_locked[m] && mshr[i].axi_id == w_locked_id[m]) 
+          wr_complete[m]   = 1'b1;  //only set wr_complete based on w_locked
         wr_resp_valid[m] = 1'b1;
         wr_resp[m]       = mshr[i].resp_code;
         wr_resp_id[m]    = mshr[i].axi_id;
         $display("%0t inisde WRITE RESPONSE GENERATION  : if (mshr[i].valid && mshr[i].done && mshr[i].is_write) making wr_complete[m] = 1'b1;);  master = %d ",$time,m);
-    end
   end
 end
     for (int m = 0; m < NO_OF_SLAVES; m++) begin
