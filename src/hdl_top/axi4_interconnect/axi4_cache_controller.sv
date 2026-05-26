@@ -651,6 +651,7 @@ end
           wb_beat   <= '0;
           for (int i = 0; i < NUM_MSHR; i++) begin
             if (mshr[i].valid && mshr[i].needs_writeback && !mshr[i].wb_done) begin
+              $display("In WB IDLE state and made wb_active using NBA");
               wb_mshr_id <= i[$clog2(NUM_MSHR)-1:0];
               wb_state   <= WB_AW;
               wb_active  <= 1'b1;
@@ -660,12 +661,14 @@ end
         end
         WB_AW: begin
           if (s_awready[mshr[wb_mshr_id].slave]) begin
+            $display("In WB ADDRESS state and received s_awready,moving to WB_W");
             wb_state <= WB_W;
             wb_beat  <= '0;
           end
         end
         WB_W: begin
           if (s_wready[mshr[wb_mshr_id].slave]) begin
+            $display("In WB WRITE DATA state and received s_wready,moving to WB_RESP");
             if (wb_beat == WORDS_PER_LINE-1)
               wb_state <= WB_RESP;
             else
