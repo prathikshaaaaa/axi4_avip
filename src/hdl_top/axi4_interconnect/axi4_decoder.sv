@@ -106,6 +106,7 @@ module axi4_decoder #(
     slave_q_t rd_respOrder [NO_OF_MASTERS][int];
  
     logic wr_just_released [NO_OF_SLAVES];
+    logic wr_slave_busy [NO_OF_SLAVES];
     logic rd_just_released [NO_OF_SLAVES];
  
     generate
@@ -308,12 +309,13 @@ module axi4_decoder #(
                 wr_active_master[s]  = -1;
                 wr_prev_grant[s]     = -1;
                 wr_just_released[s]  = 1'b0;
+                wr_slave_busy[s] = 1'b0;
             end
         end else begin
             for (int s = 0; s < NO_OF_SLAVES; s++) begin
                 wr_just_released[s] = 1'b0;
  
-                if (wr_active_master[s] == -1 && !wr_just_released[s]) begin
+                if (wr_active_master[s] == -1 && !wr_just_released[s] && !wr_slave_busy[s]) begin
                     int next;
                     next = select_master(s, 1);
                     if (next != -1) begin
@@ -328,6 +330,7 @@ module axi4_decoder #(
                              $time, s, wr_active_master[s],{wr_active_master[s][MASTER_BITS-1:0],m_awid[wr_active_master[s]]});
                     wr_active_master[s] = -1;
                     wr_just_released[s] = 1'b1;
+                    wr_slave_busy[s]    = 1'b1;
                 end
             end
         end
@@ -372,9 +375,12 @@ module axi4_decoder #(
             for (int m = 0; m < NO_OF_MASTERS; m++) begin
                 if (m_bvalid[m] && m_bready[m]) begin
                     automatic logic [ID_WIDTH-1:0] bid = m_bid[m];
-                    if (wr_respOrder[m].exists(int'(bid)) &&
-                        wr_respOrder[m][int'(bid)].size() > 0)
+                    if (wr_respOrder[m].exists(int'(bid)) && wr_respOrder[m][int'(bid)].size() > 0) begin
+                        automatic int s;
+                        s = wr_respOrder[m][int'(bid)][0];       // ← which slave this B belongs to
                         void'(wr_respOrder[m][int'(bid)].pop_front());
+                        wr_slave_busy[s] = 1'b0;            // ← clear busy same cycle
+                    end
                 end
             end
             for (int m = 0; m < NO_OF_MASTERS; m++) begin
