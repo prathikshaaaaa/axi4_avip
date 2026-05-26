@@ -1064,6 +1064,7 @@ end
                        mshr[i].index, mshr[i].way, wb);
                   end
                   dirty_array[mshr[i].index][mshr[i].way] <= 1'b1;
+                  $display("[DIRTY_SET] time=%0t dirty_array made 1 for set=%0d way=%0d | mshr=%0d valid=%0b is_write=%0b tag=%h axi_id=%h beat=%0d resp=%0b",$time,mshr[i].index,mshr[i].way,i,mshr[i].valid,mshr[i].is_write,mshr[i].tag,mshr[i].axi_id,mshr[i].beat,mshr[i].resp_code);
                 end else begin
                   dirty_array[mshr[i].index][mshr[i].way] <= 1'b0;
                   $display("[PRE_MERGE_CHECK_ELSE] mshr=%0d wbeat_count=%0d wlast_seen=%0b", 
