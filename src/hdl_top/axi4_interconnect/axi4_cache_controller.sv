@@ -744,6 +744,10 @@ end
           mshr[i].done    <= 1'b0;
           mshr[i].ar_sent <= 1'b0;
           mshr[i].wb_done <= 1'b0;
+          mshr[i].wlast_seen  <= 1'b0;   // ← add
+          mshr[i].wbeat_count <= '0;     // ← add
+          for (int wb = 0; wb < WORDS_PER_LINE; wb++)
+          mshr[i].wdata_buf[wb] <= '0;  // ← add
         end
       end
 
