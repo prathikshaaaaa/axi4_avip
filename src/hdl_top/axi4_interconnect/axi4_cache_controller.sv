@@ -1114,11 +1114,13 @@ end
                             {OFFSET_BITS{1'b0}}};
           s_awid[sid]    = mshr[wb_mshr_id].axi_id;
           s_awlen[sid]   = 8'(WORDS_PER_LINE - 1);
+          $display("[%0t] WB_AW -> SLAVE=%0d AWADDR=%h AWID=%0d AWLEN=%0d AWSIZE=%0d AWBURST=%0d",$time,sid,s_awaddr[sid],s_awid[sid],s_awlen[sid],s_awsize[sid],s_awburst[sid]);
         end
         WB_W: begin
           s_wvalid[sid] = 1'b1;
           s_wdata[sid]  = data_array[idx][way][wb_beat];
           s_wlast[sid]  = (wb_beat == WORDS_PER_LINE-1);
+          $display("[%0t] WB_W  -> SLAVE=%0d WDATA=%h WSTRB=%h WLAST=%0b BEAT=%0d",$time,sid,s_wdata[sid],s_wstrb[sid],s_wlast[sid],wb_beat);
         end
         default: ;
       endcase
