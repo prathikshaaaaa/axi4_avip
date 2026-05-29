@@ -749,8 +749,12 @@ end
           mshr[i].wb_done <= 1'b0;
           mshr[i].wlast_seen  <= 1'b0;   // ← add
           mshr[i].wbeat_count <= '0;     // ← add
-          for (int wb = 0; wb < WORDS_PER_LINE; wb++)
-          mshr[i].wdata_buf[wb] <= '0;  // ← add
+          mshr[i].way <= '0;   // ← add this
+          mshr[i].needs_writeback <= 1'b0;  // ← add this too
+          for (int wb = 0; wb < WORDS_PER_LINE; wb++) begin
+           mshr[i].wdata_buf[wb] <= '0;  // ← add
+           mshr[i].wstrb_buf[wb] <= '0;
+          end
         end
       end
 
