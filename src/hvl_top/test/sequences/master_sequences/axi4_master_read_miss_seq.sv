@@ -54,7 +54,7 @@ class axi4_master_read_miss_seq extends axi4_master_base_seq;
       // ── Cache attributes ──────────────────────────────────────────────
       // READ_WRITE_ALLOCATE = read-allocate + write-allocate
       // Tells the cache controller to allocate on this read miss
-      req.arcache == READ_WRITE_ALLOCATE;
+      req.arcache == READ_ALLOCATE;
 
       // ── Address — supplied by virtual sequence ────────────────────────
       req.araddr == txn_addr;
