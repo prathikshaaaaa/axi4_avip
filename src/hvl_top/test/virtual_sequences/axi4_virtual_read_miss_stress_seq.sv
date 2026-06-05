@@ -111,7 +111,7 @@ class axi4_virtual_read_miss_seq extends axi4_virtual_base_seq;
                                $sformatf("m_rd_miss_seq[%0d]", m));
 
           // Address: unique tag per master, same set (index=0)
-          m_rd_miss_seq[m].txn_addr = (logic[31:0]'(local_num) << 10) | 32'h1;
+          m_rd_miss_seq[m].txn_addr = (32'(local_num) << 10) | 32'h1;
           m_rd_miss_seq[m].txn_num  = local_num;
 
           fork
