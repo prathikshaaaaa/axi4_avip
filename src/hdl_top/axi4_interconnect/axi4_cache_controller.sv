@@ -336,8 +336,9 @@ module axi_cache_controller #(
   // =========================================================================
   // WRITE DATA OWNERSHIP
   // =========================================================================
-  logic [NO_OF_SLAVES-1:0]         w_locked;      // one bit per slave port
-  logic [EXT_ID_WIDTH-1:0]         w_locked_id [NO_OF_SLAVES];  // one id per slave port
+  logic [NO_OF_SLAVES-1:0] w_locked;      // one bit per slave port
+  logic [NO_OF_SLAVES-1:0] r_locked;
+  logic [EXT_ID_WIDTH-1:0] w_locked_id [NO_OF_SLAVES];  // one id per slave port
 
   logic                        wr_data_valid_g [NO_OF_SLAVES];
   logic                        wr_data_last_g  [NO_OF_SLAVES];
