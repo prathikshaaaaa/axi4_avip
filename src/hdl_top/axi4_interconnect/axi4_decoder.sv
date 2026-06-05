@@ -204,6 +204,7 @@ module axi4_decoder #(
             end
             if (rd_active_master[s] != -1)
                 m_arready[rd_active_master[s]] = cache_arready[s];
+                $display("DECODER AW/AR ready pass-through read T=%0t rd_active_master[%0d] = %0d",$time, s, rd_active_master[s]);
         end
  
         for (int m = 0; m < NO_OF_MASTERS; m++) begin
@@ -358,6 +359,7 @@ module axi4_decoder #(
                 else if (rd_active_master[s] != -1 &&
                          m_arvalid[rd_active_master[s]] &&
                          m_arready[rd_active_master[s]]) begin
+                     $display("DECODER_AR_HANDSHAKE T=%0t Slave=%0d Master=%0d ID=%h",$time,s,rd_active_master[s],{rd_active_master[s][MASTER_BITS-1:0],m_arid[rd_active_master[s]]});
                     rd_active_master[s] = -1;
                     rd_just_released[s] = 1'b1;
                 end
