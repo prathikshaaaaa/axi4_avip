@@ -439,6 +439,7 @@ endfunction
             end
           end
           rd_cache_miss[gm] = ~rd_cache_hit[gm];
+          $display("CACHE_DEBUG [%0t] slave=%0d arvalid=%0b set_index=%0d tag=%0h -> HIT=%0b MISS=%0b WAY=%0d",$time, gm,cache_arvalid[gm],rd_index[gm], rd_tag[gm],rd_cache_hit[gm], rd_cache_miss[gm], rd_hit_way[gm]);
         end
       end
     end
@@ -478,6 +479,7 @@ endfunction
       rd_ready[m] = 1'b0;
       if (rd_cache_hit[m]) begin
         rd_ready[m] = 1'b1;
+        $display("%0t: Sending cache_arready = 1 because rd_cache_hit[%0d] = %b",$time, m, rd_cache_hit[m]);
       end else begin
         bit conflict;
         conflict = 1'b0;
@@ -488,6 +490,7 @@ endfunction
             conflict = 1'b1;
         end
         rd_ready[m] = (!mshr_full && !conflict);
+        $display("%0t: Sending cache_arready = 1 because !mshr_full && !conflict master=%0d",$time, m);
       end
     end
   end
@@ -909,6 +912,7 @@ end
                   automatic logic [$clog2(ASSOCIATIVITY)-1:0] vway;
                   vway = find_victim_way(rd_index[m],way_being_used);
                   being_allocated[i]      = 1'b1;
+                  $display("Inside CACHE READ MSHR ALLOCATION BLOCK");
                   mshr[i].valid           <= 1'b1;
                   mshr[i].is_write        <= 1'b0;
                   mshr[i].master          <= m[$clog2(NO_OF_SLAVES)-1:0];
@@ -929,6 +933,10 @@ end
                   mshr[i].needs_writeback <=
                     valid_array[rd_index[m]][vway] &&
                     dirty_array[rd_index[m]][vway];
+                  if (valid_array[rd_index[m]][vway] && dirty_array[rd_index[m]][vway])
+                    $display("Needs writeback made 1 for way=%0d (read miss)", vway);
+
+                  $display("[%0t] CACHE_READ_MSHR_ALLOC: master=%0d -> mshr_idx=%0d | addr=%0h index=%0d tag=%0h way=%0d | write=%0b | victim_dirty=%0b",$time, m, i,rd_req_addr[m], rd_index[m], rd_tag[m], vway,1'b0,valid_array[rd_index[m]][vway] && dirty_array[rd_index[m]][vway]);
                   break;
                 end
               end
@@ -1192,6 +1200,7 @@ end
           rd_cache_data[m] =
             data_array[mshr[i].index][mshr[i].way]
                       [get_word_index(mshr[i].addr)];
+        $display("%0t inside READ RESPONSE GENERATION (miss path): mshr=%0d master=%0d rdata=0x%0h resp=%0b",$time, i, m, rd_cache_data[m], rd_resp[m]);
         break;
       end
     end
@@ -1201,6 +1210,7 @@ end
       for (int i = 0; i < NUM_MSHR; i++) begin
         if (mshr[i].valid && mshr[i].done && int'(mshr[i].master) == m)
           mshr_done_for_m = 1'b1;
+          $display("[DEBUG-RGEN] time=%0t m=%0d mshr=%0d mshr_done_for_m=%b rd_cache_hit=%b arvalid=%b",$time, m, i,mshr_done_for_m, rd_cache_hit[m], cache_arvalid[m]);
       end
       if (rd_cache_hit[m] && !mshr_done_for_m) begin
         rd_data_valid[m] = 1'b1;
@@ -1209,6 +1219,8 @@ end
         rd_data_id[m]    = rd_req_id[m];
         rd_cache_data[m] =
           data_array[rd_index[m]][rd_hit_way[m]][rd_word_idx[m]];
+        $display("inside rd_cache_hit (hit path)");
+        $display("%0t inside READ RESPONSE GENERATION: hit path rd_cache_hit[%0d]=1 && !mshr_done | rdata=0x%0h",$time, m, rd_cache_data[m]);
       end
     end
   end
