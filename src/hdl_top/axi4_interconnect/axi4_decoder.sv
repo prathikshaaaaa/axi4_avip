@@ -410,11 +410,9 @@ module axi4_decoder #(
    always_ff @(posedge aclk) begin
      for (int m = 0; m < NO_OF_MASTERS; m++) begin
         if (m_rvalid[m] && m_rready[m]) begin
-            $display("[%0t] R_BEAT: master=%0d rid=0x%0h rdata=0x%0h rresp=%0b rlast=%0b",
-                     $time, m, m_rid[m], m_rdata[m], m_rresp[m], m_rlast[m]);
-            if (m_rlast[m])
-                $display("[%0t] R_COMPLETE: master=%0d rid=0x%0h — all beats done",
-                         $time, m, m_rid[m]);
+            $display("[%0t] DECODER_BEAT: master=%0d rid=0x%0h rdata=0x%0h rresp=%0b rlast=%0b",$time, m, m_rid[m], m_rdata[m], m_rresp[m], m_rlast[m]);
+        if (m_rlast[m])
+            $display("[%0t] DECODER_R_COMPLETE: master=%0d rid=0x%0h — all beats done",$time, m, m_rid[m]);
          end
       end
     end
