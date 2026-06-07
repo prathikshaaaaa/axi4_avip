@@ -427,7 +427,7 @@ endfunction
         rd_cache_hit[gm]  = 1'b0;
         rd_cache_miss[gm] = 1'b0;
         rd_hit_way[gm]    = '0;
-        if (cache_arvalid[gm]) begin
+        if (cache_arvalid[gm] || r_locked[gm]) begin    //added r_locked
           for (int w = 0; w < ASSOCIATIVITY; w++) begin
             if (valid_array[rd_index[gm]][w] &&
                 tag_array[rd_index[gm]][w] == rd_tag[gm] &&
@@ -478,7 +478,7 @@ endfunction
   always_comb begin
     for (int m = 0; m < NO_OF_SLAVES; m++) begin
       rd_ready[m] = 1'b0;
-      if (rd_cache_hit[m]) begin
+      if (rd_cache_hit[m]  && !r_locked[m]) begin
         rd_ready[m] = 1'b1;
         $display("%0t: Sending cache_arready = 1 because rd_cache_hit[%0d] = %b",$time, m, rd_cache_hit[m]);
       end else begin
@@ -490,8 +490,10 @@ endfunction
               mshr[i].tag   == rd_tag[m])
             conflict = 1'b1;
         end
-        rd_ready[m] = (!mshr_full && !conflict);
-        $display("%0t: Sending cache_arready = 1 because !mshr_full && !conflict master=%0d",$time, m);
+       if (!mshr_full && !conflict && !r_locked[m]) begin
+          rd_ready[m] = 1'b1;
+          $display("%0t: Sending cache_arready=1 !mshr_full && !conflict && !r_locked master=%0d",$time, m);
+        end
       end
     end
   end
@@ -584,6 +586,30 @@ end
     end
   end
 end
+  end
+
+  always_ff @(posedge aclk or negedge aresetn) begin  //added new BLOCK A_R
+    if (!aresetn) begin
+      for (int m = 0; m < NO_OF_SLAVES; m++)
+        r_locked[m] <= 1'b0;
+    end else begin
+      for (int m = 0; m < NO_OF_SLAVES; m++) begin
+        // Set on AR handshake — mirrors Block A set condition
+        if (!r_locked[m] && cache_arvalid[m] && cache_arready[m]) begin
+          r_locked[m] <= 1'b1;
+          $display("(Non blocking) r_locked=1 master=%0d araddr=0x%0h",
+                   m, cache_araddr[m]);
+        end
+        // Clear on R accepted — mirrors Block A: w_locked && wr_complete
+        // wr_complete = bvalid && bready
+        // rd_complete = rvalid && rready
+        if (r_locked[m] && cache_rvalid[m] && cache_rready[m]) begin
+          r_locked[m] <= 1'b0;
+          $display("(Non blocking) r_locked=0 master=%0d", m);
+        end
+ 
+      end
+    end
   end
 
   // =========================================================================
