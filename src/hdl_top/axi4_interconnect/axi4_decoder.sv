@@ -397,6 +397,7 @@ module axi4_decoder #(
                         s = rd_respOrder[m][int'(rid)][0];  // which slave this R came from
                         void'(rd_respOrder[m][int'(rid)].pop_front());
                         rd_slave_busy[s] = 1'b0;
+                        $display("Releasing slave_busy for slave=%0d at time=%0t",s,$time);
                     end
                 end
             end
