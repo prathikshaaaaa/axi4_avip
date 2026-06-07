@@ -108,6 +108,7 @@ module axi4_decoder #(
     logic wr_just_released [NO_OF_SLAVES];
     logic wr_slave_busy [NO_OF_SLAVES];
     logic rd_just_released [NO_OF_SLAVES];
+    logic rd_slave_busy [NO_OF_SLAVES];
  
     generate
         for (genvar s = 0; s < NO_OF_SLAVES; s++) begin : M2S
@@ -343,12 +344,13 @@ module axi4_decoder #(
                 rd_active_master[s]  = -1;
                 rd_prev_grant[s]     = -1;
                 rd_just_released[s]  = 1'b0;
+                rd_slave_busy[s]    = 1'b0;
             end
         end else begin
             for (int s = 0; s < NO_OF_SLAVES; s++) begin
                 rd_just_released[s] = 1'b0;
  
-                if (rd_active_master[s] == -1 && !rd_just_released[s]) begin
+                if (rd_active_master[s] == -1 && !rd_just_released[s] && !rd_slave_busy[s]) begin
                     int next;
                     next = select_master(s, 0);
                     if (next != -1) begin
@@ -362,6 +364,7 @@ module axi4_decoder #(
                      $display("DECODER_AR_HANDSHAKE T=%0t Slave=%0d Master=%0d ID=%h",$time,s,rd_active_master[s],{rd_active_master[s][MASTER_BITS-1:0],m_arid[rd_active_master[s]]});
                     rd_active_master[s] = -1;
                     rd_just_released[s] = 1'b1;
+                    rd_slave_busy[s]    = 1'b1;
                 end
             end
         end
@@ -389,8 +392,11 @@ module axi4_decoder #(
                 if (m_rvalid[m] && m_rready[m] && m_rlast[m]) begin
                     automatic logic [ID_WIDTH-1:0] rid = m_rid[m];
                     if (rd_respOrder[m].exists(int'(rid)) &&
-                        rd_respOrder[m][int'(rid)].size() > 0)
+                        rd_respOrder[m][int'(rid)].size() > 0) begin
+                        automatic int s;
+                        s = rd_respOrder[m][int'(rid)][0];  // which slave this R came from
                         void'(rd_respOrder[m][int'(rid)].pop_front());
+                        rd_slave_busy[s] = 1'b0;
                 end
             end
         end
