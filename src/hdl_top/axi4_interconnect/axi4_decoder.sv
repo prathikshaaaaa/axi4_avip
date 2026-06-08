@@ -203,9 +203,10 @@ module axi4_decoder #(
                 $display("DECODER AW/AR ready pass-through write T=%0t wr_active_master[%0d] = %0d",
                          $time, s, wr_active_master[s]);
             end
-            if (rd_active_master[s] != -1)
+            if (rd_active_master[s] != -1) begin
                 m_arready[rd_active_master[s]] = cache_arready[s];
                 $display("DECODER AW/AR ready pass-through read T=%0t rd_active_master[%0d] = %0d",$time, s, rd_active_master[s]);
+            end
         end
  
         for (int m = 0; m < NO_OF_MASTERS; m++) begin
