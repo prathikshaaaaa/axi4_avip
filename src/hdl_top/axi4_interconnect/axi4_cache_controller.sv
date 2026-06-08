@@ -231,6 +231,7 @@ module axi_cache_controller #(
     logic wb_error;
     logic wlast_seen;
     logic rlast_seen;
+    logic [7:0] arlen;
   } mshr_t;
 
   mshr_t mshr [NUM_MSHR];
@@ -274,6 +275,7 @@ module axi_cache_controller #(
   logic [INDEX_BITS-1:0]             rd_index    [NO_OF_SLAVES];
   logic [$clog2(WORDS_PER_LINE)-1:0] rd_word_idx [NO_OF_SLAVES];
   logic [$clog2(ASSOCIATIVITY)-1:0]  rd_hit_way  [NO_OF_SLAVES];
+  logic [7:0] rd_beat_count [NO_OF_SLAVES];   //for read data beat count tracking
 
   logic [TAG_BITS-1:0]               wr_tag      [NO_OF_SLAVES];
   logic [INDEX_BITS-1:0]             wr_index    [NO_OF_SLAVES];
@@ -950,6 +952,7 @@ end
                   mshr[i].slave           <= decode_slave(rd_req_addr[m]);
                   mshr[i].beat            <= '0;
                   mshr[i].axi_id          <= rd_req_id[m];
+                  mshr[i].arlen           <= cache_arlen[s];   //added for read beat count
                   mshr[i].done            <= 1'b0;
                   mshr[i].ar_sent         <= 1'b0;
                   mshr[i].wb_done         <= 1'b0;
@@ -1204,6 +1207,22 @@ end
       if (active_r_valid[s]) s_rready[s] = 1'b1;
   end
 
+  always_ff @(posedge aclk or negedge aresetn) begin
+    if (!aresetn) begin
+        for (int m = 0; m < NO_OF_SLAVES; m++)
+            rd_beat_count[m] <= '0;
+    end else begin
+        for (int m = 0; m < NO_OF_SLAVES; m++) begin
+            if (cache_rvalid[m] && cache_rready[m]) begin
+                if (cache_rlast[m])
+                    rd_beat_count[m] <= '0;        // reset after last beat
+                else
+                    rd_beat_count[m] <= rd_beat_count[m] + 1;
+            end
+        end
+    end
+end
+  
   // =========================================================================
   // READ RESPONSE GENERATION  (combinational)
   // =========================================================================
@@ -1216,21 +1235,24 @@ end
       rd_data_id[m]    = '0;
     end
     for (int i = 0; i < NUM_MSHR; i++) begin
-      if (mshr[i].valid && mshr[i].done && !mshr[i].is_write) begin
-        int m;
-        m = int'(mshr[i].master);
-        rd_data_valid[m] = 1'b1;
-        rd_data_last[m]  = 1'b1;
-        rd_data_id[m]    = mshr[i].axi_id;
-        rd_resp[m]       = mshr[i].resp_code;
-        if (mshr[i].resp_code == 2'b00)
-          rd_cache_data[m] =
-            data_array[mshr[i].index][mshr[i].way]
-                      [get_word_index(mshr[i].addr)];
-        $display("%0t inside READ RESPONSE GENERATION (miss path): mshr=%0d master=%0d rdata=0x%0h resp=%0b",$time, i, m, rd_cache_data[m], rd_resp[m]);
-        break;
-      end
-    end
+    if (mshr[i].valid && mshr[i].done && !mshr[i].is_write) begin
+    int m;
+    automatic logic [$clog2(WORDS_PER_LINE)-1:0] base_word;
+    automatic logic [$clog2(WORDS_PER_LINE)-1:0] cur_word;
+    m         = int'(mshr[i].master);
+    base_word = get_word_index(mshr[i].addr);
+    cur_word  = base_word + rd_beat_count[m];       // walk the cache line
+
+    rd_data_valid[m] = 1'b1;
+    rd_data_last[m]  = (rd_beat_count[m] == mshr[i].arlen);  // last when count hits arlen
+    rd_data_id[m]    = mshr[i].axi_id;
+    rd_resp[m]       = mshr[i].resp_code;
+    rd_cache_data[m] = data_array[mshr[i].index][mshr[i].way][cur_word];
+
+    $display("[%0t] RGEN(miss): master=%0d beat=%0d/%0d word=%0d rdata=0x%0h rlast=%0b",$time, m, rd_beat_count[m], mshr[i].arlen, cur_word, rd_cache_data[m], rd_data_last[m]);
+    break;
+  end
+end
     for (int m = 0; m < NO_OF_SLAVES; m++) begin
       bit mshr_done_for_m;
       mshr_done_for_m = 1'b0;
@@ -1240,17 +1262,21 @@ end
           $display("[DEBUG-RGEN] time=%0t m=%0d mshr=%0d mshr_done_for_m=%b rd_cache_hit=%b arvalid=%b",$time, m, i,mshr_done_for_m, rd_cache_hit[m], cache_arvalid[m]);
       end
       if (rd_cache_hit[m] && !mshr_done_for_m) begin
-        rd_data_valid[m] = 1'b1;
-        rd_data_last[m]  = 1'b1;
-        rd_resp[m]       = 2'b00;
-        rd_data_id[m]    = rd_req_id[m];
-        rd_cache_data[m] =
-          data_array[rd_index[m]][rd_hit_way[m]][rd_word_idx[m]];
-        $display("inside rd_cache_hit (hit path)");
-        $display("%0t inside READ RESPONSE GENERATION: hit path rd_cache_hit[%0d]=1 && !mshr_done | rdata=0x%0h",$time, m, rd_cache_data[m]);
-      end
-    end
+       automatic logic [$clog2(WORDS_PER_LINE)-1:0] base_word;
+       automatic logic [$clog2(WORDS_PER_LINE)-1:0] cur_word;
+       base_word = rd_word_idx[m];
+       cur_word  = base_word + rd_beat_count[m];       // walk the cache line
+
+       rd_data_valid[m] = 1'b1;
+       rd_data_last[m]  = (rd_beat_count[m] == cache_arlen[m]);  // last when count hits arlen
+       rd_resp[m]       = 2'b00;
+       rd_data_id[m]    = rd_req_id[m];
+       rd_cache_data[m] = data_array[rd_index[m]][rd_hit_way[m]][cur_word];
+
+       $display("[%0t] RGEN(hit): master=%0d beat=%0d/%0d word=%0d rdata=0x%0h rlast=%0b",$time, m, rd_beat_count[m], cache_arlen[m], cur_word, rd_cache_data[m], rd_data_last[m]);
   end
+ end
+end
 
   always_comb begin
     for (int m = 0; m < NO_OF_SLAVES; m++) begin
