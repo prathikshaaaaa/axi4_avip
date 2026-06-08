@@ -952,7 +952,7 @@ end
                   mshr[i].slave           <= decode_slave(rd_req_addr[m]);
                   mshr[i].beat            <= '0;
                   mshr[i].axi_id          <= rd_req_id[m];
-                  mshr[i].arlen           <= cache_arlen[s];   //added for read beat count
+                  mshr[i].arlen           <= cache_arlen[m];   //added for read beat count
                   mshr[i].done            <= 1'b0;
                   mshr[i].ar_sent         <= 1'b0;
                   mshr[i].wb_done         <= 1'b0;
