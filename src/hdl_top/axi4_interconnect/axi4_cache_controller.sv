@@ -1214,10 +1214,14 @@ end
     end else begin
         for (int m = 0; m < NO_OF_SLAVES; m++) begin
             if (cache_rvalid[m] && cache_rready[m]) begin
-                if (cache_rlast[m])
-                    rd_beat_count[m] <= '0;        // reset after last beat
-                else
-                    rd_beat_count[m] <= rd_beat_count[m] + 1;
+              if (cache_rlast[m]) begin
+                  rd_beat_count[m] <= '0; // reset after last beat
+                  $display("Resetting rd_beat_count to 0 on rlast");
+              end
+                else begin
+                  rd_beat_count[m] <= rd_beat_count[m] + 1;
+                  $display("READ BEAT COUNT=%0d for slave=%0d",rd_beat_count[m],m);
+                end
             end
         end
     end
