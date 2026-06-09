@@ -769,7 +769,7 @@ end
         m = int'(mshr[i].master);
         if (mshr[i].done &&
             ((mshr[i].is_write  && wr_resp_valid[m] && cache_bready[m]) ||
-             (!mshr[i].is_write && rd_data_valid[m] && cache_rready[m]))) begin
+             (!mshr[i].is_write && rd_data_valid[m] && cache_rready[m] && mshr[i].arlen==rd_beat_count[m]))) begin
           if (mshr[i].is_write) begin
             $display("[CACHE_LINE_FINAL_DATA] time=%0t mshr=%0d set=%0d way=%0d tag=0x%0h",$time, i, mshr[i].index, mshr[i].way, mshr[i].tag);
             for (int wb = 0; wb < WORDS_PER_LINE; wb++)
