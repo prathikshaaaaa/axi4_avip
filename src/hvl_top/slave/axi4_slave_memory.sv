@@ -38,7 +38,6 @@ function axi4_slave_memory::new(string name = "axi4_slave_memory");
       slave_memory[i] = 8'h0A + i[7:0];  // slave 0: 0x0A, 0x0B, 0x0C...
     else
       slave_memory[i] = 8'hB0 + i[7:0];  // slave 1: 0xB0, 0xB1, 0xB2...
- end
   end  
 endfunction : new
 
