@@ -104,6 +104,7 @@ package axi4_test_pkg;
    `include "axi4_write_miss_test.sv"
    `include "axi4_writeback_test.sv"
    `include "axi4_read_miss_test.sv"
+   `include "axi4_read_miss_with_writeback_test.sv"
   
 endpackage : axi4_test_pkg
 
