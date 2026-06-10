@@ -10,7 +10,6 @@ class axi4_master_write_miss_seq extends axi4_master_base_seq;
   endfunction
 
   task body();
-
     req = axi4_master_tx::type_id::create("req");
 
     start_item(req);
@@ -30,8 +29,7 @@ class axi4_master_write_miss_seq extends axi4_master_base_seq;
       req.awlen   == 3;              // 4 beats
       req.awcache == READ_WRITE_ALLOCATE;
       
-      req.awaddr == 32'h0000_0001;
-      // req.awaddr == 32'h8000_0001;
+      req.awaddr == 32'h0000_0C01;
 
     }) begin
       `uvm_fatal("AXI4_WRITE_MISS_SEQ", "Randomization failed")
