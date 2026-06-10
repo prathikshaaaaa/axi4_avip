@@ -4,6 +4,8 @@
 
 class axi4_master_write_miss_seq extends axi4_master_base_seq;
   `uvm_object_utils(axi4_master_write_miss_seq)
+  logic [31:0] txn_addr;
+  int          txn_num;
 
   function new(string name = "axi4_master_write_miss_seq");
     super.new(name);
@@ -29,10 +31,11 @@ class axi4_master_write_miss_seq extends axi4_master_base_seq;
       req.awlen   == 3;              // 4 beats
       req.awcache == READ_WRITE_ALLOCATE;
       
-      req.awaddr == 32'h0000_0C01;
-
+     req.awaddr  == txn_addr;   // ← driven by virtual sequence
     }) begin
-      `uvm_fatal("AXI4_WRITE_MISS_SEQ", "Randomization failed")
+      `uvm_fatal(get_type_name(),
+        $sformatf("Randomization failed: txn_num=%0d addr=0x%0h",
+                   txn_num, txn_addr))
     end
 
     // ---------------------------------------------
