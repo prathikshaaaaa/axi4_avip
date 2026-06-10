@@ -605,7 +605,7 @@ end
         // Clear on R accepted — mirrors Block A: w_locked && wr_complete
         // wr_complete = bvalid && bready
         // rd_complete = rvalid && rready
-        if (r_locked[m] && cache_rvalid[m] && cache_rready[m]) begin
+        if (r_locked[m] && cache_rvalid[m] && cache_rready[m] && cache_rlast[m]) begin
           r_locked[m] <= 1'b0;
           $display("(Non blocking) r_locked=0 master=%0d", m);
         end
