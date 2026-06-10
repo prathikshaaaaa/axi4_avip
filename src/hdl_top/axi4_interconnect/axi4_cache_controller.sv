@@ -1255,7 +1255,6 @@ end
     rd_cache_data[m] = data_array[mshr[i].index][mshr[i].way][cur_word];
 
     $display("[%0t] RGEN(miss): master=%0d beat=%0d/%0d word=%0d rdata=0x%0h rlast=%0b",$time, m, rd_beat_count[m], mshr[i].arlen, cur_word, rd_cache_data[m], rd_data_last[m]);
-    break;
   end
 end
     for (int m = 0; m < NO_OF_SLAVES; m++) begin
