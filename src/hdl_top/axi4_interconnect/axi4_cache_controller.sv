@@ -232,6 +232,7 @@ module axi_cache_controller #(
     logic wlast_seen;
     logic rlast_seen;
     logic [7:0] arlen;
+    logic ar_pending;
   } mshr_t;
 
   mshr_t mshr [NUM_MSHR];
@@ -752,6 +753,7 @@ end
         mshr[i].wbeat_count     <= '0;
         mshr[i].wlast_seen <= 1'b0;
         mshr[i].rlast_seen <= 1'b0;
+        mshr[i].ar_pending <= 1'b0;
         for (int wb = 0; wb < WORDS_PER_LINE; wb++) begin
           mshr[i].wdata_buf[wb] <= '0;
           mshr[i].wstrb_buf[wb] <= '0;
@@ -812,15 +814,24 @@ end
             (!mshr[i].needs_writeback || mshr[i].wb_done) &&
             !active_r_valid[mshr[i].slave]) begin
           mshr[i].ar_sent               <= 1'b1;
+          mshr[i].ar_pending           <= 1'b0;
           active_r_valid[mshr[i].slave] <= 1'b1;
           active_r_mshr [mshr[i].slave] <= i[$clog2(NUM_MSHR)-1:0];
          $display("[%0t] CACHE_AR_SENT: mshr=%0d slave=%0d addr=0x%0h id=%0h",$time, i, mshr[i].slave, mshr[i].addr, mshr[i].axi_id);
         end
         else if (mshr[i].valid && !mshr[i].ar_sent) begin
-          $display("[%0t] CACHE AR_BLOCKED: mshr=%0d slave=%0d | arvalid=%0b arready=%0b WB_needed=%0b WB_done=%0b active_r_valid=%0b",$time,i,mshr[i].slave,s_arvalid[mshr[i].slave],s_arready[mshr[i].slave],mshr[i].needs_writeback,mshr[i].wb_done,active_r_valid[mshr[i].slave]);
-end
-        if (!mshr[i].valid)
+          if (active_r_valid[mshr[i].slave]) begin
+             mshr[i].ar_pending <= 1'b1;
+             $display("[%0t] CACHE AR_PENDING: mshr=%0d slave=%0d | active_r_valid is HIGH, marking as pending",$time, i, mshr[i].slave);
+          end
+          else begin
+             $display("[%0t] CACHE AR_BLOCKED: mshr=%0d slave=%0d | arvalid=%0b arready=%0b WB_needed=%0b WB_done=%0b active_r_valid=%0b",$time,i,mshr[i].slave,s_arvalid[mshr[i].slave],s_arready[mshr[i].slave],mshr[i].needs_writeback,mshr[i].wb_done,active_r_valid[mshr[i].slave]);
+          end
+        end
+        if (!mshr[i].valid) begin
           mshr[i].ar_sent <= 1'b0;
+          mshr[i].ar_pending <= 1'b0;
+        end
       end
 
             // E-4: Read data fill — beat counter, error capture, done handling
@@ -886,8 +897,43 @@ end
 
         end
       end
+
+      // E-4.5: Fire pending ARs when active_r_valid clears
+      for (int s = 0; s < NO_OF_SLAVES; s++) begin
+        if (active_r_valid[s]) begin
+          int i;
+          i = int'(active_r_mshr[s]);
+          // Detect rlast handshake on this slave
+          if (mshr[i].valid && s_rvalid[s] && s_rready[s] && s_rlast[s] && 
+              s_rid[s] == mshr[i].axi_id) begin
+            // Scan for pending ARs for this slave
+            bit found_pending = 1'b0;
+            for (int j = 0; j < NUM_MSHR; j++) begin
+              if (mshr[j].valid && mshr[j].ar_pending && 
+                  mshr[j].slave == s &&
+                  !mshr[j].ar_sent &&
+                  (!mshr[j].needs_writeback || mshr[j].wb_done)) begin
+                // Fire this pending AR
+                mshr[j].ar_pending           <= 1'b0;
+                mshr[j].ar_sent              <= 1'b1;
+                active_r_valid[s]            <= 1'b1;
+                active_r_mshr[s]             <= j[$clog2(NUM_MSHR)-1:0];
+                found_pending = 1'b1;
+                $display("[%0t] CACHE_FIRE_PENDING_AR: pending_mshr=%0d slave=%0d addr=0x%0h id=%0h",
+                         $time, j, s, mshr[j].addr, mshr[j].axi_id);
+                break;
+              end
+            end
+            // Only clear active_r_valid if no pending AR was found
+            if (!found_pending) begin
+              mshr[i].done       <= 1'b1;
+              active_r_valid[s]  <= 1'b0;
+            end
+          end
+        end
+      end
       
-      // E-5: Write-miss data capture
+// E-5: Write-miss data capture
 for (int i = 0; i < NUM_MSHR; i++) begin
   if (mshr[i].valid && mshr[i].is_write && !mshr[i].wlast_seen) begin
     int m;
