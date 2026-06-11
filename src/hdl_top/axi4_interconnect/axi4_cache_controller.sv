@@ -907,7 +907,8 @@ end
           if (mshr[i].valid && s_rvalid[s] && s_rready[s] && s_rlast[s] && 
               s_rid[s] == mshr[i].axi_id) begin
             // Scan for pending ARs for this slave
-            bit found_pending = 1'b0;
+            bit found_pending;
+            found_pending = 1'b0;
             for (int j = 0; j < NUM_MSHR; j++) begin
               if (mshr[j].valid && mshr[j].ar_pending && 
                   mshr[j].slave == s &&
