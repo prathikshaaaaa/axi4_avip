@@ -429,7 +429,7 @@ endfunction
         rd_cache_hit[gm]  = 1'b0;
         rd_cache_miss[gm] = 1'b0;
         rd_hit_way[gm]    = '0;
-        if (cache_arvalid[gm]) begin    //removed r_locked
+        if (cache_arvalid[gm] || r_locked) begin    //added r_locked
           for (int w = 0; w < ASSOCIATIVITY; w++) begin
             if (valid_array[rd_index[gm]][w] &&
                 tag_array[rd_index[gm]][w] == rd_tag[gm] &&
