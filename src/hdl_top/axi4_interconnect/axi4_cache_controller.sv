@@ -233,6 +233,7 @@ module axi_cache_controller #(
     logic rlast_seen;
     logic [7:0] arlen;
     logic ar_pending;
+    logic merge_done;
   } mshr_t;
 
   mshr_t mshr [NUM_MSHR];
@@ -370,32 +371,47 @@ module axi_cache_controller #(
       if (!mshr[i].valid) mshr_full = 1'b0;
   end
 
-// Modified find_victim_way — takes way_being_used as input ref
+// Modified find_victim_way — hard_busy blocks LRU selection; soft_busy only biases it
 function automatic logic [$clog2(ASSOCIATIVITY)-1:0] find_victim_way(
   input logic [INDEX_BITS-1:0] idx,
   ref   bit                    way_being_used [NUM_SETS][ASSOCIATIVITY]
 );
   logic [7:0] max_lru;
   logic [$clog2(ASSOCIATIVITY)-1:0] victim_way;
+  bit hard_busy [ASSOCIATIVITY];   // mid-refill: must not touch
+  bit soft_busy [ASSOCIATIVITY];   // done but draining: prefer to avoid
 
-   // Mark ways already owned by in-flight MSHRs for this index
+  // Classify every way for this index
+  for (int w = 0; w < ASSOCIATIVITY; w++) begin
+    hard_busy[w] = 1'b0;
+    soft_busy[w] = 1'b0;
+  end
   for (int i = 0; i < NUM_MSHR; i++) begin
-    if (mshr[i].valid && mshr[i].index == idx)
-      way_being_used[idx][mshr[i].way] = 1'b1;  // already in use
+    if (mshr[i].valid && mshr[i].index == idx) begin
+      if (!mshr[i].done)
+        hard_busy[mshr[i].way] = 1'b1;   // refill in flight → hard block
+      else
+        soft_busy[mshr[i].way] = 1'b1;   // response draining → soft preference
+    end
   end
 
-  // First: prefer invalid ways not yet claimed this cycle
+  // Also honour previously allocated ways this cycle (the existing guard)
+  for (int w = 0; w < ASSOCIATIVITY; w++)
+    if (way_being_used[idx][w]) hard_busy[w] = 1'b1;
+
+  // Pass 1: prefer invalid ways that are not hard-busy
   for (int w = 0; w < ASSOCIATIVITY; w++) begin
-    if (!valid_array[idx][w] && !way_being_used[idx][w]) begin
+    if (!valid_array[idx][w] && !hard_busy[w]) begin
       way_being_used[idx][w] = 1'b1;
       return w[$clog2(ASSOCIATIVITY)-1:0];
     end
   end
-  // All ways valid: pick LRU way not yet claimed this cycle
+
+  // Pass 2: LRU among non-hard-busy ways (soft-busy allowed)
   max_lru    = '0;
   victim_way = '0;
   for (int w = 0; w < ASSOCIATIVITY; w++) begin
-    if (!way_being_used[idx][w]) begin
+    if (!hard_busy[w]) begin
       if (lru_counter[idx][w] >= max_lru) begin
         max_lru    = lru_counter[idx][w];
         victim_way = w[$clog2(ASSOCIATIVITY)-1:0];
@@ -754,6 +770,7 @@ end
         mshr[i].wlast_seen <= 1'b0;
         mshr[i].rlast_seen <= 1'b0;
         mshr[i].ar_pending <= 1'b0;
+        mshr[i].merge_done <= 1'b0;  //added merge completion flag
         for (int wb = 0; wb < WORDS_PER_LINE; wb++) begin
           mshr[i].wdata_buf[wb] <= '0;
           mshr[i].wstrb_buf[wb] <= '0;
@@ -785,6 +802,7 @@ end
           mshr[i].wbeat_count <= '0;     // ← add
           mshr[i].way <= '0;   // ← add this
           mshr[i].needs_writeback <= 1'b0;  // ← add this too
+          mshr[i].merge_done <= 1'b0;
           for (int wb = 0; wb < WORDS_PER_LINE; wb++) begin
            mshr[i].wdata_buf[wb] <= '0;  // ← add
            mshr[i].wstrb_buf[wb] <= '0;
@@ -885,11 +903,12 @@ end
             //  WRITE MISS COMPLETE
             else begin
               if (s_rvalid[s] && s_rready[s] && s_rlast[s] && mshr[i].wlast_seen && s_rid[s] == mshr[i].axi_id) begin
-
-                $display("[CACHE_DEBUG] WRITE DONE time=%0t | mshr=%0d", $time, i);
-
-                mshr[i].done <= 1'b1;
-                active_r_valid[s] <= 1'b0;   // clear AFTER handshake
+                active_r_valid[s] <= 1'b0;   // unchanged
+                // done intentionally omitted here for write — handled below
+              end
+              // Write MSHR only — done deferred by one cycle after merge commits
+              if (mshr[i].is_write && mshr[i].merge_done && !mshr[i].done) begin
+                mshr[i].done <= 1'b1;        // one cycle after Block F merge
               end
             end
 
@@ -1160,6 +1179,7 @@ end
                        mshr[i].index, mshr[i].way, wb);
                   end
                   dirty_array[mshr[i].index][mshr[i].way] <= 1'b1;
+                  mshr[i].merge_done <= 1'b1;  
                   $display("[DIRTY_SET] time=%0t dirty_array made 1 for set=%0d way=%0d | mshr=%0d valid=%0b is_write=%0b tag=%h axi_id=%h beat=%0d resp=%0b",$time,mshr[i].index,mshr[i].way,i,mshr[i].valid,mshr[i].is_write,mshr[i].tag,mshr[i].axi_id,mshr[i].beat,mshr[i].resp_code);
                 end else begin
                   dirty_array[mshr[i].index][mshr[i].way] <= 1'b0;
