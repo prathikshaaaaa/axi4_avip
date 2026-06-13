@@ -109,6 +109,7 @@ package axi4_virtual_seq_pkg;
   `include "axi4_virtual_writeback_seq.sv"
   `include "axi4_virtual_read_miss_stress_seq.sv"
   `include "axi4_virtual_read_miss_seq_with_writeback.sv"
+  `include "axi4_virtual_write_miss_then_read_eviction_seq.sv"
 endpackage : axi4_virtual_seq_pkg
 
 `endif
