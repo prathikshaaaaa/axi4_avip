@@ -233,7 +233,6 @@ module axi_cache_controller #(
     logic rlast_seen;
     logic [7:0] arlen;
     logic ar_pending;
-    logic merge_done;
   } mshr_t;
 
   mshr_t mshr [NUM_MSHR];
@@ -371,47 +370,32 @@ module axi_cache_controller #(
       if (!mshr[i].valid) mshr_full = 1'b0;
   end
 
-// Modified find_victim_way — hard_busy blocks LRU selection; soft_busy only biases it
+// Modified find_victim_way — takes way_being_used as input ref
 function automatic logic [$clog2(ASSOCIATIVITY)-1:0] find_victim_way(
   input logic [INDEX_BITS-1:0] idx,
   ref   bit                    way_being_used [NUM_SETS][ASSOCIATIVITY]
 );
   logic [7:0] max_lru;
   logic [$clog2(ASSOCIATIVITY)-1:0] victim_way;
-  bit hard_busy [ASSOCIATIVITY];   // mid-refill: must not touch
-  bit soft_busy [ASSOCIATIVITY];   // done but draining: prefer to avoid
 
-  // Classify every way for this index
-  for (int w = 0; w < ASSOCIATIVITY; w++) begin
-    hard_busy[w] = 1'b0;
-    soft_busy[w] = 1'b0;
-  end
+   // Mark ways already owned by in-flight MSHRs for this index
   for (int i = 0; i < NUM_MSHR; i++) begin
-    if (mshr[i].valid && mshr[i].index == idx) begin
-      if (!mshr[i].done)
-        hard_busy[mshr[i].way] = 1'b1;   // refill in flight → hard block
-      else
-        soft_busy[mshr[i].way] = 1'b1;   // response draining → soft preference
-    end
+    if (mshr[i].valid && mshr[i].index == idx)
+      way_being_used[idx][mshr[i].way] = 1'b1;  // already in use
   end
 
-  // Also honour previously allocated ways this cycle (the existing guard)
-  for (int w = 0; w < ASSOCIATIVITY; w++)
-    if (way_being_used[idx][w]) hard_busy[w] = 1'b1;
-
-  // Pass 1: prefer invalid ways that are not hard-busy
+  // First: prefer invalid ways not yet claimed this cycle
   for (int w = 0; w < ASSOCIATIVITY; w++) begin
-    if (!valid_array[idx][w] && !hard_busy[w]) begin
+    if (!valid_array[idx][w] && !way_being_used[idx][w]) begin
       way_being_used[idx][w] = 1'b1;
       return w[$clog2(ASSOCIATIVITY)-1:0];
     end
   end
-
-  // Pass 2: LRU among non-hard-busy ways (soft-busy allowed)
+  // All ways valid: pick LRU way not yet claimed this cycle
   max_lru    = '0;
   victim_way = '0;
   for (int w = 0; w < ASSOCIATIVITY; w++) begin
-    if (!hard_busy[w]) begin
+    if (!way_being_used[idx][w]) begin
       if (lru_counter[idx][w] >= max_lru) begin
         max_lru    = lru_counter[idx][w];
         victim_way = w[$clog2(ASSOCIATIVITY)-1:0];
@@ -770,7 +754,6 @@ end
         mshr[i].wlast_seen <= 1'b0;
         mshr[i].rlast_seen <= 1'b0;
         mshr[i].ar_pending <= 1'b0;
-        mshr[i].merge_done <= 1'b0;  //added merge completion flag
         for (int wb = 0; wb < WORDS_PER_LINE; wb++) begin
           mshr[i].wdata_buf[wb] <= '0;
           mshr[i].wstrb_buf[wb] <= '0;
@@ -802,7 +785,6 @@ end
           mshr[i].wbeat_count <= '0;     // ← add
           mshr[i].way <= '0;   // ← add this
           mshr[i].needs_writeback <= 1'b0;  // ← add this too
-          mshr[i].merge_done <= 1'b0;
           for (int wb = 0; wb < WORDS_PER_LINE; wb++) begin
            mshr[i].wdata_buf[wb] <= '0;  // ← add
            mshr[i].wstrb_buf[wb] <= '0;
@@ -852,7 +834,7 @@ end
         end
       end
 
-// E-4: Read data fill — beat counter, error capture, done handling
+            // E-4: Read data fill — beat counter, error capture, done handling
       for (int s = 0; s < NO_OF_SLAVES; s++) begin
         if (active_r_valid[s]) begin
           int i;
@@ -862,7 +844,7 @@ end
           // -------------------------
           // PART 1: Capture read data
           // -------------------------
-          if (mshr[i].valid && s_rvalid[s] &&  s_rid[s] == mshr[i].axi_id) begin
+          if (mshr[i].valid && s_rvalid[s] &&  s_rid[s] == mshr[i].axi_id) begin //s_rid[s] == mshr[i].axi_id
             $display("[%0t] CACHE R_BEAT: slave=%0d mshr=%0d | beat=%0d rlast=%0b",$time,s,i,mshr[i].beat,s_rlast[s]);
             mshr[i].beat <= mshr[i].beat + 1'b1;
 
@@ -870,37 +852,44 @@ end
               mshr[i].resp_code <= s_rresp[s];
 
             if (s_rlast[s]) begin
-              mshr[i].rlast_seen <= 1'b1;
+              mshr[i].rlast_seen <= 1'b1; // optional (can keep or remove)
               $display("[REFILL_COMPLETE] time=%0t mshr=%0d set=%0d way=%0d — printing existing data_array BEFORE merge:",$time, i, mshr[i].index, mshr[i].way);
               for (int wb = 0; wb < WORDS_PER_LINE; wb++)
                 $display("  word[%0d] = 0x%0h", wb, data_array[mshr[i].index][mshr[i].way][wb]);
-            end
+             end
           end
+          
           else begin
             $display("CACHE [%0t] R_BEAT_SKIP: slave=%0d mshr=%0d | valid=%0b rvalid=%0b rid=%h exp_id=%h match=%0b", $time,s,i,mshr[i].valid,s_rvalid[s], s_rid[s],mshr[i].axi_id,(s_rid[s] == mshr[i].axi_id));
           end
 
           // -------------------------
-          // PART 2: DONE logic
+          // PART 2: DONE logic (FIXED)
           // -------------------------
           if (mshr[i].valid) begin
 
             // READ MISS COMPLETE
             if (!mshr[i].is_write) begin
               if (s_rvalid[s] && s_rready[s] && s_rlast[s] && s_rid[s] == mshr[i].axi_id) begin
-                $display("[DEBUG] READ DONE time=%0t | mshr=%0d | rvalid=%0b | rready=%0b | rlast=%0b | rid=%0d | axi_id=%0d",$time, i,s_rvalid[s],s_rready[s],s_rlast[s],s_rid[s],mshr[i].axi_id);
-                mshr[i].done      <= 1'b1;
-                active_r_valid[s] <= 1'b0;
-              end
-              else begin
-                $display("[DEBUG] READ NOT DONE time=%0t | mshr=%0d | rvalid=%0b | rready=%0b | rlast=%0b | rid=%0d | axi_id=%0d | id_match=%0b",$time, i,s_rvalid[s], s_rready[s],s_rlast[s],s_rid[s],mshr[i].axi_id,(s_rid[s] == mshr[i].axi_id));
-              end
-            end
+                 $display("[DEBUG] READ DONE time=%0t | mshr=%0d | rvalid=%0b | rready=%0b | rlast=%0b | rid=%0d | axi_id=%0d",$time, i,s_rvalid[s],s_rready[s],s_rlast[s],s_rid[s],mshr[i].axi_id);
 
-            // WRITE MISS — only clear active_r here; done deferred to merge_done check below
+               mshr[i].done <= 1'b1;
+               active_r_valid[s] <= 1'b0;
+
+           end
+           else begin
+              $display("[DEBUG] READ NOT DONE time=%0t | mshr=%0d | rvalid=%0b | rready=%0b | rlast=%0b | rid=%0d | axi_id=%0d | id_match=%0b",$time, i,s_rvalid[s], s_rready[s],s_rlast[s],s_rid[s],mshr[i].axi_id,(s_rid[s] == mshr[i].axi_id));
+         end
+      end
+
+            //  WRITE MISS COMPLETE
             else begin
               if (s_rvalid[s] && s_rready[s] && s_rlast[s] && mshr[i].wlast_seen && s_rid[s] == mshr[i].axi_id) begin
-                active_r_valid[s] <= 1'b0;   // clear active_r; done set after merge commits
+
+                $display("[CACHE_DEBUG] WRITE DONE time=%0t | mshr=%0d", $time, i);
+
+                mshr[i].done <= 1'b1;
+                active_r_valid[s] <= 1'b0;   // clear AFTER handshake
               end
             end
 
@@ -914,15 +903,18 @@ end
         if (active_r_valid[s]) begin
           int i;
           i = int'(active_r_mshr[s]);
-          if (mshr[i].valid && s_rvalid[s] && s_rready[s] && s_rlast[s] &&
+          // Detect rlast handshake on this slave
+          if (mshr[i].valid && s_rvalid[s] && s_rready[s] && s_rlast[s] && 
               s_rid[s] == mshr[i].axi_id) begin
+            // Scan for pending ARs for this slave
             bit found_pending;
             found_pending = 1'b0;
             for (int j = 0; j < NUM_MSHR; j++) begin
-              if (mshr[j].valid && mshr[j].ar_pending &&
+              if (mshr[j].valid && mshr[j].ar_pending && 
                   mshr[j].slave == s &&
                   !mshr[j].ar_sent &&
                   (!mshr[j].needs_writeback || mshr[j].wb_done)) begin
+                // Fire this pending AR
                 mshr[j].ar_pending           <= 1'b0;
                 mshr[j].ar_sent              <= 1'b1;
                 active_r_valid[s]            <= 1'b1;
@@ -933,19 +925,12 @@ end
                 break;
               end
             end
+            // Only clear active_r_valid if no pending AR was found
             if (!found_pending) begin
-              mshr[i].done      <= 1'b1;
-              active_r_valid[s] <= 1'b0;
+              mshr[i].done       <= 1'b1;
+              active_r_valid[s]  <= 1'b0;
             end
           end
-        end
-      end
-
-      // E-4.6: Write MSHR done — deferred one cycle after Block F merge commits
-      for (int i = 0; i < NUM_MSHR; i++) begin
-        if (mshr[i].valid && mshr[i].is_write && mshr[i].merge_done && !mshr[i].done) begin
-          mshr[i].done <= 1'b1;
-          $display("[%0t] WRITE_MSHR_DONE: mshr=%0d merge_done deferred done set",$time, i);
         end
       end
       
@@ -1175,7 +1160,6 @@ end
                        mshr[i].index, mshr[i].way, wb);
                   end
                   dirty_array[mshr[i].index][mshr[i].way] <= 1'b1;
-                  mshr[i].merge_done <= 1'b1;  
                   $display("[DIRTY_SET] time=%0t dirty_array made 1 for set=%0d way=%0d | mshr=%0d valid=%0b is_write=%0b tag=%h axi_id=%h beat=%0d resp=%0b",$time,mshr[i].index,mshr[i].way,i,mshr[i].valid,mshr[i].is_write,mshr[i].tag,mshr[i].axi_id,mshr[i].beat,mshr[i].resp_code);
                 end else begin
                   dirty_array[mshr[i].index][mshr[i].way] <= 1'b0;
