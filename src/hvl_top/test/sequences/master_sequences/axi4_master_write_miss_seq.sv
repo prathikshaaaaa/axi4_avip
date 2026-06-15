@@ -42,9 +42,8 @@ class axi4_master_write_miss_seq extends axi4_master_base_seq;
     // DATA (4 BEATS)
     // ---------------------------------------------
 
-    foreach (req.wdata[i]) begin
-      req.wdata[i] = 32'hA000_0000 + i;
-    end
+    foreach (req.wdata[i])
+      req.wdata[i] = 32'hA000_0000 + (32'(txn_num) << 16) + 32'(i);
 
     // ---------------------------------------------
     // WSTRB
