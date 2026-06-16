@@ -9,6 +9,7 @@ class axi4_master_write_miss_seq extends axi4_master_base_seq;
 
   function new(string name = "axi4_master_write_miss_seq");
     super.new(name);
+    txn_addr=32'h0000_0001;
   endfunction
 
   task body();
