@@ -21,7 +21,7 @@ class axi4_scoreboard extends uvm_scoreboard;
   localparam int L3_OFFSET_BITS = $clog2(L3_CACHE_LINE_SIZE_BYTES);
   localparam int L3_INDEX_BITS  = $clog2(L3_NUM_CACHE_SETS);
   localparam int L3_TAG_BITS    = ADDRESS_WIDTH - L3_INDEX_BITS - L3_OFFSET_BITS;
-  localparam int MAX_MSHR = 2;
+  localparam int MAX_MSHR = 4;
   
   localparam int WORDS_PER_LINE = L3_CACHE_LINE_SIZE_BYTES / (DATA_WIDTH/8);
   localparam int AXI_DATA_BYTES = DATA_WIDTH / 8;
