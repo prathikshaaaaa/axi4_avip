@@ -1008,13 +1008,12 @@ function int axi4_scoreboard::scb_allocate_mshr(
   slave     = get_slave_index(addr);
   line_base = get_line_base_addr(addr);
 
+   `uvm_info("MSHR_ALLOC_ENTRY",$sformatf("ENTER scb_allocate_mshr: addr=0x%0h master=%0d txn_id=0x%0h is_write=%0b -> slave=%0d index=%0d way=%0d active_r_valid[slave]=%0b",addr, master, txn_id, is_write, slave, index, way,(slave != -1) ? active_r_valid[slave] : 1'bx),UVM_LOW)
+  
   if(slave == -1) begin
     `uvm_error("MSHR_ALLOC", $sformatf("No slave mapped for addr=0x%0h", addr))
     return -1;
   end
-
-  if(active_r_valid[slave])
-    return -1;
 
   for(int i = 0; i < MAX_MSHR; i++) begin
     if(!scb_mshr[i].valid) begin
