@@ -969,7 +969,6 @@ function int axi4_scoreboard::scb_find_existing_mshr(
 
    for(int i=0;i<MAX_MSHR;i++) begin
       if(scb_mshr[i].valid &&
-         !scb_mshr[i].done &&
          scb_mshr[i].line_addr == line_base)
          return i;
    end
