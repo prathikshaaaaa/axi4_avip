@@ -2158,8 +2158,8 @@ foreach(axi4_master_write_response_analysis_fifo[i]) begin
       //=================================================================
       begin : FIND_SLAVE
         for(int s = 0; s < NO_OF_SLAVES; s++) begin
-          if(pending_write_txns[s].exists(m_write_resp_tx.bid)) begin
-            if(pending_write_txns[s][m_write_resp_tx.bid].size() > 0) begin
+          if(pending_write_txns[s][m_idx].exists(m_write_resp_tx.bid)) begin
+            if(pending_write_txns[s][m_idx][m_write_resp_tx.bid].size() > 0) begin
               s_idx = s;
               break;
             end
