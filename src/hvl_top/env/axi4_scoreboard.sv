@@ -1205,7 +1205,7 @@ function void axi4_scoreboard::scb_release_mshr(
   
   $display("[SCB_LINE_FINAL] time=%0t mshr=%0d set=%0d way=%0d tag=0x%0h state=%0s",$time, i, set, way,scb_mshr[i].tag,(scb_mshr[i].wbeat_count > 0) ? "DIRTY" : "CLEAN");
   for(int wb = 0; wb < WORDS_PER_LINE; wb++)
-  $display("  [SCB_LINE_FINAL_DATA] word[%0d] = 0x%0h",wb, l3_cache[set][way].data[wb*AXI_DATA_BYTES +: AXI_DATA_BYTES]);
+    $display("  [SCB_LINE_FINAL_DATA] word[%0d] = %p",wb, l3_cache[set][way].data[wb*AXI_DATA_BYTES +: AXI_DATA_BYTES]);
 
    // UPDATE LRU ON SUCCESSFUL COMPLETION
    if(scb_mshr[i].resp_code == 2'b00) begin
@@ -2750,7 +2750,7 @@ end
 
         $display("[SCB_REFILL_COMPLETE] time=%0t mshr=%0d slave=%0d set=%0d way=%0d line=0x%0h beats=%0d is_write=%0b wlast_seen=%0b",$time, mshr_id, s_idx,scb_mshr[mshr_id].index,scb_mshr[mshr_id].way,scb_mshr[mshr_id].line_addr,scb_mshr[mshr_id].beat_count,scb_mshr[mshr_id].is_write,scb_mshr[mshr_id].wlast_seen);
         for(int wb = 0; wb < WORDS_PER_LINE; wb++)
-         $display("  [SCB_REFILL_DATA] word[%0d] = 0x%0h",wb, l3_cache[scb_mshr[mshr_id].index][scb_mshr[mshr_id].way].data[wb*AXI_DATA_BYTES +: AXI_DATA_BYTES]);
+          $display("  [SCB_REFILL_DATA] word[%0d] = %p",wb, l3_cache[scb_mshr[mshr_id].index][scb_mshr[mshr_id].way].data[wb*AXI_DATA_BYTES +: AXI_DATA_BYTES]);
 
         // Fill scoreboard cache from referenceData only on success
         // MSHR is NOT released here — master R data path owns release
