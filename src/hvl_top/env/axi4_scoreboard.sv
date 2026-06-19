@@ -1426,6 +1426,7 @@ function void axi4_scoreboard::l3_handle_write_data(
         if(b < WORDS_PER_LINE) begin
           scb_mshr[i].wdata_buf[b] = m_tx.wdata[beat];
           scb_mshr[i].wstrb_buf[b] = m_tx.wstrb[beat];
+          $display("[SCB_WBUF_COLLECT] time=%0t mshr=%0d master=%0d widx=%0d wdata=0x%0h wstrb=0x%0h wbeat_count=%0d wlast=%0b",$time, i, master_id,scb_mshr[i].wbeat_count - 1,m_tx.wdata[0], m_tx.wstrb[0],scb_mshr[i].wbeat_count,m_tx.wlast);
           b++;
         end
       end
@@ -1439,8 +1440,7 @@ function void axi4_scoreboard::l3_handle_write_data(
            $display("[SCB_WRITE_DONE] time=%0t mshr=%0d master=%0d — both rlast_seen and wlast_seen true, done=1 set",$time, i, master_id);
         end
       end
-
-     $display("[SCB_WBUF_COLLECT] time=%0t mshr=%0d master=%0d widx=%0d wdata=0x%0h wstrb=0x%0h wbeat_count=%0d wlast=%0b",$time, i, master_id,scb_mshr[i].wbeat_count - 1,m_tx.wdata[0], m_tx.wstrb[0],scb_mshr[i].wbeat_count,m_tx.wlast);   
+      
       return;
     end
   end
