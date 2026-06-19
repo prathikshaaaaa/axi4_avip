@@ -1409,7 +1409,7 @@ function void axi4_scoreboard::l3_handle_write_data(
   input int master_id,
   input axi4_master_tx m_tx
 );
-
+   $display("SCB_AWID=%0d",m_tx.awid);
   //--------------------------------------------
   // 1. WRITE MISS → BUFFER IN MSHR
   //--------------------------------------------
