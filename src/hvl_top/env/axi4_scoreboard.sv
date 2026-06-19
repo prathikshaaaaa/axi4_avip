@@ -1057,11 +1057,7 @@ function int axi4_scoreboard::scb_allocate_mshr(
 
       l3_set_line_state(index, way, L3_FILLING);
 
-      `uvm_info("L3_MSHR_ALLOC",
-        $sformatf("MSHR[%0d] M[%0d] Addr=0x%0h Idx=%0d Way=%0d IsWrite=%0b NeedsWB=%0b",
-                  i, master, addr, index, way,
-                  is_write, scb_mshr[i].needs_writeback),
-        UVM_MEDIUM)
+      $display("[SCB_MSHR_ALLOC] time=%0t mshr=%0d master=%0d addr=0x%0h index=%0d tag=0x%0h way=%0d is_write=%0b needs_wb=%0b slave=%0d", $time, i, master, addr, index, tag, way, is_write,scb_mshr[i].needs_writeback, slave);
 
       return i;
     end
@@ -1193,11 +1189,12 @@ function void axi4_scoreboard::scb_release_mshr(
        line_word = base + b;
       if(line_word >= WORDS_PER_LINE)
          break;
-
+      $display("[SCB_MERGE_BEAT] time=%0t mshr=%0d set=%0d way=%0d word=%0d wdata=0x%0h wstrb=0x%0h pre_merge=0x%0h",$time, i, set, way, line_word,scb_mshr[i].wdata_buf[b],scb_mshr[i].wstrb_buf[b],l3_cache[set][way].data[line_word]);
       apply_write_merge(
          l3_cache[set][way].data[line_word],
          scb_mshr[i].wdata_buf[b],
          scb_mshr[i].wstrb_buf[b]);
+     $display("[SCB_MERGE_BEAT_RESULT] word[%0d] = 0x%0h (after merge)",line_word, l3_cache[set][way].data[line_word]);
    end
 
    // Update line state
@@ -1205,6 +1202,10 @@ function void axi4_scoreboard::scb_release_mshr(
       l3_set_line_state(set, way, L3_DIRTY);
    else
       l3_set_line_state(set, way, L3_CLEAN);
+  
+  $display("[SCB_LINE_FINAL] time=%0t mshr=%0d set=%0d way=%0d tag=0x%0h state=%0s",$time, i, set, way,scb_mshr[i].tag,(scb_mshr[i].wbeat_count > 0) ? "DIRTY" : "CLEAN");
+  for(int wb = 0; wb < WORDS_PER_LINE; wb++)
+  $display("  [SCB_LINE_FINAL_DATA] word[%0d] = 0x%0h",wb, l3_cache[set][way].data[wb*AXI_DATA_BYTES +: AXI_DATA_BYTES]);
 
    // UPDATE LRU ON SUCCESSFUL COMPLETION
    if(scb_mshr[i].resp_code == 2'b00) begin
@@ -1218,7 +1219,9 @@ function void axi4_scoreboard::scb_release_mshr(
       active_r_mshr[s]  = -1;
    end
 
-   scb_mshr[i] = '{default:0};
+   $display("[SCB_MSHR_CLEAR] time=%0t mshr=%0d master=%0d slave=%0d set=%0d way=%0d line=0x%0h is_write=%0b wbeat_count=%0d resp=0x%0h",$time, i,scb_mshr[i].master,scb_mshr[i].slave,scb_mshr[i].index,scb_mshr[i].way,scb_mshr[i].line_addr,scb_mshr[i].is_write,scb_mshr[i].wbeat_count,scb_mshr[i].resp_code);
+     
+    scb_mshr[i] = '{default:0};
 
 endfunction : scb_release_mshr
 
@@ -1431,14 +1434,13 @@ function void axi4_scoreboard::l3_handle_write_data(
       if(m_tx.wlast) begin
         scb_mshr[i].wlast_seen = 1;
         // Set done only now that both sides are complete
-         if(scb_mshr[i].rlast_seen)
+        if(scb_mshr[i].rlast_seen) begin
            scb_mshr[i].done = 1;
+           $display("[SCB_WRITE_DONE] time=%0t mshr=%0d master=%0d — both rlast_seen and wlast_seen true, done=1 set",$time, i, master_id);
+        end
       end
 
-      `uvm_info("L3_WDATA_MISS",
-        $sformatf("Buffered WDATA in MSHR[%0d]", i),
-        UVM_HIGH)
-
+     $display("[SCB_WBUF_COLLECT] time=%0t mshr=%0d master=%0d widx=%0d wdata=0x%0h wstrb=0x%0h wbeat_count=%0d wlast=%0b",$time, i, master_id,scb_mshr[i].wbeat_count - 1,m_tx.wdata[0], m_tx.wstrb[0],scb_mshr[i].wbeat_count,m_tx.wlast);   
       return;
     end
   end
@@ -2718,6 +2720,7 @@ end
       end
 
       scb_mshr[mshr_id].beat_count++;
+      $display("[SCB_REFILL_BEAT] time=%0t mshr=%0d slave=%0d beat=%0d rdata=0x%0h rlast=%0b",$time, mshr_id, s_idx,scb_mshr[mshr_id].beat_count,s_read_data_tx.rdata[0],s_read_data_tx.rlast);
 
       if(s_read_data_tx.rlast) begin
 
@@ -2744,6 +2747,10 @@ end
        // For write miss: just record that rlast was seen; done stays 0
         else
           scb_mshr[mshr_id].rlast_seen = 1;   // new field needed
+
+        $display("[SCB_REFILL_COMPLETE] time=%0t mshr=%0d slave=%0d set=%0d way=%0d line=0x%0h beats=%0d is_write=%0b wlast_seen=%0b",$time, mshr_id, s_idx,scb_mshr[mshr_id].index,scb_mshr[mshr_id].way,scb_mshr[mshr_id].line_addr,scb_mshr[mshr_id].beat_count,scb_mshr[mshr_id].is_write,scb_mshr[mshr_id].wlast_seen);
+        for(int wb = 0; wb < WORDS_PER_LINE; wb++)
+         $display("  [SCB_REFILL_DATA] word[%0d] = 0x%0h",wb, l3_cache[scb_mshr[mshr_id].index][scb_mshr[mshr_id].way].data[wb*AXI_DATA_BYTES +: AXI_DATA_BYTES]);
 
         // Fill scoreboard cache from referenceData only on success
         // MSHR is NOT released here — master R data path owns release
