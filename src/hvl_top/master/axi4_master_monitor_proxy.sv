@@ -178,14 +178,13 @@ task axi4_master_monitor_proxy::axi4_write_data();
     
     axi4_master_cfg_converter::from_class(axi4_master_agent_cfg_h, struct_cfg);
     axi4_master_mon_bfm_h.axi4_write_data_sampling(struct_write_packet,struct_cfg);
-   axi4_master_seq_item_converter::to_write_class(struct_write_packet,req_wr);
+    // axi4_master_seq_item_converter::to_write_class(struct_write_packet,req_wr);
     //Getting the write address packet
-    /*axi4_master_write_address_fifo_h.get(local_write_addr_packet);
-    `uvm_info(get_type_name(),$sformatf("ADDR_Packet received from fifo is \n %s",local_write_addr_packet.sprint()),UVM_HIGH)   
-    
+     axi4_master_write_address_fifo_h.get(local_write_addr_packet);
+      `uvm_info(get_type_name(),$sformatf("ADDR_Packet received from fifo is \n %s",local_write_addr_packet.sprint()),UVM_HIGH)   
     //Combining write address and write data packets
     axi4_master_seq_item_converter::to_write_addr_data_class(local_write_addr_packet,struct_write_packet,req_wr);
-*/
+    
     axi4_master_write_data_fifo_h.write(req_wr);
 
     // Clone and publish the cloned item to the subscribers
