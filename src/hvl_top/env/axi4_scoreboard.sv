@@ -119,7 +119,9 @@ typedef struct {
    // ---------------- Write Data Buffer 
   logic [DATA_WIDTH-1:0] wdata_buf[WORDS_PER_LINE];
   logic [STROBE_WIDTH-1:0] wstrb_buf[WORDS_PER_LINE];
-   int wbeat_count;
+  int wbeat_count;
+  bit wlast_seen;
+  bit rlast_seen;
 
    axi_cache_policy_s policy;
 
@@ -1045,6 +1047,8 @@ function int axi4_scoreboard::scb_allocate_mshr(
       scb_mshr[i].tag         = tag;
       scb_mshr[i].beat_count  = 0;
       scb_mshr[i].wbeat_count = 0;
+      scb_mshr[i].wlast_seen  = 0;
+      scb_mshr[i].rlast_seen  = 0;
       scb_mshr[i].resp_code   = 2'b00;
       scb_mshr[i].wb_error    = 0;
 
@@ -1424,6 +1428,12 @@ function void axi4_scoreboard::l3_handle_write_data(
       end
 
       scb_mshr[i].wbeat_count = b;
+      if(m_tx.wlast) begin
+        scb_mshr[i].wlast_seen = 1;
+        // Set done only now that both sides are complete
+         if(scb_mshr[i].rlast_seen)
+           scb_mshr[i].done = 1;
+      end
 
       `uvm_info("L3_WDATA_MISS",
         $sformatf("Buffered WDATA in MSHR[%0d]", i),
@@ -2726,8 +2736,14 @@ end
         way            = scb_mshr[mshr_id].way;
         snap_resp_code = scb_mshr[mshr_id].resp_code;
 
-        // Mark refill complete — MSHR stays alive until master R confirms
-        scb_mshr[mshr_id].done = 1;
+        // For read miss: done=1 on rlast, MSHR released on master rlast
+        // For write miss: done is set only after BOTH rlast AND wlast_seen
+        // Do NOT set done here for write miss — let the BRESP path own it
+        if(!scb_mshr[mshr_id].is_write)
+          scb_mshr[mshr_id].done = 1;
+       // For write miss: just record that rlast was seen; done stays 0
+        else
+          scb_mshr[mshr_id].rlast_seen = 1;   // new field needed
 
         // Fill scoreboard cache from referenceData only on success
         // MSHR is NOT released here — master R data path owns release
