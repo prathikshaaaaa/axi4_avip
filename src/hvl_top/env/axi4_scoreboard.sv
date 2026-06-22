@@ -168,7 +168,7 @@ typedef struct {
     bit [ADDRESS_WIDTH-1:0] line_addr;
   } pending_read_transaction_t;
 
-  pending_write_transaction_t pending_write_txns[int][int][int]][$];  //changed 3rd dimension here
+  pending_write_transaction_t pending_write_txns[int][int][int][$];  //changed 3rd dimension here
   pending_read_transaction_t pending_read_txns[int][bit[ID_WIDTH-1:0]][$];
 
   //=============================================================================
