@@ -1954,7 +1954,7 @@ foreach(axi4_master_write_data_analysis_fifo[i]) begin
 
       s_idx    = master_aw_queue[m_idx][0][0]; // slave index
       awid_int = master_aw_queue[m_idx][0][1]; // local awid
-      awid     = bit'(awid_int);
+      awid = awid_int[ID_WIDTH-1:0];  // preserve full ID width
 
       if(pending_write_txns[s_idx][m_idx][awid].size() == 0) begin
         `uvm_error("MSTR_WR_DATA_NO_PENDING",$sformatf("M[%0d] S[%0d] AWID=0x%0h aw_queue points to empty pending_write_txns entry",m_idx, s_idx, awid))
