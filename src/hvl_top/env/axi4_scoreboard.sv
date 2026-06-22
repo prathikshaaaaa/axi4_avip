@@ -6,7 +6,7 @@ class axi4_scoreboard extends uvm_scoreboard;
 
   axi4_master_tx axi4_master_tx_h;
   axi4_slave_tx axi4_slave_tx_h;
-  bit[61:0]master_aw_queue[int][$];
+  bit[63:0]master_aw_queue[int][$];     //extended s_idx+awid (32+32)
   int wb_beat_tracker[int];
    //=============================================================================
   // L3 CACHE CONFIGURATION (SHARED CACHE)
@@ -168,7 +168,7 @@ typedef struct {
     bit [ADDRESS_WIDTH-1:0] line_addr;
   } pending_read_transaction_t;
 
-  pending_write_transaction_t pending_write_txns[int][int][bit[ID_WIDTH-1:0]][$];
+  pending_write_transaction_t pending_write_txns[int][int][int]][$];  //changed 3rd dimension here
   pending_read_transaction_t pending_read_txns[int][bit[ID_WIDTH-1:0]][$];
 
   //=============================================================================
@@ -1414,6 +1414,7 @@ function void axi4_scoreboard::l3_handle_write_data(
   // 1. WRITE MISS → BUFFER IN MSHR
   //--------------------------------------------
   for(int i = 0; i < MAX_MSHR; i++) begin
+    $display("[SCB_WD_MATCH_CHECK] mshr=%0d valid=%0b is_write=%0b master=%0d==%0d txn_id=0x%0h==0x%0h done=%0b",i, scb_mshr[i].valid, scb_mshr[i].is_write,scb_mshr[i].master, master_id,scb_mshr[i].txn_id, int'(m_tx.awid),scb_mshr[i].done);
     if(scb_mshr[i].valid &&
        scb_mshr[i].is_write &&
        scb_mshr[i].master == master_id &&
@@ -1825,7 +1826,7 @@ foreach(axi4_master_write_address_analysis_fifo[i]) begin
       pending_tx.write_data_complete = 0;
       pending_tx.beats_received      = 0;
 
-      pending_write_txns[s_idx][m_idx][m_write_addr_tx.awid].push_back(pending_tx);
+      pending_write_txns[s_idx][m_idx][int'(m_write_addr_tx.awid)].push_back(pending_tx);
 
       //=========================================================
       // 6. PUSH TO PER-MASTER ORDERED AW QUEUE
@@ -1833,7 +1834,7 @@ foreach(axi4_master_write_address_analysis_fifo[i]) begin
       //    WDATA path pops front to find the current transaction
       //    without iterating all slaves/IDs.
       //=========================================================
-      master_aw_queue[m_idx].push_back({s_idx, int'(m_write_addr_tx.awid)});
+      master_aw_queue[m_idx].push_back({32'(s_idx), 32'(int'(m_write_addr_tx.awid))});
 
       `uvm_info("WR_PENDING", $sformatf("M[%0d]->S[%0d] AWID=0x%0h pushed pending depth=%0d aw_queue depth=%0d", m_idx, s_idx, m_write_addr_tx.awid, pending_write_txns[s_idx][m_idx][m_write_addr_tx.awid].size(), master_aw_queue[m_idx].size()), UVM_HIGH)
     end // forever
@@ -1952,16 +1953,16 @@ foreach(axi4_master_write_data_analysis_fifo[i]) begin
         continue;
       end
 
-      s_idx    = master_aw_queue[m_idx][0][0]; // slave index
-      awid_int = master_aw_queue[m_idx][0][1]; // local awid
+      s_idx    = int'(master_aw_queue[m_idx][0][63:32]); // slave index
+      awid_int = master_aw_queue[m_idx][0][31:0]; // local awid
       awid = awid_int[ID_WIDTH-1:0];  // preserve full ID width
 
-      if(pending_write_txns[s_idx][m_idx][awid].size() == 0) begin
+      if(pending_write_txns[s_idx][m_idx][awid_int].size() == 0) begin
         `uvm_error("MSTR_WR_DATA_NO_PENDING",$sformatf("M[%0d] S[%0d] AWID=0x%0h aw_queue points to empty pending_write_txns entry",m_idx, s_idx, awid))
         continue;
       end
 
-      pending_tx = pending_write_txns[s_idx][m_idx][awid][0];
+      pending_tx = pending_write_txns[s_idx][m_idx][awid_int][0];
 
       //=================================================================
       // 3. COUNT BEATS
@@ -2002,7 +2003,7 @@ foreach(axi4_master_write_data_analysis_fifo[i]) begin
       end
 
       // Write updated struct back to queue
-      pending_write_txns[s_idx][m_idx][awid][0] = pending_tx;
+      pending_write_txns[s_idx][m_idx][awid_int][0] = pending_tx;
 
     end // forever
   join_none
@@ -2170,7 +2171,7 @@ foreach(axi4_master_write_response_analysis_fifo[i]) begin
       //=================================================================
       begin : FIND_SLAVE
         for(int s = 0; s < NO_OF_SLAVES; s++) begin
-          if(pending_write_txns[s][m_idx].exists(m_write_resp_tx.bid)) begin
+          if(pending_write_txns[s][m_idx].exists(int'(m_write_resp_tx.bid))) begin
             if(pending_write_txns[s][m_idx][m_write_resp_tx.bid].size() > 0) begin
               s_idx = s;
               break;
@@ -2193,7 +2194,7 @@ foreach(axi4_master_write_response_analysis_fifo[i]) begin
       //=================================================================
       // 2. Pop the pending transaction
       //=================================================================
-      pending_tx = pending_write_txns[s_idx][m_idx][m_write_resp_tx.bid].pop_front();
+      pending_tx = pending_write_txns[s_idx][m_idx][int'(m_write_resp_tx.bid)].pop_front();
 
 
       if(!pending_tx.write_data_complete) begin
