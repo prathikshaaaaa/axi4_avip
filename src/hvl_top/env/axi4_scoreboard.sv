@@ -2746,13 +2746,18 @@ end
         if(!scb_mshr[mshr_id].is_write)
           scb_mshr[mshr_id].done = 1;
        // For write miss: just record that rlast was seen; done stays 0
-        else
+        else begin
           scb_mshr[mshr_id].rlast_seen = 1;   // new field needed
-
-        active_r_valid[s_idx] = 0;
-        active_r_mshr[s_idx]  = -1;
+          active_r_valid[s_idx] = 0;
+          active_r_mshr[s_idx]  = -1;
+          if(scb_mshr[mshr_id].wlast_seen) begin
+           scb_mshr[mshr_id].done = 1;
+           $display("[SCB_WRITE_DONE] time=%0t mshr=%0d — rlast arrived after wlast, done=1 set", $time, mshr_id);
+          end
+        end
 
         $display("[SCB_REFILL_COMPLETE] time=%0t mshr=%0d slave=%0d set=%0d way=%0d line=0x%0h beats=%0d is_write=%0b wlast_seen=%0b",$time, mshr_id, s_idx,scb_mshr[mshr_id].index,scb_mshr[mshr_id].way,scb_mshr[mshr_id].line_addr,scb_mshr[mshr_id].beat_count,scb_mshr[mshr_id].is_write,scb_mshr[mshr_id].wlast_seen);
+        
         for(int wb = 0; wb < WORDS_PER_LINE; wb++)
           $display("  [SCB_REFILL_DATA] word[%0d] = %p",wb, l3_cache[scb_mshr[mshr_id].index][scb_mshr[mshr_id].way].data[wb*AXI_DATA_BYTES +: AXI_DATA_BYTES]);
 
