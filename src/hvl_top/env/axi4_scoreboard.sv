@@ -1188,23 +1188,22 @@ function void axi4_scoreboard::scb_release_mshr(
   if(scb_mshr[i].wbeat_count > 0) begin
    $display("[SCB_WRITE_MERGE_START] time=%0t mshr=%0d master=%0d set=%0d way=%0d line=0x%0h wbeat_count=%0d — merging wbuf into refilled line",$time, i, scb_mshr[i].master, set, way,scb_mshr[i].line_addr, scb_mshr[i].wbeat_count);
 
-  // Dump the refilled line BEFORE any write merging
-  for(int wb = 0; wb < WORDS_PER_LINE; wb++)
-    $display("  [SCB_PRE_MERGE_LINE]  word[%0d] = %p",wb, l3_cache[set][way].data[wb*AXI_DATA_BYTES +: AXI_DATA_BYTES]);
-   end
-
    // Apply buffered writes after refill
    for(int b = 0; b < scb_mshr[i].wbeat_count; b++) begin
       int line_word;
        line_word = base + b;
       if(line_word >= WORDS_PER_LINE)
          break;
-      $display("[SCB_MERGE_BEAT] time=%0t mshr=%0d set=%0d way=%0d word=%0d wdata=0x%0h wstrb=0x%0h pre_merge=0x%0h",$time, i, set, way, line_word,scb_mshr[i].wdata_buf[b],scb_mshr[i].wstrb_buf[b],l3_cache[set][way].data[line_word]);
       apply_write_merge(
          l3_cache[set][way].data[line_word],
          scb_mshr[i].wdata_buf[b],
          scb_mshr[i].wstrb_buf[b]);
-     $display("[SCB_MERGE_BEAT_RESULT] word[%0d] = 0x%0h (after merge)",line_word, l3_cache[set][way].data[line_word]);
+     $display("[SCB_MERGE] time=%0t mshr=%0d set=%0d way=%0d word[%0d]=0x%0h",
+         $time, i, set, way, line_word,
+         {l3_cache[set][way].data[line_word*AXI_DATA_BYTES+3],
+          l3_cache[set][way].data[line_word*AXI_DATA_BYTES+2],
+          l3_cache[set][way].data[line_word*AXI_DATA_BYTES+1],
+          l3_cache[set][way].data[line_word*AXI_DATA_BYTES+0]});
    end
 
    // Update line state
@@ -1214,8 +1213,6 @@ function void axi4_scoreboard::scb_release_mshr(
       l3_set_line_state(set, way, L3_CLEAN);
   
   $display("[SCB_LINE_FINAL] time=%0t mshr=%0d set=%0d way=%0d tag=0x%0h state=%0s",$time, i, set, way,scb_mshr[i].tag,(scb_mshr[i].wbeat_count > 0) ? "DIRTY" : "CLEAN");
-  for(int wb = 0; wb < WORDS_PER_LINE; wb++)
-    $display("  [SCB_LINE_FINAL_DATA] word[%0d] = %p",wb, l3_cache[set][way].data[wb*AXI_DATA_BYTES +: AXI_DATA_BYTES]);
 
    // UPDATE LRU ON SUCCESSFUL COMPLETION
    if(scb_mshr[i].resp_code == 2'b00) begin
