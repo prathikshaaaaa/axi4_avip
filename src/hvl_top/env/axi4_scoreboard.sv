@@ -1190,7 +1190,7 @@ function void axi4_scoreboard::scb_release_mshr(
 
   // Dump the refilled line BEFORE any write merging
   for(int wb = 0; wb < WORDS_PER_LINE; wb++)
-    $display("  [SCB_PRE_MERGE_LINE]  word[%0d] = 0x%0h",wb, l3_cache[set][way].data[wb*AXI_DATA_BYTES +: AXI_DATA_BYTES]);
+    $display("  [SCB_PRE_MERGE_LINE]  word[%0d] = %p",wb, l3_cache[set][way].data[wb*AXI_DATA_BYTES +: AXI_DATA_BYTES]);
    end
 
    // Apply buffered writes after refill
