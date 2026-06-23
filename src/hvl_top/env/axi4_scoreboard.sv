@@ -1063,7 +1063,7 @@ function int axi4_scoreboard::scb_allocate_mshr(
     end
   end
 
-  `uvm_warning("MSHR_FULL", $sformatf("All MSHRs busy for addr=0x%0h", addr))
+  `uvm_warning("SCB_MSHR_FULL", $sformatf("All MSHRs busy for addr=0x%0h", addr))
   return -1;
 
 endfunction : scb_allocate_mshr
@@ -1094,14 +1094,15 @@ function void axi4_scoreboard::scb_update_mshr_beat(
 
    scb_mshr[i].beat_count++;
 
-   if(rlast)
+  if(rlast) begin
       scb_mshr[i].done = 1;
       
-      `uvm_info("MSHR_REFILL_DONE",
-        $sformatf("MSHR[%0d] refill complete: Beats=%0d Index=%0d Way=%0d",
+    `uvm_info("SCB_MSHR_REFILL_DONE",
+              $sformatf("SCB_MSHR[%0d] refill complete: Beats=%0d Index=%0d Way=%0d",
                   i, scb_mshr[i].beat_count, scb_mshr[i].index, scb_mshr[i].way),
         UVM_HIGH)
-
+  end
+  
 endfunction : scb_update_mshr_beat
 
 //=============================================================================
@@ -1129,8 +1130,8 @@ function void axi4_scoreboard::scb_update_mshr_write_data(
         scb_mshr[i].wstrb_buf[b] = strb;
         scb_mshr[i].wbeat_count++;
       end else begin
-        `uvm_warning("MSHR_WDATA_OVERFLOW",
-          $sformatf("MSHR[%0d] wbeat_count=%0d >= WORDS_PER_LINE=%0d",
+        `uvm_warning("SB_MSHR_WDATA_OVERFLOW",
+                     $sformatf("SCB_MSHR[%0d] wbeat_count=%0d >= WORDS_PER_LINE=%0d",
                     i, b, WORDS_PER_LINE))
       end
 
@@ -1149,7 +1150,7 @@ function void apply_write_merge(
   input  logic [STROBE_WIDTH-1:0] wstrb);
 
   if(STROBE_WIDTH*8 != DATA_WIDTH)
-   `uvm_error("MERGE","WSTRB width mismatch")
+    `uvm_error("SCB_MERGE","WSTRB width mismatch")
 
     for(int b = 0; b < STROBE_WIDTH; b++) begin
       if(wstrb[b]) begin
@@ -1182,6 +1183,15 @@ function void axi4_scoreboard::scb_release_mshr(
     set  = scb_mshr[i].index;  
     way  = scb_mshr[i].way;
     base = scb_mshr[i].start_word;
+
+    // Apply buffered writes after refill
+  if(scb_mshr[i].wbeat_count > 0) begin
+   $display("[SCB_WRITE_MERGE_START] time=%0t mshr=%0d master=%0d set=%0d way=%0d line=0x%0h wbeat_count=%0d — merging wbuf into refilled line",$time, i, scb_mshr[i].master, set, way,scb_mshr[i].line_addr, scb_mshr[i].wbeat_count);
+
+  // Dump the refilled line BEFORE any write merging
+  for(int wb = 0; wb < WORDS_PER_LINE; wb++)
+    $display("  [SCB_PRE_MERGE_LINE]  word[%0d] = 0x%0h",wb, l3_cache[set][way].data[wb*AXI_DATA_BYTES +: AXI_DATA_BYTES]);
+   end
 
    // Apply buffered writes after refill
    for(int b = 0; b < scb_mshr[i].wbeat_count; b++) begin
