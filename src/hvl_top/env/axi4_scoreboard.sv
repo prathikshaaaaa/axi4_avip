@@ -1158,7 +1158,7 @@ function void apply_write_merge(
   if(STROBE_WIDTH*8 != DATA_WIDTH)
     `uvm_error("SCB_MERGE","WSTRB width mismatch")
  
-  base_byte = line_word * AXI_DATA_BYTES;
+  base_byte = line_word * (DATA_WIDTH/8);
  
   for(int b = 0; b < STROBE_WIDTH; b++) begin
     if(wstrb[b]) begin
