@@ -777,6 +777,10 @@ function bit axi4_scoreboard::l3_cache_lookup(
 
       hit_way = w;
       state   = l3_cache[index][w].state;
+      $display("[LOOKUP_HIT] time=%0t addr=0x%0h index=%0d tag=0x%0h way=%0d way_tag=0x%0h way_state=%0s",
+                 $time, addr, index, tag, w, 
+                 l3_cache[index][w].tag,
+                 l3_cache[index][w].state.name());
       return 1;
     end
   end
