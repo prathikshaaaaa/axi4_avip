@@ -1202,8 +1202,9 @@ function void axi4_scoreboard::scb_release_mshr(
        line_word = base + b;
       if(line_word >= WORDS_PER_LINE)
          break;
-      apply_write_merge(
-         l3_cache[set][way].data[line_word],
+        apply_write_merge(
+         l3_cache[set][way].data,
+         line_word,
          scb_mshr[i].wdata_buf[b],
          scb_mshr[i].wstrb_buf[b]);
      $display("[SCB_MERGE] time=%0t mshr=%0d set=%0d way=%0d word[%0d]=0x%0h",
