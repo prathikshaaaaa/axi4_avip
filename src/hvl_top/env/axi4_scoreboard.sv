@@ -1373,7 +1373,7 @@ function void axi4_scoreboard::l3_handle_write_request(
   $display("[WR_REQ_ENTRY] time=%0t master=%0d addr=0x%0h slave=%0d", $time, master_id, m_tx.awaddr, slave_idx);
 
   policy = axi_decode_cache_policy(m_tx.awcache, 0);
-
+  $display("[WR_POLICY] time=%0t master=%0d addr=0x%0h device=%0b cacheable=%0b write_allocate=%0b",$time, master_id, m_tx.awaddr,policy.device, policy.cacheable, policy.write_allocate);
   // bypass
   if(policy.device || !policy.cacheable)
     return;
