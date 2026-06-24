@@ -412,7 +412,13 @@ typedef struct {
   );
   
   // Reference model and utility functions
-    extern virtual function int get_slave_index(logic[ADDRESS_WIDTH-1:0] addr);
+  extern virtual function int get_slave_index(logic[ADDRESS_WIDTH-1:0] addr);
+  extern function void apply_write_merge(
+    input int                      line_word,
+    input logic [DATA_WIDTH-1:0]   wdata,
+    input logic [STROBE_WIDTH-1:0] wstrb,
+    input int                      set,
+    input int                      way);
   extern virtual function void ref_model_write(axi4_master_tx m_tx, int slave_idx, int master_idx);
   extern virtual function void ref_model_read(axi4_master_tx m_tx, int slave_idx);
   
@@ -1202,11 +1208,7 @@ function void axi4_scoreboard::scb_release_mshr(
        line_word = base + b;
       if(line_word >= WORDS_PER_LINE)
          break;
-        apply_write_merge(
-         l3_cache[set][way].data,
-         line_word,
-         scb_mshr[i].wdata_buf[b],
-         scb_mshr[i].wstrb_buf[b]);
+        apply_write_merge(line_word, scb_mshr[i].wdata_buf[b],scb_mshr[i].wstrb_buf[b], set, way);
      $display("[SCB_MERGE] time=%0t mshr=%0d set=%0d way=%0d word[%0d]=0x%0h",
          $time, i, set, way, line_word,
          {l3_cache[set][way].data[line_word*AXI_DATA_BYTES+3],
@@ -3126,6 +3128,19 @@ task axi4_scoreboard::axi4_write_data_comparison(
 
 endtask : axi4_write_data_comparison
 
+function void axi4_scoreboard::apply_write_merge(
+    input  int                       line_word,
+    input  logic [DATA_WIDTH-1:0]    wdata,
+    input  logic [STROBE_WIDTH-1:0]  wstrb,
+    input  int                       set,
+    input  int                       way);
+  int base_byte;
+  base_byte = line_word * AXI_DATA_BYTES;  // localparam accessible here
+  for(int b = 0; b < STROBE_WIDTH; b++) begin
+    if(wstrb[b])
+      l3_cache[set][way].data[base_byte + b] = wdata[b*8 +: 8];
+  end
+endfunction
 
 task axi4_scoreboard::axi4_write_response_comparison(
   input axi4_master_tx exp_tx,
