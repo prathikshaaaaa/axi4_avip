@@ -1433,7 +1433,6 @@ function void axi4_scoreboard::l3_handle_write_data(
   // 1. WRITE MISS → BUFFER IN MSHR
   //--------------------------------------------
   for(int i = 0; i < MAX_MSHR; i++) begin
-    $display("[SCB_WD_MATCH_CHECK] mshr=%0d valid=%0b is_write=%0b master=%0d==%0d txn_id=0x%0h==0x%0h done=%0b",i, scb_mshr[i].valid, scb_mshr[i].is_write,scb_mshr[i].master, master_id,scb_mshr[i].txn_id, int'(m_tx.awid),scb_mshr[i].done);
     if(scb_mshr[i].valid &&
        scb_mshr[i].is_write &&
        scb_mshr[i].master == master_id &&
@@ -2777,9 +2776,6 @@ end
         end
 
         $display("[SCB_REFILL_COMPLETE] time=%0t mshr=%0d slave=%0d set=%0d way=%0d line=0x%0h beats=%0d is_write=%0b wlast_seen=%0b",$time, mshr_id, s_idx,scb_mshr[mshr_id].index,scb_mshr[mshr_id].way,scb_mshr[mshr_id].line_addr,scb_mshr[mshr_id].beat_count,scb_mshr[mshr_id].is_write,scb_mshr[mshr_id].wlast_seen);
-        
-        for(int wb = 0; wb < WORDS_PER_LINE; wb++)
-          $display("  [SCB_REFILL_DATA] word[%0d] = %p",wb, l3_cache[scb_mshr[mshr_id].index][scb_mshr[mshr_id].way].data[wb*AXI_DATA_BYTES +: AXI_DATA_BYTES]);
 
         // Fill scoreboard cache from referenceData only on success
         // MSHR is NOT released here — master R data path owns release
