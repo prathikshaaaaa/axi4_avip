@@ -1147,7 +1147,7 @@ endfunction : scb_update_mshr_write_data
 // Merges wdata/wstrb into the cache-line byte array at word index line_word.
 // Operates directly on the unpacked byte array to avoid packed/unpacked mismatch.
 //=============================================================================
-function void apply_write_merge(
+function automatic void apply_write_merge(
   ref    byte                      line_bytes[],
   input  int                       line_word,
   input  logic [DATA_WIDTH-1:0]    wdata,
