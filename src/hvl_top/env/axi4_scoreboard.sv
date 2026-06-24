@@ -1358,6 +1358,7 @@ function void axi4_scoreboard::l3_handle_write_request(
   input axi4_master_tx m_tx,
   input int slave_idx
 );
+  $display("[WR_REQ_ENTRY] time=%0t master=%0d addr=0x%0h slave=%0d", $time, master_id, m_tx.awaddr, slave_idx);
 
   axi_cache_policy_s policy;
   int hit_way;
@@ -1400,7 +1401,7 @@ function void axi4_scoreboard::l3_handle_write_request(
   //--------------------------------------------
   else begin
     int mshr_id;
-
+    $display("[WR_MISS_PATH] time=%0t master=%0d addr=0x%0h calling scb_allocate_mshr",$time, master_id, m_tx.awaddr);
     mshr_id = scb_allocate_mshr(
       m_tx.awaddr,
       master_id,
