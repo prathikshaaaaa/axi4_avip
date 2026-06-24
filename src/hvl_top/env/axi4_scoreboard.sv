@@ -1358,8 +1358,6 @@ function void axi4_scoreboard::l3_handle_write_request(
   input axi4_master_tx m_tx,
   input int slave_idx
 );
-  $display("[WR_REQ_ENTRY] time=%0t master=%0d addr=0x%0h slave=%0d", $time, master_id, m_tx.awaddr, slave_idx);
-
   axi_cache_policy_s policy;
   int hit_way;
   l3_state_e state;
@@ -1367,6 +1365,8 @@ function void axi4_scoreboard::l3_handle_write_request(
   bit [L3_TAG_BITS-1:0]   tag;
   bit [L3_INDEX_BITS-1:0] index;
   bit [L3_OFFSET_BITS-1:0] offset;
+
+  $display("[WR_REQ_ENTRY] time=%0t master=%0d addr=0x%0h slave=%0d", $time, master_id, m_tx.awaddr, slave_idx);
 
   policy = axi_decode_cache_policy(m_tx.awcache, 0);
 
