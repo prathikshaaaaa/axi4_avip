@@ -972,18 +972,22 @@ endfunction : get_line_base_addr
 function int axi4_scoreboard::scb_find_existing_mshr(
     input bit [ADDRESS_WIDTH-1:0] addr);
 
-   logic [ADDRESS_WIDTH-1:0] line_base;
-   line_base = get_line_base_addr(addr);
+    bit [L3_TAG_BITS-1:0]    tag;
+    bit [L3_INDEX_BITS-1:0]  index;
+    bit [L3_OFFSET_BITS-1:0] offset;
 
-   for(int i=0;i<MAX_MSHR;i++) begin
-      if(scb_mshr[i].valid &&
-         scb_mshr[i].line_addr == line_base)
-         return i;
-   end
+    l3_cache_decode_address(addr, tag, index, offset);
 
-   return -1;
-endfunction: scb_find_existing_mshr
+    for(int i = 0; i < MAX_MSHR; i++) begin
+        if(scb_mshr[i].valid      &&
+           scb_mshr[i].index == index &&
+           scb_mshr[i].tag   == tag)
+            return i;
+    end
 
+    return -1;
+endfunction
+   
 //=============================================================================
 // Function: scb_allocate_mshr
 //=============================================================================
@@ -2451,7 +2455,7 @@ foreach(axi4_master_read_address_analysis_fifo[i]) begin
       pending_tx.expected_l3_hit   = expected_l3_hit;
       pending_tx.addr_request_time = $time;
       pending_tx.prediction_made   = 1;
-      pending_tx.line_addr         = get_line_base_addr(m_read_addr_tx.araddr);
+      pending_tx.line_addr = m_read_addr_tx.araddr;
 
       if(expected_l3_hit) begin
         pending_tx.address_granted = 1;
@@ -2529,15 +2533,21 @@ end
      `uvm_error("AR_SLAVE_BUSY", $sformatf("S[%0d] received new AR but active_r_valid already set - DUT issued two ARs on same slave channel", s_idx))
       end else begin
 
-        for(int m = 0; m < MAX_MSHR; m++) begin
-          if(scb_mshr[m].valid                                          &&
-             !scb_mshr[m].done                                         &&
-             !scb_mshr[m].ar_sent                                      &&
-             scb_mshr[m].slave   == s_idx                              &&
-             scb_mshr[m].wb_done                                       &&
-             scb_mshr[m].line_addr == get_line_base_addr(
-                                        s_read_addr_tx.araddr)) begin
+        bit [L3_TAG_BITS-1:0]    ar_tag;
+        bit [L3_INDEX_BITS-1:0]  ar_index;
+        bit [L3_OFFSET_BITS-1:0] ar_offset;
 
+        l3_cache_decode_address(s_read_addr_tx.araddr, ar_tag, ar_index, ar_offset);
+
+        for(int m = 0; m < MAX_MSHR; m++) begin
+         if(scb_mshr[m].valid        &&
+            !scb_mshr[m].done        &&
+            !scb_mshr[m].ar_sent     &&
+            scb_mshr[m].slave == s_idx &&
+            scb_mshr[m].wb_done      &&
+            scb_mshr[m].index == ar_index &&
+            scb_mshr[m].tag   == ar_tag) begin
+           
             // Bind this slave R-channel to this MSHR
             active_r_valid[s_idx]   = 1;
             active_r_mshr[s_idx]    = m;
