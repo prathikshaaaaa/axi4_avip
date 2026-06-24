@@ -1032,7 +1032,7 @@ function int axi4_scoreboard::scb_allocate_mshr(
 
   for(int i = 0; i < MAX_MSHR; i++) begin
     if(!scb_mshr[i].valid) begin
-
+      $display("[MSHR_SLOT_FOUND] time=%0t master=%0d addr=0x%0h slot=%0d",$time, master, addr, i);
       scb_mshr[i].needs_writeback =
         (l3_cache[index][way].valid &&
          l3_cache[index][way].state == L3_DIRTY);
