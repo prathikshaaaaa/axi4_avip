@@ -1828,7 +1828,6 @@ foreach(axi4_master_write_address_analysis_fifo[i]) begin
       //    MISS → MSHR allocated (is_write=1)
       //    ref_model_write must NOT call this again.
       //=========================================================
-      #0;
       l3_handle_write_request(m_idx, m_write_addr_tx, s_idx);
 
       //=========================================================
