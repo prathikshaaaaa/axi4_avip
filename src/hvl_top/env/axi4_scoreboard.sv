@@ -1051,6 +1051,8 @@ function int axi4_scoreboard::scb_allocate_mshr(
       scb_mshr[i].rlast_seen  = 0;
       scb_mshr[i].resp_code   = 2'b00;
       scb_mshr[i].wb_error    = 0;
+      scb_mshr[i].start_word = int'(offset) / AXI_DATA_BYTES;
+      scb_mshr[i].start_byte = int'(offset);
 
       if(scb_mshr[i].needs_writeback)
         l3_writeback_to_memory(index, way);
@@ -1142,23 +1144,29 @@ endfunction : scb_update_mshr_write_data
 
 //=============================================================================
 // Function: apply_write_merge
-// Word-local merge with byte offset support
+// Merges wdata/wstrb into the cache-line byte array at word index line_word.
+// Operates directly on the unpacked byte array to avoid packed/unpacked mismatch.
 //=============================================================================
 function void apply_write_merge(
-  inout logic [DATA_WIDTH-1:0] line_data,
-      input  logic [DATA_WIDTH-1:0] wdata,
-  input  logic [STROBE_WIDTH-1:0] wstrb);
-
+  ref    byte                      line_bytes[],
+  input  int                       line_word,
+  input  logic [DATA_WIDTH-1:0]    wdata,
+  input  logic [STROBE_WIDTH-1:0]  wstrb);
+ 
+  int base_byte;
+ 
   if(STROBE_WIDTH*8 != DATA_WIDTH)
     `uvm_error("SCB_MERGE","WSTRB width mismatch")
-
-    for(int b = 0; b < STROBE_WIDTH; b++) begin
-      if(wstrb[b]) begin
-         line_data[b*8 +: 8] = wdata[b*8 +: 8];
-      end
-   end
-
-endfunction:apply_write_merge
+ 
+  base_byte = line_word * AXI_DATA_BYTES;
+ 
+  for(int b = 0; b < STROBE_WIDTH; b++) begin
+    if(wstrb[b]) begin
+      line_bytes[base_byte + b] = wdata[b*8 +: 8];
+    end
+  end
+ 
+endfunction : apply_write_merge
 
     
 //=============================================================================
