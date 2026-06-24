@@ -1205,6 +1205,7 @@ function void axi4_scoreboard::scb_release_mshr(
           l3_cache[set][way].data[line_word*AXI_DATA_BYTES+1],
           l3_cache[set][way].data[line_word*AXI_DATA_BYTES+0]});
    end
+  end
 
    // Update line state
    if(scb_mshr[i].wbeat_count > 0)
