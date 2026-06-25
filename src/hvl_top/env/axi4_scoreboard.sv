@@ -1072,6 +1072,7 @@ function int axi4_scoreboard::scb_allocate_mshr(
         l3_writeback_to_memory(index, way);
 
       l3_set_line_state(index, way, L3_FILLING);
+      l3_cache[index][way].tag = tag; 
 
       $display("[SCB_MSHR_ALLOC] time=%0t mshr=%0d master=%0d addr=0x%0h index=%0d tag=0x%0h way=%0d is_write=%0b needs_wb=%0b slave=%0d", $time, i, master, addr, index, tag, way, is_write,scb_mshr[i].needs_writeback, slave);
 
