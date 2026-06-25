@@ -1898,7 +1898,7 @@ foreach(axi4_slave_write_address_analysis_fifo[i]) begin
       //    valid && needs_writeback && !wb_done && slave==s_idx
       //=================================================================
       for(int wb_idx = 0; wb_idx < MAX_MSHR; wb_idx++) begin
-
+        $display("[WB_MSHR_CHECK] time=%0t S[%0d] MSHR[%0d] valid=%0b needs_wb=%0b wb_done=%0b slave=%0d",$time, s_idx, wb_idx,scb_mshr[wb_idx].valid,scb_mshr[wb_idx].needs_writeback,scb_mshr[wb_idx].wb_done,scb_mshr[wb_idx].slave);
         if(scb_mshr[wb_idx].valid          &&
            scb_mshr[wb_idx].needs_writeback &&
            !scb_mshr[wb_idx].wb_done        &&
