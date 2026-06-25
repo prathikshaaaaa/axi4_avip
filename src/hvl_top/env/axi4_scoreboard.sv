@@ -797,7 +797,12 @@ endfunction : l3_cache_lookup
 function int unsigned axi4_scoreboard::l3_find_lru_way(int unsigned set_index);
   int victim_way = -1;
   int max_lru    = -1;
-  $display("[SCB_LRU_STATE] time=%0t set=%0d way=%0d state=%0s lru_counter=%0d",$time, set_index, w,l3_cache[set_index][w].state.name(),l3_lru_counter[set_index][w]);
+  for(int w = 0; w < L3_CACHE_ASSOCIATIVITY; w++) begin
+    $display("[SCB_LRU_STATE] time=%0t set=%0d way=%0d state=%0s lru_counter=%0d",
+             $time, set_index, w,
+             l3_cache[set_index][w].state.name(),
+             l3_lru_counter[set_index][w]);
+  end
   // Prefer INVALID ways (fast allocation, no eviction)
   for(int w = 0; w < L3_CACHE_ASSOCIATIVITY; w++) begin
     if(l3_cache[set_index][w].state == L3_INVALID) begin
