@@ -913,10 +913,7 @@ function void axi4_scoreboard::l3_writeback_to_memory(
     return;
   end
 
-  `uvm_info("L3_WB_START",
-    $sformatf("Writeback: Set=%0d Way=%0d Addr=0x%0h Slave=%0d",
-              set_index, way, wb_addr, slave_idx),
-    UVM_MEDIUM)
+  $display("[SCB_WB_START] time=%0t set=%0d way=%0d addr=0x%0h slave=%0d tag=0x%0h",$time, set_index, way, wb_addr, slave_idx, l3_cache[set_index][way].tag);
 
   // ── Flush dirty bytes to referenceData[] ─────────────────────────────────
 
@@ -931,7 +928,7 @@ function void axi4_scoreboard::l3_writeback_to_memory(
 
   l3_writebacks_to_memory++;
 
-  `uvm_info("L3_WB_FLUSHED",$sformatf("Dirty line flushed to refMem: Set=%0d Way=%0d Addr=0x%0h Slave=%0d — awaiting BRESP",set_index, way, wb_addr, slave_idx),UVM_MEDIUM)
+  $display("[SCB_WB_FLUSHED] time=%0t set=%0d way=%0d addr=0x%0h slave=%0d — dirty bytes written to refMem",$time, set_index, way, wb_addr, slave_idx);
 
 endfunction : l3_writeback_to_memory
 
@@ -1890,7 +1887,7 @@ foreach(axi4_slave_write_address_analysis_fifo[i]) begin
       axi4_slave_write_address_analysis_fifo[s_idx].get(s_write_addr_tx);
       axi4_slave_tx_awaddr_count[s_idx]++;
 
-      `uvm_info("SLV_WR_ADDR",$sformatf("S[%0d] AWID=0x%0h AWADDR=0x%0h AWLEN=%0d",s_idx,s_write_addr_tx.awid,s_write_addr_tx.awaddr,s_write_addr_tx.awlen),UVM_MEDIUM)
+      `uvm_info("SCB_SLV_WR_ADDR",$sformatf("S[%0d] AWID=0x%0h AWADDR=0x%0h AWLEN=%0d",s_idx,s_write_addr_tx.awid,s_write_addr_tx.awaddr,s_write_addr_tx.awlen),UVM_MEDIUM)
 
       found = 0;
 
@@ -1899,7 +1896,7 @@ foreach(axi4_slave_write_address_analysis_fifo[i]) begin
       //    valid && needs_writeback && !wb_done && slave==s_idx
       //=================================================================
       for(int wb_idx = 0; wb_idx < MAX_MSHR; wb_idx++) begin
-        $display("[WB_MSHR_CHECK] time=%0t S[%0d] MSHR[%0d] valid=%0b needs_wb=%0b wb_done=%0b slave=%0d",$time, s_idx, wb_idx,scb_mshr[wb_idx].valid,scb_mshr[wb_idx].needs_writeback,scb_mshr[wb_idx].wb_done,scb_mshr[wb_idx].slave);
+        $display("[SCB_WB_MSHR_CHECK] time=%0t S[%0d] MSHR[%0d] valid=%0b needs_wb=%0b wb_done=%0b slave=%0d",$time, s_idx, wb_idx,scb_mshr[wb_idx].valid,scb_mshr[wb_idx].needs_writeback,scb_mshr[wb_idx].wb_done,scb_mshr[wb_idx].slave);
         if(scb_mshr[wb_idx].valid          &&
            scb_mshr[wb_idx].needs_writeback &&
            !scb_mshr[wb_idx].wb_done        &&
@@ -1919,15 +1916,15 @@ foreach(axi4_slave_write_address_analysis_fifo[i]) begin
           };
 
           if(s_write_addr_tx.awaddr == expected_wb_addr) begin
-             $display("[WB_ADDR_CHECK] time=%0t S[%0d] MSHR[%0d] expected_wb_addr=0x%0h actual_awaddr=0x%0h cache_tag=0x%0h index=%0d way=%0d",$time, s_idx, wb_idx, expected_wb_addr, s_write_addr_tx.awaddr,l3_cache[scb_mshr[wb_idx].index][scb_mshr[wb_idx].way].tag,scb_mshr[wb_idx].index, scb_mshr[wb_idx].way);
+            $display("[SCB_WB_ADDR_CHECK] time=%0t S[%0d] MSHR[%0d] expected_wb_addr=0x%0h actual_awaddr=0x%0h cache_tag=0x%0h index=%0d way=%0d",$time, s_idx, wb_idx, expected_wb_addr, s_write_addr_tx.awaddr,l3_cache[scb_mshr[wb_idx].index][scb_mshr[wb_idx].way].tag,scb_mshr[wb_idx].index, scb_mshr[wb_idx].way);
             //===========================================================
             // 4. VERIFY AWLEN == WORDS_PER_LINE - 1
             //===========================================================
             if(s_write_addr_tx.awlen != (WORDS_PER_LINE - 1)) begin
-              `uvm_error("WB_AWLEN_MISMATCH",$sformatf("S[%0d] MSHR[%0d] WB AWLEN=%0d expected=%0d",s_idx, wb_idx,s_write_addr_tx.awlen,WORDS_PER_LINE - 1))
+              `uvm_error("SCB_WB_AWLEN_MISMATCH",$sformatf("S[%0d] MSHR[%0d] WB AWLEN=%0d expected=%0d",s_idx, wb_idx,s_write_addr_tx.awlen,WORDS_PER_LINE - 1))
             end
 
-            `uvm_info("WB_ADDR_GRANTED",$sformatf("S[%0d] MSHR[%0d] AWID=0x%0h AWADDR=0x%0h WRITEBACK GRANTED",s_idx, wb_idx,s_write_addr_tx.awid,s_write_addr_tx.awaddr),UVM_MEDIUM)
+            $display("[SCB_WB_AW_GRANTED] time=%0t S[%0d] MSHR[%0d] AWADDR=0x%0h AWLEN=%0d",$time, s_idx, wb_idx, s_write_addr_tx.awaddr, s_write_addr_tx.awlen);
 
             //===========================================================
             // 5. UNBLOCK SLAVE WDATA PATH
@@ -2106,10 +2103,7 @@ foreach(axi4_slave_write_data_analysis_fifo[i]) begin
         beat_num  = wb_beat_tracker[s_idx];
         beat_base = longint'(wb_base_addr) + beat_num * AXI_DATA_BYTES;
 
-        `uvm_info("WB_DATA_BEAT",
-          $sformatf("S[%0d] MSHR[%0d] beat=%0d beat_base=0x%0h",
-            s_idx, wb_mshr_idx, beat_num, beat_base),
-          UVM_HIGH)
+        $display("[SCB_WB_DATA_BEAT] time=%0t S[%0d] MSHR[%0d] beat=%0d beat_base=0x%0h wdata=0x%0h wstrb=0x%0h",$time, s_idx, wb_mshr_idx, beat_num, beat_base,s_write_data_tx.wdata[0], s_write_data_tx.wstrb[0]);
 
         //=============================================================
         // 5. BYTE-LANE COMPARISON AGAINST referenceData[]
@@ -2146,7 +2140,7 @@ foreach(axi4_slave_write_data_analysis_fifo[i]) begin
           if(wb_beat_tracker[s_idx] != WORDS_PER_LINE) begin
             `uvm_error("WB_WLAST_COUNT", $sformatf("S[%0d] MSHR[%0d] WLAST after %0d beats expected %0d", s_idx, wb_mshr_idx, wb_beat_tracker[s_idx], WORDS_PER_LINE))
           end else begin
-           `uvm_info("WB_DATA_COMPLETE", $sformatf("S[%0d] MSHR[%0d] WB data COMPLETE beats=%0d base=0x%0h", s_idx, wb_mshr_idx, wb_beat_tracker[s_idx], wb_base_addr), UVM_MEDIUM)
+           $display("[SCB_WB_DATA_DONE] time=%0t S[%0d] MSHR[%0d] all %0d beats received base=0x%0h",$time, s_idx, wb_mshr_idx, wb_beat_tracker[s_idx], wb_base_addr);
           end
           // Reset for next writeback on this slave
           wb_beat_tracker[s_idx] = 0;
@@ -2316,7 +2310,7 @@ foreach(axi4_slave_write_response_analysis_fifo[i]) begin
             // OKAY: writeback succeeded
             scb_mshr[wi].wb_done  = 1;
             scb_mshr[wi].wb_error = 0;
-            `uvm_info("WB_BRESP_OK", $sformatf("S[%0d] MSHR[%0d] writeback BRESP=OKAY — refill AR unblocked", s_idx, wi),UVM_MEDIUM)
+            $display("[SCB_WB_BRESP_OK] time=%0t S[%0d] MSHR[%0d] BRESP=OKAY wb_done=1 refill AR unblocked",$time, s_idx, wi);
             
           end else begin
             // ERROR: writeback failed -> Restore L3_DIRTY and undo Reference Data
@@ -2353,7 +2347,7 @@ foreach(axi4_slave_write_response_analysis_fifo[i]) begin
 
 
 
-            `uvm_error("WB_BRESP_ERROR", $sformatf("S[%0d] MSHR[%0d] writeback BRESP=0x%0h — line restored DIRTY refMem undone", s_idx, wi, s_write_resp_tx.bresp))
+           $display("[SCB_WB_BRESP_ERR] time=%0t S[%0d] MSHR[%0d] BRESP=0x%0h line restored DIRTY refMem undone",$time, s_idx, wi, s_write_resp_tx.bresp);
           end
           found = 1;
           break; 
