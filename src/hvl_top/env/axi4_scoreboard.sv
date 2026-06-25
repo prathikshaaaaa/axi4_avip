@@ -1918,7 +1918,7 @@ foreach(axi4_slave_write_address_analysis_fifo[i]) begin
           };
 
           if(s_write_addr_tx.awaddr == expected_wb_addr) begin
-
+             $display("[WB_ADDR_CHECK] time=%0t S[%0d] MSHR[%0d] expected_wb_addr=0x%0h actual_awaddr=0x%0h cache_tag=0x%0h index=%0d way=%0d",$time, s_idx, wb_idx, expected_wb_addr, s_write_addr_tx.awaddr,l3_cache[scb_mshr[wb_idx].index][scb_mshr[wb_idx].way].tag,scb_mshr[wb_idx].index, scb_mshr[wb_idx].way);
             //===========================================================
             // 4. VERIFY AWLEN == WORDS_PER_LINE - 1
             //===========================================================
