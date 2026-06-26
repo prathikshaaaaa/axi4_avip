@@ -122,6 +122,7 @@ typedef struct {
   int wbeat_count;
   bit wlast_seen;
   bit rlast_seen;
+  bit [ADDRESS_WIDTH-1:0] wb_addr;
 
    axi_cache_policy_s policy;
 
@@ -1905,11 +1906,7 @@ foreach(axi4_slave_write_address_analysis_fifo[i]) begin
           //    moving state to L3_CLEAN.
           //=============================================================
           bit [ADDRESS_WIDTH-1:0] expected_wb_addr;
-          expected_wb_addr = {
-            l3_cache[scb_mshr[wb_idx].index][scb_mshr[wb_idx].way].tag,
-            scb_mshr[wb_idx].index[L3_INDEX_BITS-1:0],
-            {L3_OFFSET_BITS{1'b0}}
-          };
+          expected_wb_addr = scb_mshr[wb_idx].wb_addr;
 
           if(s_write_addr_tx.awaddr == expected_wb_addr) begin
             $display("[SCB_WB_ADDR_CHECK] time=%0t S[%0d] MSHR[%0d] expected_wb_addr=0x%0h actual_awaddr=0x%0h cache_tag=0x%0h index=%0d way=%0d",$time, s_idx, wb_idx, expected_wb_addr, s_write_addr_tx.awaddr,l3_cache[scb_mshr[wb_idx].index][scb_mshr[wb_idx].way].tag,scb_mshr[wb_idx].index, scb_mshr[wb_idx].way);
