@@ -1071,9 +1071,14 @@ function int axi4_scoreboard::scb_allocate_mshr(
       scb_mshr[i].start_word = int'(offset) / AXI_DATA_BYTES;
       scb_mshr[i].start_byte = int'(offset);
 
-      if(scb_mshr[i].needs_writeback)
-        l3_writeback_to_memory(index, way);
-
+      if(scb_mshr[i].needs_writeback)begin
+       // Save old tag for writeback address reconstruction
+       scb_mshr[i].wb_addr = {l3_cache[index][way].tag,
+                           index[L3_INDEX_BITS-1:0],
+                           {L3_OFFSET_BITS{1'b0}}};
+       l3_writeback_to_memory(index, way);
+       end
+        
       l3_set_line_state(index, way, L3_FILLING);
       l3_cache[index][way].tag = tag; 
 
