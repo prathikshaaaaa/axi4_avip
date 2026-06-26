@@ -2047,7 +2047,7 @@ foreach(axi4_slave_write_data_analysis_fifo[i]) begin
       //    only after a valid writeback MSHR is matched.
       //=================================================================
       @(slave_write_addr_granted[s_idx]);
-
+      do begin
       //=================================================================
       // 2. RECEIVE WRITEBACK DATA BEAT
       //=================================================================
@@ -2142,6 +2142,8 @@ foreach(axi4_slave_write_data_analysis_fifo[i]) begin
         end
 
       end : WB_DATA_CHECK
+
+    end while(!s_write_data_tx.wlast);
 
     end // forever
   join_none
