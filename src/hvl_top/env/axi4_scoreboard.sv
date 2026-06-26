@@ -1898,10 +1898,10 @@ foreach(axi4_slave_write_address_analysis_fifo[i]) begin
            scb_mshr[wb_idx].needs_writeback &&
            !scb_mshr[wb_idx].wb_done        &&
            scb_mshr[wb_idx].slave == s_idx) begin
-
+           bit [ADDRESS_WIDTH-1:0] expected_wb_addr;
           $display("[SCB_WB_ADDR_COMPARE] time=%0t S[%0d] MSHR[%0d] wb_addr=0x%0h actual_awaddr=0x%0h match=%0b",$time, s_idx, wb_idx,scb_mshr[wb_idx].wb_addr,s_write_addr_tx.awaddr,(scb_mshr[wb_idx].wb_addr == s_write_addr_tx.awaddr));
           
-          bit [ADDRESS_WIDTH-1:0] expected_wb_addr;
+          
           expected_wb_addr = scb_mshr[wb_idx].wb_addr;
 
           if(s_write_addr_tx.awaddr == expected_wb_addr) begin
