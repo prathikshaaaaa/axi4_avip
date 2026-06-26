@@ -1076,7 +1076,16 @@ function int axi4_scoreboard::scb_allocate_mshr(
       l3_set_line_state(index, way, L3_FILLING);
       l3_cache[index][way].tag = tag; 
 
-      $display("[SCB_MSHR_ALLOC] time=%0t mshr=%0d master=%0d addr=0x%0h index=%0d tag=0x%0h way=%0d is_write=%0b needs_wb=%0b slave=%0d", $time, i, master, addr, index, tag, way, is_write,scb_mshr[i].needs_writeback, slave);
+      // UPDATE LRU AT ALLOCATION TIME 
+     for(int w = 0; w < L3_CACHE_ASSOCIATIVITY; w++) begin
+      if(w != way) begin
+        if(l3_lru_counter[index][w] < 255)
+            l3_lru_counter[index][w]++;
+      end
+     end
+     l3_lru_counter[index][way] = 0;
+
+     $display("[SCB_MSHR_ALLOC] time=%0t mshr=%0d master=%0d addr=0x%0h index=%0d tag=0x%0h way=%0d is_write=%0b needs_wb=%0b slave=%0d", $time, i, master, addr, index, tag, way, is_write,scb_mshr[i].needs_writeback, slave);
 
       return i;
     end
@@ -1237,11 +1246,6 @@ function void axi4_scoreboard::scb_release_mshr(
   
   $display("[SCB_LINE_FINAL] time=%0t mshr=%0d set=%0d way=%0d tag=0x%0h state=%0s",$time, i, set, way,scb_mshr[i].tag,(scb_mshr[i].wbeat_count > 0) ? "DIRTY" : "CLEAN");
 
-   // UPDATE LRU ON SUCCESSFUL COMPLETION
-   if(scb_mshr[i].resp_code == 2'b00) begin
-     l3_update_lru(set, way);
-   end
-
    // Release slave refill ownership
     s = scb_mshr[i].slave;
    if(s >= 0 && s < NO_OF_SLAVES) begin
@@ -1315,9 +1319,6 @@ function void axi4_scoreboard::l3_handle_read_request(
 
     l3_read_hits_per_master[master_id]++;
     l3_total_read_hits++;
-
-    // Update LRU only on hit
-    l3_update_lru(index, hit_way);
 
     `uvm_info("L3_READ_HIT",
       $sformatf("M[%0d] HIT Set=%0d Way=%0d Addr=0x%0h State=%s",
@@ -1501,7 +1502,6 @@ function void axi4_scoreboard::l3_handle_write_data(
     end
 
     l3_set_line_state(set, way, L3_DIRTY);
-    l3_update_lru(set, way);
 
     `uvm_info("L3_WDATA_HIT",
       $sformatf("Merged WDATA into cache Set=%0d Way=%0d", set, way),
