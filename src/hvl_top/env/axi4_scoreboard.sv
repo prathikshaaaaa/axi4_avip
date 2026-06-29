@@ -2087,13 +2087,8 @@ foreach(axi4_slave_write_data_analysis_fifo[i]) begin
         int                  beat_num;
         longint              beat_base;
 
-        wb_base_addr = {
-          l3_cache[scb_mshr[wb_mshr_idx].index]
-                  [scb_mshr[wb_mshr_idx].way].tag,
-          scb_mshr[wb_mshr_idx].index[L3_INDEX_BITS-1:0],
-          {L3_OFFSET_BITS{1'b0}}
-        };
-
+        wb_base_addr = scb_mshr[wb_mshr_idx].wb_addr;
+        
         beat_num  = wb_beat_tracker[s_idx];
         beat_base = longint'(wb_base_addr) + beat_num * AXI_DATA_BYTES;
 
