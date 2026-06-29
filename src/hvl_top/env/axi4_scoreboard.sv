@@ -928,6 +928,9 @@ function void axi4_scoreboard::l3_writeback_to_memory(
     lane   = byte_i % (DATA_WIDTH/8);
     referenceData[slave_idx][wb_addr + byte_i] =
       l3_cache[set_index][way].data[word_i][8*lane +: 8];
+     $display("[SCB_WB_FLUSH_BYTE] time=%0t addr=0x%0h byte=0x%0h",
+             $time, wb_addr + byte_i,
+             referenceData[slave_idx][wb_addr + byte_i]);
   end
 
   l3_set_line_state(set_index, way, L3_CLEAN);
