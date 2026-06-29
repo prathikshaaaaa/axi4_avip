@@ -2115,6 +2115,9 @@ foreach(axi4_slave_write_data_analysis_fifo[i]) begin
             if(expected_byte !== dut_byte) begin
            `uvm_error("WB_DATA_MISMATCH", $sformatf("S[%0d] MSHR[%0d] beat=%0d addr=0x%0h lane=%0d Expected=0x%0h Got=0x%0h", s_idx, wb_mshr_idx, beat_num, byte_addr, lane, expected_byte, dut_byte))
             end
+            else begin
+            `uvm_info("WB_DATA_MATCH",$sformatf("S[%0d] MSHR[%0d] beat=%0d addr=0x%0h lane=%0d Expected=0x%0h Got=0x%0h — MATCH",s_idx, wb_mshr_idx, beat_num, byte_addr, lane,expected_byte, dut_byte),UVM_HIGH)
+             end
           end
         end
 
