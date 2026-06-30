@@ -13,10 +13,11 @@ class axi4_master_write_miss_seq extends axi4_master_base_seq;
   endfunction
 
   task body();
+    `uvm_info(get_type_name(), $sformatf("BODY STARTED for txn_num=%0d on seqr=%s", txn_num, m_sequencer.get_full_name()), UVM_LOW)
     req = axi4_master_tx::type_id::create("req");
 
     start_item(req);
-
+    `uvm_info(get_type_name(), $sformatf("start_item RETURNED for txn_num=%0d", txn_num), UVM_LOW)
     // ---------------------------------------------
     // RANDOMIZATION (MATCH YOUR EXISTING STYLE)
     // ---------------------------------------------
