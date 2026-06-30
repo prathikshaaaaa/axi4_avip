@@ -1495,8 +1495,9 @@ function void axi4_scoreboard::l3_handle_write_data(
         end
       end
       $display("[SCB_WR_HIT_WORD] time=%0t master=%0d beat=%0d line_word_offset=%0d wdata=0x%0h wstrb=0x%0h",$time, master_id, scb_write_owner_beat, line_offset, m_tx.wdata[0], m_tx.wstrb[0]);
-    end
-
+      
+    scb_write_owner_beat++;
+    
     if(m_tx.wlast) begin 
      l3_set_line_state(set, way, L3_DIRTY);
      l3_update_lru(set, way);
