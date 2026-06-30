@@ -47,7 +47,7 @@ class axi4_virtual_stress_seq extends axi4_virtual_base_seq;
         automatic int mst_idx;
       
         m_seq[m] = axi4_master_write_miss_seq::type_id::create($sformatf("m_seq[%0d]", m));
-      
+        m_seq[m].txn_num = m;
       // Randomize each master to target different random addresses
         if(!m_seq[m].randomize()) begin
            `uvm_fatal("STRESS_SEQ", "Master randomization failed")
