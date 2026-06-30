@@ -1439,7 +1439,6 @@ function void axi4_scoreboard::l3_handle_write_data(
   input int master_id,
   input axi4_master_tx m_tx
 );
-   $display("SCB_AWID=%0d",m_tx.awid);
   //--------------------------------------------
   // 1. WRITE MISS → BUFFER IN MSHR
   //--------------------------------------------
@@ -1482,17 +1481,17 @@ function void axi4_scoreboard::l3_handle_write_data(
 
     int set = scb_write_owner_set;
     int way = scb_write_owner_way;
-
     longint temp_addr = m_tx.awaddr;
+
+    $display("[SCB_WR_HIT_MERGE_START] time=%0t master=%0d set=%0d way=%0d addr=0x%0h", $time, master_id, set, way, m_tx.awaddr);
 
     foreach(m_tx.wdata[beat]) begin
       for(int b = 0; b < (DATA_WIDTH/8); b++) begin
-
         int line_offset = temp_addr % L3_CACHE_LINE_SIZE_BYTES;
-
         if(m_tx.wstrb[beat][b]) begin
           l3_cache[set][way].data[line_offset] =
             m_tx.wdata[beat][8*b +: 8];
+          $display("[SCB_WR_HIT_BYTE] time=%0t master=%0d beat=%0d line_offset=%0d byte=0x%0h",$time, master_id, beat, line_offset, m_tx.wdata[beat][8*b +: 8]);
         end
 
         temp_addr++;
@@ -1501,9 +1500,7 @@ function void axi4_scoreboard::l3_handle_write_data(
 
     l3_set_line_state(set, way, L3_DIRTY);
     l3_update_lru(set, way);
-    `uvm_info("L3_WDATA_HIT",
-      $sformatf("Merged WDATA into cache Set=%0d Way=%0d", set, way),
-      UVM_HIGH)
+    $display("[SCB_WR_HIT_DONE] time=%0t master=%0d set=%0d way=%0d state=DIRTY",$time, master_id, set, way);
 
     //--------------------------------------------
     // RELEASE LOCK
