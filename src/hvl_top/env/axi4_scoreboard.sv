@@ -1478,30 +1478,25 @@ function void axi4_scoreboard::l3_handle_write_data(
   // 2. WRITE HIT → MERGE INTO CACHE
   //--------------------------------------------
   if(scb_write_locked && scb_write_owner == master_id) begin
-
     int set = scb_write_owner_set;
     int way = scb_write_owner_way;
     longint temp_addr = m_tx.awaddr;
 
     $display("[SCB_WR_HIT_MERGE_START] time=%0t master=%0d set=%0d way=%0d addr=0x%0h", $time, master_id, set, way, m_tx.awaddr);
-
-    foreach(m_tx.wdata[beat]) begin
-      for(int b = 0; b < (DATA_WIDTH/8); b++) begin
-        int line_offset = temp_addr % L3_CACHE_LINE_SIZE_BYTES;
-        if(m_tx.wstrb[beat][b]) begin
-          l3_cache[set][way].data[line_offset] =
-            m_tx.wdata[beat][8*b +: 8];
-          $display("[SCB_WR_HIT_BYTE] time=%0t master=%0d beat=%0d line_offset=%0d byte=0x%0h",$time, master_id, beat, line_offset, m_tx.wdata[beat][8*b +: 8]);
+    int line_offset = (scb_write_line + scb_write_owner_beat * (DATA_WIDTH/8)) % L3_CACHE_LINE_SIZE_BYTES;
+    
+    for(int b = 0; b < (DATA_WIDTH/8); b++) begin
+      if(m_tx.wstrb[0][b]) begin
+        l3_cache[set][way].data[line_offset+b]=m_tx.wdata[0][8*b +: 8];
         end
-
-        temp_addr++;
       end
+      $display("[SCB_WR_HIT_WORD] time=%0t master=%0d beat=%0d line_word_offset=%0d wdata=0x%0h wstrb=0x%0h",$time, master_id, scb_write_owner_beat, line_offset, m_tx.wdata[0], m_tx.wstrb[0]);
     end
 
-    l3_set_line_state(set, way, L3_DIRTY);
-    l3_update_lru(set, way);
-    $display("[SCB_WR_HIT_DONE] time=%0t master=%0d set=%0d way=%0d state=DIRTY",$time, master_id, set, way);
-
+    if(m_tx.wlast) begin 
+     l3_set_line_state(set, way, L3_DIRTY);
+     l3_update_lru(set, way);
+     $display("[SCB_WR_HIT_DONE] time=%0t master=%0d set=%0d way=%0d state=DIRTY",$time, master_id, set, way);
     //--------------------------------------------
     // RELEASE LOCK
     //--------------------------------------------
@@ -1511,6 +1506,7 @@ function void axi4_scoreboard::l3_handle_write_data(
     scb_write_owner_way    = -1;
     scb_write_owner_is_hit = 0;
   end
+end
 
 endfunction
     
