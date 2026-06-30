@@ -322,6 +322,7 @@ module axi4_decoder #(
                 if (wr_active_master[s] == -1 && !wr_just_released[s] && !wr_slave_busy[s]) begin
                     int next;
                     next = select_master(s, 1);
+                    $display("[ARB_GRANT_ATTEMPT] time=%0t s=%0d selected=%0d wr_prev_grant=%0d", $time, s, next, wr_prev_grant[s]);
                     if (next != -1) begin
                         wr_active_master[s] = next;
                         wr_prev_grant[s]    = next;
