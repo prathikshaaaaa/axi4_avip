@@ -216,9 +216,9 @@ module axi4_decoder #(
  
         for (int s = 0; s < NO_OF_SLAVES; s++) begin
             if (cache_bvalid[s]) begin
-                $display("[DECODER_BRESP_CHECK] time=%0t s=%0d cache_bid=0x%0h master_index=%0d axi_id=0x%0h respOrder_front=%0d",$time, s, cache_bid[s], master_index, axi_id,(wr_respOrder[master_index].exists(int'(axi_id)) && wr_respOrder[master_index][int'(axi_id)].size()>0) ? wr_respOrder[master_index][int'(axi_id)][0] : -1);
                 automatic logic [MASTER_BITS-1:0] master_index;
                 automatic logic [ID_WIDTH-1:0]    axi_id;
+                $display("[DECODER_BRESP_CHECK] time=%0t s=%0d cache_bid=0x%0h master_index=%0d axi_id=0x%0h respOrder_front=%0d",$time, s, cache_bid[s], master_index, axi_id,(wr_respOrder[master_index].exists(int'(axi_id)) && wr_respOrder[master_index][int'(axi_id)].size()>0) ? wr_respOrder[master_index][int'(axi_id)][0] : -1);
                 master_index = cache_bid[s][EXT_ID_WIDTH-1 -: MASTER_BITS];
                 axi_id       = cache_bid[s][ID_WIDTH-1:0];
  
