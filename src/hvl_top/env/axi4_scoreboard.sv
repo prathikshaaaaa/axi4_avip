@@ -141,6 +141,7 @@ typedef struct {
   int scb_write_owner_way;
   bit scb_write_owner_is_hit;
   bit [ADDRESS_WIDTH-1:0] scb_write_line;
+  int scb_write_owner_beat;
 
   //Performance counter tracking
   bit wr_hit_counted[NO_OF_MASTERS];
@@ -638,6 +639,7 @@ function void axi4_scoreboard::init_l3_cache_model();
   scb_write_owner_set = -1;
   scb_write_owner_way = -1;
   scb_write_owner_is_hit = 0;
+  scb_write_owner_beat = 0; 
 
   // Initialize R-channel tracking (FIX ISSUE #2)
   for(int s = 0; s < NO_OF_SLAVES; s++) begin
@@ -1392,6 +1394,7 @@ function void axi4_scoreboard::l3_handle_write_request(
     scb_write_owner_set    = index;
     scb_write_owner_way    = hit_way;
     scb_write_owner_is_hit = 1;
+    scb_write_owner_beat   = 0;
 
     l3_write_hits_per_master[master_id]++;
     l3_total_write_hits++;
@@ -1478,12 +1481,13 @@ function void axi4_scoreboard::l3_handle_write_data(
   // 2. WRITE HIT → MERGE INTO CACHE
   //--------------------------------------------
   if(scb_write_locked && scb_write_owner == master_id) begin
+    int line_offset;
     int set = scb_write_owner_set;
     int way = scb_write_owner_way;
     longint temp_addr = m_tx.awaddr;
 
     $display("[SCB_WR_HIT_MERGE_START] time=%0t master=%0d set=%0d way=%0d addr=0x%0h", $time, master_id, set, way, m_tx.awaddr);
-    int line_offset = (scb_write_line + scb_write_owner_beat * (DATA_WIDTH/8)) % L3_CACHE_LINE_SIZE_BYTES;
+    line_offset = (scb_write_line + scb_write_owner_beat * (DATA_WIDTH/8)) % L3_CACHE_LINE_SIZE_BYTES;
     
     for(int b = 0; b < (DATA_WIDTH/8); b++) begin
       if(m_tx.wstrb[0][b]) begin
