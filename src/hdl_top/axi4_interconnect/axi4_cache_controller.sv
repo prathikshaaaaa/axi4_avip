@@ -342,7 +342,9 @@ module axi_cache_controller #(
   logic [NO_OF_SLAVES-1:0] w_locked;      // one bit per slave port
   logic [NO_OF_SLAVES-1:0] r_locked;
   logic [EXT_ID_WIDTH-1:0] w_locked_id [NO_OF_SLAVES];  // one id per slave port
-
+  logic [ADDRESS_WIDTH-1:0] wr_latched_addr [NO_OF_SLAVES];
+  logic w_locked_was_hit [NO_OF_SLAVES];
+  
   logic                        wr_data_valid_g [NO_OF_SLAVES];
   logic                        wr_data_last_g  [NO_OF_SLAVES];
   logic [DATA_WIDTH-1:0]       wr_data_g       [NO_OF_SLAVES];
@@ -458,10 +460,15 @@ endfunction
         wr_cache_hit[gm]  = 1'b0;
         wr_cache_miss[gm] = 1'b0;
         wr_hit_way[gm]    = '0;
-        if ((wr_req_valid[gm] || w_locked[gm]) && !wb_active && !line_under_refill(wr_index[gm], wr_tag[gm])) begin   //  added || w_locked 
+
+        // Use latched address during data phase, live address during AW phase
+        automatic logic [ADDRESS_WIDTH-1:0] eff_addr;
+        eff_addr = (w_locked[gm] && w_locked_was_hit[gm]) ? wr_latched_addr[gm]: wr_req_addr[gm];  // miss or new AW: use live addr
+        
+        if ((wr_req_valid[gm] || w_locked[gm]) && !wb_active && !line_under_refill(get_index(eff_addr), get_tag(eff_addr))) begin   //  added || w_locked 
           for (int w = 0; w < ASSOCIATIVITY; w++) begin   //added line_under_refill
-            if (valid_array[wr_index[gm]][w] &&
-                tag_array[wr_index[gm]][w] == wr_tag[gm]) begin
+            if (valid_array[get_index(eff_addr)][w] &&
+                tag_array[get_index(eff_addr)][w] == get_tag(eff_addr)) begin
               wr_cache_hit[gm]  = 1'b1;
               wr_hit_way[gm]    = w[$clog2(ASSOCIATIVITY)-1:0];
               break;
@@ -565,6 +572,8 @@ end
     for (int m = 0; m < NO_OF_SLAVES; m++) begin
       w_locked[m]    <= 1'b0;
       w_locked_id[m] <= '0;
+      wr_latched_addr[m]   <= cache_awaddr[m];
+      w_locked_was_hit[m]  <= wr_cache_hit[m];  // ← was it a hit or miss?
     end
   end else begin
     for (int m = 0; m < NO_OF_SLAVES; m++) begin
