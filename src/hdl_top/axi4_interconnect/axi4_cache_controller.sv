@@ -456,13 +456,13 @@ endfunction
   // =========================================================================
   generate
     for (genvar gm = 0; gm < NO_OF_SLAVES; gm++) begin : G_WR_HIT
+      automatic logic [ADDRESS_WIDTH-1:0] eff_addr;
       always_comb begin
         wr_cache_hit[gm]  = 1'b0;
         wr_cache_miss[gm] = 1'b0;
         wr_hit_way[gm]    = '0;
 
         // Use latched address during data phase, live address during AW phase
-        automatic logic [ADDRESS_WIDTH-1:0] eff_addr;
         eff_addr = (w_locked[gm] && w_locked_was_hit[gm]) ? wr_latched_addr[gm]: wr_req_addr[gm];  // miss or new AW: use live addr
         
         if ((wr_req_valid[gm] || w_locked[gm]) && !wb_active && !line_under_refill(get_index(eff_addr), get_tag(eff_addr))) begin   //  added || w_locked 
