@@ -456,7 +456,7 @@ endfunction
   // =========================================================================
   generate
     for (genvar gm = 0; gm < NO_OF_SLAVES; gm++) begin : G_WR_HIT
-      automatic logic [ADDRESS_WIDTH-1:0] eff_addr;
+      logic [ADDRESS_WIDTH-1:0] eff_addr;
       always_comb begin
         wr_cache_hit[gm]  = 1'b0;
         wr_cache_miss[gm] = 1'b0;
