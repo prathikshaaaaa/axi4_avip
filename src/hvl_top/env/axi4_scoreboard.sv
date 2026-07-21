@@ -675,7 +675,7 @@ function axi4_scoreboard::axi_cache_policy_s axi4_scoreboard::axi_decode_cache_p
   end
 
   // NON CACHEABLE NORMAL
-  if(axcache[3:2] == 2'b00) begin
+  if(axcache[3:2] == 2'b00 && axcache[1:0] == 2'b00) begin
     p.cacheable = 0;
     return p;
   end
@@ -2595,9 +2595,9 @@ end
       // Search pending_read_txns across all slaves by arid and master_id
       s_idx = -1;
       for(int s = 0; s < NO_OF_SLAVES; s++) begin
-        if(pending_read_txns[s].exists(m_read_data_tx.arid)) begin
-          if(pending_read_txns[s][m_read_data_tx.arid].size() > 0) begin
-            if(pending_read_txns[s][m_read_data_tx.arid][0].master_id == m_idx) begin
+        if(pending_read_txns[s].exists(m_read_data_tx.rid)) begin
+          if(pending_read_txns[s][m_read_data_tx.rid].size() > 0) begin
+            if(pending_read_txns[s][m_read_data_tx.rid][0].master_id == m_idx) begin
               s_idx = s;
               break;
             end
@@ -2614,18 +2614,20 @@ end
 
       // Wait for address grant on first beat only
       // For subsequent beats the grant is already set from the first beat
-      @(slave_read_addr_granted[s_idx]);
+      if(!pending_read_txns[s_idx][m_read_data_tx.rid][0].address_granted) begin
+        @(slave_read_addr_granted[s_idx]);
+      end
 
       found = 0;
 
-      if(pending_read_txns[s_idx].exists(m_read_data_tx.arid) &&
-         pending_read_txns[s_idx][m_read_data_tx.arid].size() > 0) begin
+      if(pending_read_txns[s_idx].exists(m_read_data_tx.rid) &&
+         pending_read_txns[s_idx][m_read_data_tx.rid].size() > 0) begin
 
-        if(pending_read_txns[s_idx][m_read_data_tx.arid][0].address_granted) begin
+        if(pending_read_txns[s_idx][m_read_data_tx.rid][0].address_granted) begin
 
           // PEEK at [0] — do NOT pop yet, transaction stays in queue
           // until rlast because subsequent beats need to match against it
-          pending_tx = pending_read_txns[s_idx][m_read_data_tx.arid][0];
+          pending_tx = pending_read_txns[s_idx][m_read_data_tx.rid][0];
 
           if(pending_tx.master_id != m_idx) begin
             `uvm_error("RD_MASTER_MISMATCH",
