@@ -159,6 +159,8 @@ function void axi4_master_seq_item_converter::from_read_class( input axi4_master
 
   $cast(output_conv_h.rid,input_conv_h.rid);
   `uvm_info("axi4_master_seq_item_conv_class",$sformatf("After converting rid =  %b",output_conv_h.rid),UVM_FULL);
+  
+  output_conv_h.rlast = input_conv_h.rlast;
 
   foreach(input_conv_h.rdata[i]) begin
     if(input_conv_h.rdata[i] != 0)begin
