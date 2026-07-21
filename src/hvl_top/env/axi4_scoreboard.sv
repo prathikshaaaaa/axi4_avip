@@ -3663,6 +3663,12 @@ task automatic axi4_scoreboard::axi4_read_data_comparison(
                       temp_addr, lane,
                       expected_byte, dut_byte))
         end
+        else begin
+          `uvm_info("R_CMP_MISS_DATA_MATCH",$sformatf("M[%0d] S[%0d] MISS Beat=%0d ByteIdx=%0d Addr=0x%0h Lane=%0d Expected(refMem)=0x%0h Got=0x%0h",master_id, slave_id,
+                      beat, byte_idx,
+                      temp_addr, lane,
+                      expected_byte, dut_byte),UVM_NONE)
+        end
 
         // Advance address per burst type
         case(exp_tx.arburst)
