@@ -168,6 +168,7 @@ typedef struct {
     time addr_request_time;
     bit prediction_made;
     bit [ADDRESS_WIDTH-1:0] line_addr;
+    int beats_compared;
   } pending_read_transaction_t;
 
   pending_write_transaction_t pending_write_txns[int][int][int][$];  //changed 3rd dimension here
@@ -439,7 +440,7 @@ typedef struct {
  extern virtual task axi4_write_data_comparison(input axi4_master_tx exp_tx, input axi4_slave_tx act_tx, input int master_id, input int slave_id);
  extern virtual task axi4_write_response_comparison(input axi4_master_tx exp_tx, input axi4_slave_tx act_tx, input int master_id, input int slave_id);
  extern virtual task axi4_read_address_comparison(input axi4_master_tx exp_tx, input axi4_slave_tx act_tx, input int master_id, input int slave_id);
- extern virtual task axi4_read_data_comparison(input axi4_master_tx exp_tx, input axi4_master_tx act_tx, input int master_id, input int slave_id, input bit expected_hit);
+ extern virtual task axi4_read_data_comparison(input axi4_master_tx exp_tx, input axi4_master_tx act_tx, input int master_id, input int slave_id, input bit expected_hit, input int beat_num);
 endclass : axi4_scoreboard
 
 //=============================================================================
@@ -2644,9 +2645,11 @@ end
             m_read_data_tx,
             m_idx,
             s_idx,
-            pending_tx.expected_l3_hit
+            pending_tx.expected_l3_hit,
+            pending_tx.beats_compared
           );
-
+          pending_tx.beats_compared++;
+          pending_read_txns[s_idx][m_read_data_tx.arid][0] = pending_tx;
           // On last beat: release MSHR and pop the pending transaction
           if(m_read_data_tx.rlast) begin
 
@@ -3449,7 +3452,8 @@ task automatic axi4_scoreboard::axi4_read_data_comparison(
   input axi4_master_tx act_tx,
   input int            master_id,
   input int            slave_id,
-  input bit            expected_hit
+  input bit            expected_hit,
+  input int            beat_num
 );
 
   // ------------------------------------------------------------------
@@ -3624,7 +3628,6 @@ task automatic axi4_scoreboard::axi4_read_data_comparison(
     // MISS PATH — compare against referenceData[]
     // ================================================================
     int bytes_per_beat = 1 << exp_tx.arsize;
-    longint temp_addr  = exp_tx.araddr;
     longint wrap_boundary;
     longint wrap_start_addr;
     longint wrap_end_addr;
@@ -3636,7 +3639,10 @@ task automatic axi4_scoreboard::axi4_read_data_comparison(
     align_amount    = longint'(exp_tx.araddr) % bytes_per_beat;
 
     foreach(act_tx.rdata[beat]) begin
-      int local_align = (beat == 0) ? align_amount : 0;
+      int local_align   = (beat_num == 0) ? align_amount : 0;
+      longint beat_base = (beat_num == 0) ? exp_tx.araddr
+                    : (exp_tx.araddr - align_amount) + longint'(beat_num) * bytes_per_beat;
+      longint temp_addr = beat_base;
       bit beat_ok = 1;
 
       for(int byte_idx = local_align; byte_idx < bytes_per_beat; byte_idx++) begin
