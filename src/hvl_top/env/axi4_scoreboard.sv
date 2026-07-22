@@ -567,6 +567,28 @@ begin
         UVM_LOW)
     end
   end
+  // ---- DEBUG: verify slave 1 actually covers 0x1000 and is populated ----
+  `uvm_info("SCB_REFMEM_DEBUG",
+    $sformatf("Slave[1] range: START=0x%0h END=0x%0h | exists(0x1000)=%0b exists(0x1001)=%0b val(0x1001)=0x%0h",
+      SLAVE_START_ADDR[1], SLAVE_END_ADDR[1],
+      referenceData[1].exists(64'h1000),
+      referenceData[1].exists(64'h1001),
+      referenceData[1].exists(64'h1001) ? referenceData[1][64'h1001] : 8'hFF),
+    UVM_LOW)
+
+     `uvm_info("SCB_REFMEM_DEBUG2",
+    $sformatf("Slave[1] exists(0x1001)=%0b val(0x1001)=0x%0h  exists(0x1000)=%0b val(0x1000)=0x%0h",
+      referenceData[1].exists(64'h1001),
+      referenceData[1].exists(64'h1001) ? referenceData[1][64'h1001] : 8'hFF,
+      referenceData[1].exists(64'h1000),
+      referenceData[1].exists(64'h1000) ? referenceData[1][64'h1000] : 8'hFF),
+    UVM_LOW)
+    
+  `uvm_info("SCB_REFMEM_DEBUG3",
+  $sformatf("Slave[1] exists(0x1001)=%0b val(0x1001)=0x%0h",
+    referenceData[1].exists(64'h1001),
+    referenceData[1].exists(64'h1001) ? referenceData[1][64'h1001] : 8'hFF),
+  UVM_LOW)
   
 endfunction : build_phase
 
