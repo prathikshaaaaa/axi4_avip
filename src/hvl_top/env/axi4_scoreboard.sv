@@ -544,9 +544,27 @@ function void axi4_scoreboard::build_phase(uvm_phase phase);
     end
   end
 
-  for(int i=0;i<NO_OF_SLAVES; i++) begin
-    for(int j=0;j<4096*NO_OF_SLAVES;j++) begin
-      referenceData[i][j]=j;
+begin
+    int i;
+    longint unsigned addr;
+    longint unsigned start_addr;
+    longint unsigned end_addr;
+
+    for(i = 0; i < NO_OF_SLAVES; i++) begin
+      start_addr = SLAVE_START_ADDR[i];
+      end_addr   = SLAVE_END_ADDR[i];
+
+      for(addr = 0; addr < 8192; addr++) begin
+        if(addr < 4096)
+          referenceData[i][addr] = {4'hA, addr[3:0]};
+        else
+          referenceData[i][addr] = {4'hB, addr[3:0]};
+      end
+
+      `uvm_info("SCB_REFMEM_INIT",
+        $sformatf("Slave[%0d] referenceData seeded: 0x%0h - 0x%0h (range 0-8191, split at 4096)",
+                  i, start_addr, end_addr),
+        UVM_LOW)
     end
   end
   
@@ -2788,13 +2806,13 @@ end
         // MSHR is NOT released here — master R data path owns release
         if(snap_resp_code == 2'b00) begin
 
-          for(int byte_i = 0; byte_i < L3_CACHE_LINE_SIZE_BYTES; byte_i++) begin
-            if(referenceData[s_idx].exists(line_base + byte_i))
+            for(int byte_i = 0; byte_i < L3_CACHE_LINE_SIZE_BYTES; byte_i++) begin
+              if(referenceData[s_idx].exists(line_base + byte_i))
               l3_cache[index][way].data[byte_i] =
                 referenceData[s_idx][line_base + byte_i];
-            else
-              l3_cache[index][way].data[byte_i] = 8'h00;
-          end
+              else
+                l3_cache[index][way].data[byte_i] = 8'h00;
+            end
 
         `uvm_info("L3_REFILL_COMPLETE", $sformatf("S[%0d] Cache filled from refMem: line=0x%0h Set=%0d Way=%0d - awaiting master R response for MSHR release", s_idx, line_base, index, way), UVM_MEDIUM)
 
