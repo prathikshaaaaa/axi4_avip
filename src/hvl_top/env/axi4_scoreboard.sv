@@ -2649,7 +2649,7 @@ end
             pending_tx.beats_compared
           );
           pending_tx.beats_compared++;
-          pending_read_txns[s_idx][m_read_data_tx.arid][0] = pending_tx;
+          pending_read_txns[s_idx][m_read_data_tx.rid][0] = pending_tx;
           // On last beat: release MSHR and pop the pending transaction
           if(m_read_data_tx.rlast) begin
 
@@ -2673,7 +2673,7 @@ end
             end
 
             // NOW pop — transaction fully complete
-            void'(pending_read_txns[s_idx][m_read_data_tx.arid].pop_front());
+            void'(pending_read_txns[s_idx][m_read_data_tx.rid].pop_front());
 
             byte_data_cmp_verified_rlast_count++;
 
