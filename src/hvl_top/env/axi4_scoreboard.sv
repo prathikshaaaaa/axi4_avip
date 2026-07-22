@@ -3658,7 +3658,7 @@ task automatic axi4_scoreboard::axi4_read_data_comparison(
         if(expected_byte !== dut_byte) begin
           beat_ok = 0;
           byte_data_cmp_failed_rdata_count++;
-          `uvm_error("R_CMP_MISS_DATA_MISMATCH",$sformatf("M[%0d] S[%0d] MISS Beat=%0d ByteIdx=%0d Addr=0x%0h Lane=%0d Expected(refMem)=0x%0h Got=0x%0h",master_id, slave_id,
+          `uvm_error("R_CMP_MISS_DATA_MISMATCH",$sformatf("M[%0d] S[%0d] MISS Beat=%0d Byteindx=%0d Addr=0x%0h Lane=%0d Expected(refMem)=0x%0h Got=0x%0h",master_id, slave_id,
                       beat, byte_idx,
                       temp_addr, lane,
                       expected_byte, dut_byte))
