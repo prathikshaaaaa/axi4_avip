@@ -354,7 +354,8 @@ typedef struct {
 
   extern virtual function void l3_writeback_to_memory(
     input int set_index,
-    input int way
+    input int way,
+    input int wb_slave_idx  
   );
 
   extern virtual function int scb_allocate_mshr(
@@ -950,14 +951,7 @@ function void axi4_scoreboard::l3_writeback_to_memory(
               set_index[L3_INDEX_BITS-1:0],
               {L3_OFFSET_BITS{1'b0}} };
 
-  // ── Validate the address maps to a slave ─────────────────────────────────
-  slave_idx = get_slave_index(wb_addr);
-  if(slave_idx == -1) begin
-    `uvm_error("L3_WB_NO_SLAVE",
-      $sformatf("Writeback addr=0x%0h maps to no slave — Set=%0d Way=%0d",
-                wb_addr, set_index, way))
-    return;
-  end
+    slave_idx = wb_slave_idx;
 
   $display("[SCB_WB_START] time=%0t set=%0d way=%0d addr=0x%0h slave=%0d tag=0x%0h",$time, set_index, way, wb_addr, slave_idx, l3_cache[set_index][way].tag);
 
@@ -1113,12 +1107,9 @@ function int axi4_scoreboard::scb_allocate_mshr(
       scb_mshr[i].start_byte = int'(offset);
 
       if(scb_mshr[i].needs_writeback)begin
-       // Save old tag for writeback address reconstruction
-       scb_mshr[i].wb_addr = {l3_cache[index][way].tag,
-                           index[L3_INDEX_BITS-1:0],
-                           {L3_OFFSET_BITS{1'b0}}};
-       l3_writeback_to_memory(index, way);
-       end
+  scb_mshr[i].wb_addr = {l3_cache[index][way].tag, index[L3_INDEX_BITS-1:0], {L3_OFFSET_BITS{1'b0}}};
+  l3_writeback_to_memory(index, way, slave);   // FIX: pass new-request's slave
+end
         
       l3_set_line_state(index, way, L3_FILLING);
       l3_cache[index][way].tag = tag; 
