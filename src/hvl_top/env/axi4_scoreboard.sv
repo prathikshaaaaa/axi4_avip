@@ -2368,10 +2368,12 @@ foreach(axi4_slave_write_response_analysis_fifo[i]) begin
 
 
             for(int b = 0; b < L3_CACHE_LINE_SIZE_BYTES; b++) begin
-              if(referenceData[s_idx].exists(wb_addr + b))
-                referenceData[s_idx].delete(wb_addr + b);
-            end
-
+  if(referenceData[s_idx].exists(wb_addr + b)) begin
+    $display("*** REFMEM_DELETE: slave=%0d addr=0x%0h (was 0x%0h) time=%0t ***",
+      s_idx, wb_addr + b, referenceData[s_idx][wb_addr+b], $time);
+    referenceData[s_idx].delete(wb_addr + b);
+  end
+end
 
 
             l3_writeback_errors++;
