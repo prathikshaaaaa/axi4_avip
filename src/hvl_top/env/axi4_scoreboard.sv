@@ -584,12 +584,9 @@ begin
       referenceData[1].exists(64'h1000) ? referenceData[1][64'h1000] : 8'hFF),
     UVM_LOW)
     
-  `uvm_info("SCB_REFMEM_DEBUG3",
-  $sformatf("Slave[1] exists(0x1001)=%0b val(0x1001)=0x%0h",
-    referenceData[1].exists(64'h1001),
-    referenceData[1].exists(64'h1001) ? referenceData[1][64'h1001] : 8'hFF),
-  UVM_LOW)
-  
+  $display("*** DEBUG3_CHECK: exists(0x1001)=%0d val(0x1001)=0x%0h ***",
+  referenceData[1].exists(64'h1001),
+  referenceData[1].exists(64'h1001) ? referenceData[1][64'h1001] : 8'hFF);
 endfunction : build_phase
 
 function void axi4_scoreboard::check_phase(uvm_phase phase);
