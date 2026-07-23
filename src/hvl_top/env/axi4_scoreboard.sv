@@ -2345,34 +2345,21 @@ foreach(axi4_slave_write_response_analysis_fifo[i]) begin
             
           end else begin
             // ERROR: writeback failed -> Restore L3_DIRTY and undo Reference Data
-            bit [ADDRESS_WIDTH-1:0] wb_addr;
+           bit [ADDRESS_WIDTH-1:0] wb_addr;
 
+scb_mshr[wi].wb_done   = 1;
+scb_mshr[wi].wb_error  = 1;
+scb_mshr[wi].resp_code = s_write_resp_tx.bresp;
 
+l3_set_line_state(scb_mshr[wi].index, scb_mshr[wi].way, L3_DIRTY);
 
-            scb_mshr[wi].wb_done   = 1;
-            scb_mshr[wi].wb_error  = 1;
-            scb_mshr[wi].resp_code = s_write_resp_tx.bresp;
+// FIX: use the address saved at allocation time (BEFORE tag was overwritten
+// by the new incoming line), not the current (now-stale) l3_cache tag.
+wb_addr = scb_mshr[wi].wb_addr;
 
-
-
-            l3_set_line_state(scb_mshr[wi].index, scb_mshr[wi].way, L3_DIRTY);
-
-
-
-            wb_addr = {
-              l3_cache[scb_mshr[wi].index][scb_mshr[wi].way].tag,
-              scb_mshr[wi].index[L3_INDEX_BITS-1:0],
-              {L3_OFFSET_BITS{1'b0}}
-            };
-
-
-
-            for(int b = 0; b < L3_CACHE_LINE_SIZE_BYTES; b++) begin
-  if(referenceData[s_idx].exists(wb_addr + b)) begin
-    $display("*** REFMEM_DELETE: slave=%0d addr=0x%0h (was 0x%0h) time=%0t ***",
-      s_idx, wb_addr + b, referenceData[s_idx][wb_addr+b], $time);
+for(int b = 0; b < L3_CACHE_LINE_SIZE_BYTES; b++) begin
+  if(referenceData[s_idx].exists(wb_addr + b))
     referenceData[s_idx].delete(wb_addr + b);
-  end
 end
 
 
