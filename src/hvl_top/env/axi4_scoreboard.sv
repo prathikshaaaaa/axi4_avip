@@ -3280,6 +3280,11 @@ task axi4_scoreboard::axi4_read_address_comparison(
     logic [$clog2(NO_OF_MASTERS)+ID_WIDTH-1:0] expected_combined_arid;
     expected_combined_arid = {master_id[$clog2(NO_OF_MASTERS)-1:0], exp_tx.arid};
 
+
+  $display("*** ARID_DEBUG: master_id=%0d exp_tx.arid=0x%0h expected_combined_arid=0x%0h act_tx.arid=0x%0h ***",
+    master_id, exp_tx.arid, expected_combined_arid, act_tx.arid);
+
+
     if(expected_combined_arid === act_tx.arid) begin
       byte_data_cmp_verified_arid_count++;
       `uvm_info("AR_CMP_ARID_OK",
