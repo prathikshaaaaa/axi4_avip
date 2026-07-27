@@ -928,7 +928,8 @@ endfunction : l3_set_line_state
 //=============================================================================
 function void axi4_scoreboard::l3_writeback_to_memory(
   input int set_index,
-  input int way
+  input int way,
+   input int wb_slave_idx
 );
 
   bit [ADDRESS_WIDTH-1:0] wb_addr;
