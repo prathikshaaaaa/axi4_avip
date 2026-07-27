@@ -3270,18 +3270,29 @@ task axi4_scoreboard::axi4_read_address_comparison(
   // ------------------------------------------------------------------
   // R14 — ARID
   // ------------------------------------------------------------------
-  if(exp_tx.arid === act_tx.arid) begin
-    byte_data_cmp_verified_arid_count++;
-    `uvm_info("AR_CMP_ARID_OK",
-      $sformatf("M[%0d]->S[%0d] ARID match: 0x%0h",
-                master_id, slave_id, act_tx.arid),
-      UVM_HIGH)
-  end
-  else begin
-    byte_data_cmp_failed_arid_count++;
-    `uvm_error("AR_CMP_ARID_FAIL",
-      $sformatf("M[%0d]->S[%0d] ARID mismatch — Expected=0x%0h Got=0x%0h",
-                master_id, slave_id, exp_tx.arid, act_tx.arid))
+ // ------------------------------------------------------------------
+  // R14 — ARID
+  // Slave-side ARID is a combined ID: {master_id, local_id}.
+  // Master-side exp_tx.arid only holds the local ID (ID_WIDTH bits),
+  // so reconstruct the expected combined ID before comparing.
+  // ------------------------------------------------------------------
+  begin
+    logic [$clog2(NO_OF_MASTERS)+ID_WIDTH-1:0] expected_combined_arid;
+    expected_combined_arid = {master_id[$clog2(NO_OF_MASTERS)-1:0], exp_tx.arid};
+
+    if(expected_combined_arid === act_tx.arid) begin
+      byte_data_cmp_verified_arid_count++;
+      `uvm_info("AR_CMP_ARID_OK",
+        $sformatf("M[%0d]->S[%0d] ARID match: 0x%0h",
+                  master_id, slave_id, act_tx.arid),
+        UVM_HIGH)
+    end
+    else begin
+      byte_data_cmp_failed_arid_count++;
+      `uvm_error("AR_CMP_ARID_FAIL",
+        $sformatf("M[%0d]->S[%0d] ARID mismatch — Expected=0x%0h Got=0x%0h",
+                  master_id, slave_id, expected_combined_arid, act_tx.arid))
+    end
   end
 
   // ------------------------------------------------------------------
