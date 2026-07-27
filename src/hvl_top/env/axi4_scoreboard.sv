@@ -3276,30 +3276,30 @@ task axi4_scoreboard::axi4_read_address_comparison(
   // Master-side exp_tx.arid only holds the local ID (ID_WIDTH bits),
   // so reconstruct the expected combined ID before comparing.
   // ------------------------------------------------------------------
-  begin
-    logic [$clog2(NO_OF_MASTERS)+ID_WIDTH-1:0] expected_combined_arid;
-    expected_combined_arid = {master_id[$clog2(NO_OF_MASTERS)-1:0], exp_tx.arid};
+begin
+  logic [$clog2(NO_OF_MASTERS)+ID_WIDTH-1:0] expected_combined_arid;
+  logic [ID_WIDTH-1:0] local_arid;
 
+  local_arid = exp_tx.arid[ID_WIDTH-1:0];   // force down to just the local 4 bits
+  expected_combined_arid = {master_id[$clog2(NO_OF_MASTERS)-1:0], local_arid};
 
-  $display("*** ARID_DEBUG: master_id=%0d exp_tx.arid=0x%0h expected_combined_arid=0x%0h act_tx.arid=0x%0h ***",
-    master_id, exp_tx.arid, expected_combined_arid, act_tx.arid);
+  $display("*** ARID_DEBUG: master_id=%0d exp_tx.arid=0x%0h local_arid=0x%0h expected_combined_arid=0x%0h act_tx.arid=0x%0h ***",
+    master_id, exp_tx.arid, local_arid, expected_combined_arid, act_tx.arid);
 
-
-    if(expected_combined_arid === act_tx.arid) begin
-      byte_data_cmp_verified_arid_count++;
-      `uvm_info("AR_CMP_ARID_OK",
-        $sformatf("M[%0d]->S[%0d] ARID match: 0x%0h",
-                  master_id, slave_id, act_tx.arid),
-        UVM_HIGH)
-    end
-    else begin
-      byte_data_cmp_failed_arid_count++;
-      `uvm_error("AR_CMP_ARID_FAIL",
-        $sformatf("M[%0d]->S[%0d] ARID mismatch — Expected=0x%0h Got=0x%0h",
-                  master_id, slave_id, expected_combined_arid, act_tx.arid))
-    end
+  if(expected_combined_arid === act_tx.arid) begin
+    byte_data_cmp_verified_arid_count++;
+    `uvm_info("AR_CMP_ARID_OK",
+      $sformatf("M[%0d]->S[%0d] ARID match: 0x%0h",
+                master_id, slave_id, act_tx.arid),
+      UVM_HIGH)
   end
-
+  else begin
+    byte_data_cmp_failed_arid_count++;
+    `uvm_error("AR_CMP_ARID_FAIL",
+      $sformatf("M[%0d]->S[%0d] ARID mismatch — Expected=0x%0h Got=0x%0h",
+                master_id, slave_id, expected_combined_arid, act_tx.arid))
+  end
+end
   // ------------------------------------------------------------------
   // R15 — ARADDR
   // ------------------------------------------------------------------
