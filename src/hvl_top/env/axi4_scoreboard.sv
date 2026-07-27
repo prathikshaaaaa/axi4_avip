@@ -2534,7 +2534,31 @@ end
       end
 
       if(!found) begin
-       `uvm_error("RD_ADDR_NO_MATCH", $sformatf("S[%0d] received ARID=0x%0h but no pending transaction", s_idx, s_read_addr_tx.arid))
+        // Not a master-initiated read — check if this AR is a
+        // write-miss refill (DUT reading old line before merging write).
+        // Those never get pushed into pending_read_txns[], so absence
+        // there is expected and NOT an error.
+        bit is_write_refill;
+        bit [L3_TAG_BITS-1:0]    chk_tag;
+        bit [L3_INDEX_BITS-1:0]  chk_index;
+        bit [L3_OFFSET_BITS-1:0] chk_offset;
+        is_write_refill = 0;
+
+        l3_cache_decode_address(s_read_addr_tx.araddr, chk_tag, chk_index, chk_offset);
+
+        for(int m = 0; m < MAX_MSHR; m++) begin
+          if(scb_mshr[m].valid && scb_mshr[m].is_write &&
+             scb_mshr[m].index == chk_index && scb_mshr[m].tag == chk_tag) begin
+            is_write_refill = 1;
+            break;
+          end
+        end
+
+        if(!is_write_refill) begin
+          `uvm_error("RD_ADDR_NO_MATCH", $sformatf("S[%0d] received ARID=0x%0h but no pending transaction", s_idx, s_read_addr_tx.arid))
+        end else begin
+          `uvm_info("RD_ADDR_WRITE_REFILL", $sformatf("S[%0d] ARID=0x%0h AR is a write-miss refill \u2014 no master read expected, skipping match", s_idx, s_read_addr_tx.arid), UVM_MEDIUM)
+        end
       end
 
       mshr_found = 0;
@@ -2587,8 +2611,6 @@ end
     end // forever
   join_none
 end
-  
-  
  //===========================================================================
  // READ DATA PATH - Master Side     
  //===========================================================================
