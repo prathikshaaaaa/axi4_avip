@@ -3616,20 +3616,41 @@ task automatic axi4_scoreboard::axi4_read_data_comparison(
 
   // ------------------------------------------------------------------
   // R27 — RLAST
-  // act_tx.rlast must be 1 only on the final beat (arlen'th beat).
-  // The run_phase pops the pending transaction only after rlast so by
-  // the time this task sees it, rlast is expected to be asserted.
+  // act_tx.rlast must be 1 only on the final beat (beat_num == arlen).
+  // This task is called once per real beat, so only enforce rlast=1
+  // when beat_num indicates we're actually on the last beat; on all
+  // earlier beats, rlast must be 0.
   // ------------------------------------------------------------------
-  if(act_tx.rlast === 1'b1) begin
-    byte_data_cmp_verified_rlast_count++;
-    `uvm_info("R_CMP_RLAST_OK",
-      $sformatf("M[%0d] S[%0d] RLAST correctly asserted ARID=0x%0h",
-                master_id, slave_id, exp_tx.arid),
-      UVM_HIGH)
-  end
-  else begin
-    byte_data_cmp_failed_rlast_count++;
-`uvm_error("R_CMP_RLAST_FAIL", $sformatf("M[%0d] S[%0d] RLAST NOT asserted at final beat ARID=0x%0h ARLEN=%0d", master_id, slave_id, exp_tx.arid, exp_tx.arlen))
+  begin
+    bit is_final_beat;
+    is_final_beat = (beat_num == exp_tx.arlen);
+
+    if(is_final_beat) begin
+      if(act_tx.rlast === 1'b1) begin
+        byte_data_cmp_verified_rlast_count++;
+        `uvm_info("R_CMP_RLAST_OK",
+          $sformatf("M[%0d] S[%0d] RLAST correctly asserted ARID=0x%0h",
+                    master_id, slave_id, exp_tx.arid),
+          UVM_HIGH)
+      end
+      else begin
+        byte_data_cmp_failed_rlast_count++;
+        `uvm_error("R_CMP_RLAST_FAIL", $sformatf("M[%0d] S[%0d] RLAST NOT asserted at final beat ARID=0x%0h ARLEN=%0d", master_id, slave_id, exp_tx.arid, exp_tx.arlen))
+      end
+    end
+    else begin
+      if(act_tx.rlast === 1'b0) begin
+        byte_data_cmp_verified_rlast_count++;
+        `uvm_info("R_CMP_RLAST_OK",
+          $sformatf("M[%0d] S[%0d] Beat=%0d RLAST correctly deasserted (not final beat)",
+                    master_id, slave_id, beat_num),
+          UVM_HIGH)
+      end
+      else begin
+        byte_data_cmp_failed_rlast_count++;
+        `uvm_error("R_CMP_RLAST_EARLY", $sformatf("M[%0d] S[%0d] RLAST asserted too early at Beat=%0d ARID=0x%0h ARLEN=%0d", master_id, slave_id, beat_num, exp_tx.arid, exp_tx.arlen))
+      end
+    end
   end
 
   // ------------------------------------------------------------------
