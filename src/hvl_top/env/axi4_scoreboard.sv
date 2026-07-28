@@ -3404,19 +3404,29 @@ end
 
   // ------------------------------------------------------------------
   // R19 — ARCACHE
+  // DUT does not forward ARCACHE on internally-generated refill ARs —
+  // confirmed in RTL: s_arcache is defaulted to '0 and never assigned
+  // in the AR downstream block (axi_cache_controller). Only compare
+  // directly against the master's original value for non-cacheable/
+  // device (bypass) traffic, where the AR is a straight pass-through.
   // ------------------------------------------------------------------
-  if(exp_tx.arcache === act_tx.arcache) begin
-    byte_data_cmp_verified_arcache_count++;
-    `uvm_info("AR_CMP_ARCACHE_OK",
-      $sformatf("M[%0d]->S[%0d] ARCACHE match: 0x%0h",
-                master_id, slave_id, act_tx.arcache),
-      UVM_HIGH)
-  end
-  else begin
-    byte_data_cmp_failed_arcache_count++;
-    `uvm_error("AR_CMP_ARCACHE_FAIL",
-      $sformatf("M[%0d]->S[%0d] ARCACHE mismatch — Expected=0x%0h Got=0x%0h",
-                master_id, slave_id, exp_tx.arcache, act_tx.arcache))
+  begin
+    logic [3:0] expected_arcache;
+    expected_arcache = (policy.cacheable && !policy.device) ? 4'h0 : exp_tx.arcache;
+
+    if(expected_arcache === act_tx.arcache) begin
+      byte_data_cmp_verified_arcache_count++;
+      `uvm_info("AR_CMP_ARCACHE_OK",
+        $sformatf("M[%0d]->S[%0d] ARCACHE match: 0x%0h",
+                  master_id, slave_id, act_tx.arcache),
+        UVM_HIGH)
+    end
+    else begin
+      byte_data_cmp_failed_arcache_count++;
+      `uvm_error("AR_CMP_ARCACHE_FAIL",
+        $sformatf("M[%0d]->S[%0d] ARCACHE mismatch — Expected=0x%0h Got=0x%0h",
+                  master_id, slave_id, expected_arcache, act_tx.arcache))
+    end
   end
 
   // ------------------------------------------------------------------
