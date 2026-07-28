@@ -3494,19 +3494,35 @@ end
 
   // ------------------------------------------------------------------
   // R22 — ARQOS
+  // DUT's axi_cache_controller has no s_arqos output port at all —
+  // it cannot forward ARQOS on any downstream AR (confirmed in RTL:
+  // no s_arqos signal exists in the module port list). Only compare
+  // directly for non-cacheable/device (bypass) traffic; skip the check
+  // for cacheable refills since the DUT has no mechanism to carry it.
   // ------------------------------------------------------------------
-  if(exp_tx.arqos === act_tx.arqos) begin
-    byte_data_cmp_verified_arqos_count++;
-    `uvm_info("AR_CMP_ARQOS_OK",
-      $sformatf("M[%0d]->S[%0d] ARQOS match: 0x%0h",
-                master_id, slave_id, act_tx.arqos),
-      UVM_HIGH)
-  end
-  else begin
-    byte_data_cmp_failed_arqos_count++;
-    `uvm_error("AR_CMP_ARQOS_FAIL",
-      $sformatf("M[%0d]->S[%0d] ARQOS mismatch — Expected=0x%0h Got=0x%0h",
-                master_id, slave_id, exp_tx.arqos, act_tx.arqos))
+  begin
+    logic expect_arqos_check;
+    expect_arqos_check = !(policy.cacheable && !policy.device);
+
+    if(!expect_arqos_check) begin
+      `uvm_info("AR_CMP_ARQOS_SKIP",
+        $sformatf("M[%0d]->S[%0d] ARQOS check skipped — cacheable refill, DUT has no s_arqos port",
+                  master_id, slave_id),
+        UVM_HIGH)
+    end
+    else if(exp_tx.arqos === act_tx.arqos) begin
+      byte_data_cmp_verified_arqos_count++;
+      `uvm_info("AR_CMP_ARQOS_OK",
+        $sformatf("M[%0d]->S[%0d] ARQOS match: 0x%0h",
+                  master_id, slave_id, act_tx.arqos),
+        UVM_HIGH)
+    end
+    else begin
+      byte_data_cmp_failed_arqos_count++;
+      `uvm_error("AR_CMP_ARQOS_FAIL",
+        $sformatf("M[%0d]->S[%0d] ARQOS mismatch — Expected=0x%0h Got=0x%0h",
+                  master_id, slave_id, exp_tx.arqos, act_tx.arqos))
+    end
   end
 
   // ------------------------------------------------------------------
