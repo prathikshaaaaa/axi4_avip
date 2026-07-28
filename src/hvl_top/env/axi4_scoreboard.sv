@@ -3429,7 +3429,7 @@ end
     end
   end
 
-  // ------------------------------------------------------------------
+ // ------------------------------------------------------------------
   // R20 — ARPROT
   // DUT's axi_cache_controller has no s_arprot output port at all —
   // it cannot forward ARPROT on any downstream AR (confirmed in RTL:
@@ -3461,6 +3461,7 @@ end
                   master_id, slave_id, exp_tx.arprot, act_tx.arprot))
     end
   end
+
   // ------------------------------------------------------------------
   // R21 — ARLOCK — must be NORMAL for cacheable refills
   // ------------------------------------------------------------------
@@ -3555,19 +3556,23 @@ task automatic axi4_scoreboard::axi4_read_data_comparison(
 
   // ------------------------------------------------------------------
   // R24 — RID
+  // act_tx is the READ DATA channel transaction — it carries the ID
+  // in its .rid field, not .arid (that belongs to the address-channel
+  // object). Comparing against act_tx.arid was always reading the
+  // unset/default value (0), causing spurious RID mismatches.
   // ------------------------------------------------------------------
-  if(act_tx.arid === exp_tx.arid) begin
+  if(act_tx.rid === exp_tx.arid) begin
     byte_data_cmp_verified_rid_count++;
     `uvm_info("R_CMP_RID_OK",
       $sformatf("M[%0d] S[%0d] RID match: 0x%0h",
-                master_id, slave_id, act_tx.arid),
+                master_id, slave_id, act_tx.rid),
       UVM_HIGH)
   end
   else begin
     byte_data_cmp_failed_rid_count++;
     `uvm_error("R_CMP_RID_FAIL",
       $sformatf("M[%0d] S[%0d] RID mismatch — ARID=0x%0h Got RID=0x%0h",
-                master_id, slave_id, exp_tx.arid, act_tx.arid))
+                master_id, slave_id, exp_tx.arid, act_tx.rid))
   end
 
   // ------------------------------------------------------------------
