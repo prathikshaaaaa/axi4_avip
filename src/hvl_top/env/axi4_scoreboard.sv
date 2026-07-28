@@ -3431,21 +3431,36 @@ end
 
   // ------------------------------------------------------------------
   // R20 — ARPROT
+  // DUT's axi_cache_controller has no s_arprot output port at all —
+  // it cannot forward ARPROT on any downstream AR (confirmed in RTL:
+  // no s_arprot signal exists in the module port list). Only compare
+  // directly for non-cacheable/device (bypass) traffic; skip the check
+  // for cacheable refills since the DUT has no mechanism to carry it.
   // ------------------------------------------------------------------
-  if(exp_tx.arprot === act_tx.arprot) begin
-    byte_data_cmp_verified_arprot_count++;
-    `uvm_info("AR_CMP_ARPROT_OK",
-      $sformatf("M[%0d]->S[%0d] ARPROT match: 0x%0h",
-                master_id, slave_id, act_tx.arprot),
-      UVM_HIGH)
-  end
-  else begin
-    byte_data_cmp_failed_arprot_count++;
-    `uvm_error("AR_CMP_ARPROT_FAIL",
-      $sformatf("M[%0d]->S[%0d] ARPROT mismatch — Expected=0x%0h Got=0x%0h",
-                master_id, slave_id, exp_tx.arprot, act_tx.arprot))
-  end
+  begin
+    logic expect_arprot_check;
+    expect_arprot_check = !(policy.cacheable && !policy.device);
 
+    if(!expect_arprot_check) begin
+      `uvm_info("AR_CMP_ARPROT_SKIP",
+        $sformatf("M[%0d]->S[%0d] ARPROT check skipped — cacheable refill, DUT has no s_arprot port",
+                  master_id, slave_id),
+        UVM_HIGH)
+    end
+    else if(exp_tx.arprot === act_tx.arprot) begin
+      byte_data_cmp_verified_arprot_count++;
+      `uvm_info("AR_CMP_ARPROT_OK",
+        $sformatf("M[%0d]->S[%0d] ARPROT match: 0x%0h",
+                  master_id, slave_id, act_tx.arprot),
+        UVM_HIGH)
+    end
+    else begin
+      byte_data_cmp_failed_arprot_count++;
+      `uvm_error("AR_CMP_ARPROT_FAIL",
+        $sformatf("M[%0d]->S[%0d] ARPROT mismatch — Expected=0x%0h Got=0x%0h",
+                  master_id, slave_id, exp_tx.arprot, act_tx.arprot))
+    end
+  end
   // ------------------------------------------------------------------
   // R21 — ARLOCK — must be NORMAL for cacheable refills
   // ------------------------------------------------------------------
