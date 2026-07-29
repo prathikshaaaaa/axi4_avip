@@ -94,42 +94,42 @@ class axi4_virtual_read_miss_seq extends axi4_virtual_base_seq;
         end
       end // Thread 1
 
-      // ----------------------------------------------------------------
-      // THREAD 2 — MASTER READ-MISS THREADS
-      //
-      // Each master gets a unique txn_num → unique tag → unique cache-miss.
-      // All masters fire in parallel; wait fork here scopes only to the
-      // join_none children created inside this begin…end block, so it
-      // does NOT wait for the slave forever-loops above.
-      // ----------------------------------------------------------------
       begin
-        for (int m = 0; m < NO_OF_MASTERS; m++) begin
-          automatic int local_m   = m;
-          automatic int local_num = m;
+        // ------------------------------------------------------------
+        // MISS-THEN-HIT PATTERN (mirrors axi4_virtual_writeback_seq):
+        //   Master 4 reads addr 0x1 first  -> MISS  (fills way0)
+        //   Master 3 reads the SAME addr   -> HIT   (line already cached)
+        // Both masters target the identical tag+set+offset so the
+        // second access resolves directly to the way filled by the first.
+        // ------------------------------------------------------------
+        int read_test_masters[2] = '{4, 3};   // fork order: 4 first, 3 second
+        bit [31:0] shared_addr   = 32'h1;      // same address for both
 
-          m_rd_miss_seq[m] = axi4_master_read_miss_seq::type_id::create(
-                               $sformatf("m_rd_miss_seq[%0d]", m));
+        for (int idx = 0; idx < 2; idx++) begin
+          automatic int local_m   = read_test_masters[idx];
+          automatic int local_num = idx;
 
-          // Address: unique tag per master, same set (index=0)
-          m_rd_miss_seq[m].txn_addr = (32'(local_num) << 10) | 32'h1;
-          m_rd_miss_seq[m].txn_num  = local_num;
+          m_rd_miss_seq[local_m] = axi4_master_read_miss_seq::type_id::create(
+                                     $sformatf("m_rd_miss_seq[%0d]", local_m));
+
+          m_rd_miss_seq[local_m].txn_addr = shared_addr;
+          m_rd_miss_seq[local_m].txn_num  = local_num;
 
           fork
+            automatic int fork_m = local_m;
             begin
-              // Fire on the READ sequencer (not the write sequencer)
-              m_rd_miss_seq[local_m].start(
-                p_sequencer.axi4_master_read_seqr_h[local_m]);
+              m_rd_miss_seq[fork_m].start(
+                p_sequencer.axi4_master_read_seqr_h[fork_m]);
 
               `uvm_info(get_type_name(),
-                $sformatf("DONE READ MISS TXN[%0d] M[%0d] araddr=0x%0h",
-                           local_num, local_m,
-                           m_rd_miss_seq[local_m].txn_addr),
+                $sformatf("DONE READ TXN M[%0d] araddr=0x%0h",
+                           fork_m, m_rd_miss_seq[fork_m].txn_addr),
                 UVM_LOW)
             end
           join_none
         end
 
-        // Wait for every master to finish; slave loops are excluded
+        // Wait for both masters to finish; slave loops are excluded
         wait fork;
       end // Thread 2
 
