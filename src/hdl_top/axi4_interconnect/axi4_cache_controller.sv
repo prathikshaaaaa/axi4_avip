@@ -1368,6 +1368,8 @@ if (rd_cache_hit[m] && !mshr_done_for_m) begin
        $display("[%0t] RGEN(hit): master=%0d beat=%0d/%0d word=%0d rdata=0x%0h rlast=%0b",
                  $time, m, rd_beat_count[m], rd_hit_arlen_latched[m], cur_word, rd_cache_data[m], rd_data_last[m]);
   end
+  end
+end
 
   always_comb begin
     for (int m = 0; m < NO_OF_SLAVES; m++) begin
