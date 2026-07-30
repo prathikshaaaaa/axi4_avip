@@ -277,6 +277,10 @@ module axi_cache_controller #(
   logic [$clog2(WORDS_PER_LINE)-1:0] rd_word_idx [NO_OF_SLAVES];
   logic [$clog2(ASSOCIATIVITY)-1:0]  rd_hit_way  [NO_OF_SLAVES];
   logic [7:0] rd_beat_count [NO_OF_SLAVES];   //for read data beat count tracking
+    logic [ADDRESS_WIDTH-1:0]          rd_hit_addr_latched [NO_OF_SLAVES];
+  logic [7:0]                        rd_hit_arlen_latched[NO_OF_SLAVES];
+  logic [EXT_ID_WIDTH-1:0]           rd_hit_id_latched   [NO_OF_SLAVES];
+  logic [$clog2(ASSOCIATIVITY)-1:0]  rd_hit_way_latched  [NO_OF_SLAVES];
 
   logic [TAG_BITS-1:0]               wr_tag      [NO_OF_SLAVES];
   logic [INDEX_BITS-1:0]             wr_index    [NO_OF_SLAVES];
@@ -623,7 +627,35 @@ end
       end
     end
   end
-
+// =========================================================================
+  // BLOCK A_R2 — Latch hit-path AR attributes at the exact accept cycle.
+  // cache_araddr/arlen/arid are only valid combinationally during the single
+  // cycle rd_active_master[s] is granted — they revert to '0 the very next
+  // cycle. The hit-generation logic below needs these values for the ENTIRE
+  // multi-beat burst, so latch them here, exactly like the miss path already
+  // does via the MSHR.
+  // =========================================================================
+  always_ff @(posedge aclk or negedge aresetn) begin
+    if (!aresetn) begin
+      for (int s = 0; s < NO_OF_SLAVES; s++) begin
+        rd_hit_addr_latched[s]  <= '0;
+        rd_hit_arlen_latched[s] <= '0;
+        rd_hit_id_latched[s]    <= '0;
+        rd_hit_way_latched[s]   <= '0;
+      end
+    end else begin
+      for (int s = 0; s < NO_OF_SLAVES; s++) begin
+        if (rd_cache_hit[s] && cache_arvalid[s] && cache_arready[s]) begin
+          rd_hit_addr_latched[s]  <= cache_araddr[s];
+          rd_hit_arlen_latched[s] <= cache_arlen[s];
+          rd_hit_id_latched[s]    <= cache_arid[s];
+          rd_hit_way_latched[s]   <= rd_hit_way[s];
+          $display("[RD_HIT_LATCH] time=%0t slave=%0d addr=0x%0h arlen=%0d id=0x%0h way=%0d",
+                    $time, s, cache_araddr[s], cache_arlen[s], cache_arid[s], rd_hit_way[s]);
+        end
+      end
+    end
+  end
   // =========================================================================
   // BLOCK B — wr_hit_id[]
   // =========================================================================
@@ -1321,22 +1353,21 @@ end
           mshr_done_for_m = 1'b1;
           $display("[DEBUG-RGEN] time=%0t m=%0d mshr=%0d mshr_done_for_m=%b rd_cache_hit=%b arvalid=%b",$time, m, i,mshr_done_for_m, rd_cache_hit[m], cache_arvalid[m]);
       end
-      if (rd_cache_hit[m] && !mshr_done_for_m) begin
+if (rd_cache_hit[m] && !mshr_done_for_m) begin
        automatic logic [$clog2(WORDS_PER_LINE)-1:0] base_word;
        automatic logic [$clog2(WORDS_PER_LINE)-1:0] cur_word;
-       base_word = rd_word_idx[m];
+       base_word = get_word_index(rd_hit_addr_latched[m]);
        cur_word  = base_word + rd_beat_count[m];       // walk the cache line
 
        rd_data_valid[m] = 1'b1;
-       rd_data_last[m]  = (rd_beat_count[m] == cache_arlen[m]);  // last when count hits arlen
+       rd_data_last[m]  = (rd_beat_count[m] == rd_hit_arlen_latched[m]);  // last when count hits latched arlen
        rd_resp[m]       = 2'b00;
-       rd_data_id[m]    = rd_req_id[m];
-       rd_cache_data[m] = data_array[rd_index[m]][rd_hit_way[m]][cur_word];
+       rd_data_id[m]    = rd_hit_id_latched[m];
+       rd_cache_data[m] = data_array[get_index(rd_hit_addr_latched[m])][rd_hit_way_latched[m]][cur_word];
 
-       $display("[%0t] RGEN(hit): master=%0d beat=%0d/%0d word=%0d rdata=0x%0h rlast=%0b",$time, m, rd_beat_count[m], cache_arlen[m], cur_word, rd_cache_data[m], rd_data_last[m]);
+       $display("[%0t] RGEN(hit): master=%0d beat=%0d/%0d word=%0d rdata=0x%0h rlast=%0b",
+                 $time, m, rd_beat_count[m], rd_hit_arlen_latched[m], cur_word, rd_cache_data[m], rd_data_last[m]);
   end
- end
-end
 
   always_comb begin
     for (int m = 0; m < NO_OF_SLAVES; m++) begin
