@@ -1551,7 +1551,32 @@ function void axi4_scoreboard::l3_handle_write_data(
         end
       end
       $display("[SCB_WR_HIT_WORD] time=%0t master=%0d beat=%0d line_word_offset=%0d wdata=0x%0h wstrb=0x%0h",$time, master_id, scb_write_owner_beat, line_offset, m_tx.wdata[0], m_tx.wstrb[0]);
-      
+      // ------------------------------------------------------------------
+      // NEW: WRITE-HIT DATA MATCH/MISMATCH — verify the byte just merged
+      // into l3_cache[][] equals the exact wdata/wstrb byte the master
+      // sent for this beat. Same style as WR_MISS_DATA_MATCH/MISMATCH.
+      // ------------------------------------------------------------------
+      for(int lane = 0; lane < (DATA_WIDTH/8); lane++) begin
+        if(m_tx.wstrb[0][lane]) begin
+          byte expected_byte;
+          byte merged_byte;
+
+          expected_byte = m_tx.wdata[0][8*lane +: 8];
+          merged_byte   = l3_cache[set][way].data[line_offset+lane];
+
+          if(expected_byte !== merged_byte) begin
+            `uvm_error("WR_HIT_DATA_MISMATCH",
+              $sformatf("master=%0d set=%0d way=%0d beat=%0d line_offset=%0d lane=%0d Expected(wdata)=0x%0h Got(merged)=0x%0h",
+                        master_id, set, way, scb_write_owner_beat, line_offset, lane, expected_byte, merged_byte))
+          end
+          else begin
+            `uvm_info("WR_HIT_DATA_MATCH",
+              $sformatf("master=%0d set=%0d way=%0d beat=%0d line_offset=%0d lane=%0d Expected(wdata)=0x%0h Got(merged)=0x%0h — MATCH",
+                        master_id, set, way, scb_write_owner_beat, line_offset, lane, expected_byte, merged_byte),
+              UVM_HIGH)
+          end
+        end
+      end
     scb_write_owner_beat++;
     
     if(m_tx.wlast) begin 
