@@ -1265,6 +1265,32 @@ function void axi4_scoreboard::scb_release_mshr(
           l3_cache[set][way].data[line_word*AXI_DATA_BYTES+2],
           l3_cache[set][way].data[line_word*AXI_DATA_BYTES+1],
           l3_cache[set][way].data[line_word*AXI_DATA_BYTES+0]});
+      // ------------------------------------------------------------------
+      // NEW: WRITE-MISS DATA MATCH/MISMATCH — verify the byte just merged
+      // into l3_cache[][] equals the exact wdata/wstrb byte the master
+      // sent for this beat. Same style as R_CMP_MISS_DATA_MATCH/MISMATCH.
+      // ------------------------------------------------------------------
+      for(int lane = 0; lane < AXI_DATA_BYTES; lane++) begin
+        if(scb_mshr[i].wstrb_buf[b][lane]) begin
+          byte expected_byte;
+          byte merged_byte;
+
+          expected_byte = scb_mshr[i].wdata_buf[b][8*lane +: 8];
+          merged_byte   = l3_cache[set][way].data[line_word*AXI_DATA_BYTES+lane];
+
+          if(expected_byte !== merged_byte) begin
+            `uvm_error("WR_MISS_DATA_MISMATCH",
+              $sformatf("mshr=%0d set=%0d way=%0d beat=%0d word=%0d lane=%0d Expected(wdata)=0x%0h Got(merged)=0x%0h",
+                        i, set, way, b, line_word, lane, expected_byte, merged_byte))
+          end
+          else begin
+            `uvm_info("WR_MISS_DATA_MATCH",
+              $sformatf("mshr=%0d set=%0d way=%0d beat=%0d word=%0d lane=%0d Expected(wdata)=0x%0h Got(merged)=0x%0h — MATCH",
+                        i, set, way, b, line_word, lane, expected_byte, merged_byte),
+              UVM_HIGH)
+          end
+        end
+      end
    end
   end
 
