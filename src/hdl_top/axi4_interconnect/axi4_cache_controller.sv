@@ -1363,6 +1363,9 @@ if (rd_cache_hit[m] && !mshr_done_for_m) begin
        rd_data_last[m]  = (rd_beat_count[m] == rd_hit_arlen_latched[m]);  // last when count hits latched arlen
        rd_resp[m]       = 2'b00;
        rd_data_id[m]    = rd_hit_id_latched[m];
+
+       $display("[RGEN_HIT_ID_CHECK] time=%0t slave_port=%0d rd_data_id=0x%0h rd_hit_id_latched=0x%0h",
+          $time, m, rd_data_id[m], rd_hit_id_latched[m]);
        rd_cache_data[m] = data_array[get_index(rd_hit_addr_latched[m])][rd_hit_way_latched[m]][cur_word];
 
        $display("[%0t] RGEN(hit): master=%0d beat=%0d/%0d word=%0d rdata=0x%0h rlast=%0b",
