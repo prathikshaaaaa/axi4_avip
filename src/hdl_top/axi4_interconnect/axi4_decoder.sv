@@ -168,6 +168,8 @@ module axi4_decoder #(
                     cache_arburst[s] = m_arburst[m];
                     cache_arcache[s] = m_arcache[m];
                 end
+                $display("[DECODER_AR_TRACE] time=%0t slave=%0d cache_arvalid=%0b cache_arid=0x%0h cache_arready=%0b rd_active_master=%0d",
+          $time, s, cache_arvalid[s], cache_arid[s], cache_arready[s], rd_active_master[s]);
             end
         end
     endgenerate
