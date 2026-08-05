@@ -103,7 +103,7 @@ class axi4_virtual_read_miss_seq extends axi4_virtual_base_seq;
         // second access resolves directly to the way filled by the first.
         // ------------------------------------------------------------
         int read_test_masters[2] = '{4, 3};   // fork order: 4 first, 3 second
-        bit [31:0] shared_addr   = 32'h1;      // same address for both
+        bit [31:0] shared_addr   = 32'h0;      // aligned base address for full 16-byte line
 
         for (int idx = 0; idx < 2; idx++) begin
           automatic int local_m   = read_test_masters[idx];
