@@ -3778,7 +3778,7 @@ task automatic axi4_scoreboard::axi4_read_data_comparison(
             beat, byte_idx,
             temp_addr, lane,
             cache_byte, dut_byte),
-  UVM_NONE)
+  UVM_LOW)
           end
 
           // Advance address per burst type
