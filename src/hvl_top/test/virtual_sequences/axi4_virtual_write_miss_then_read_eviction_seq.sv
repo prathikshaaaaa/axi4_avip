@@ -96,7 +96,7 @@ class axi4_virtual_write_miss_then_read_eviction_seq extends axi4_virtual_base_s
           UVM_LOW)
 
         m_rd_miss_seq = axi4_master_read_miss_seq::type_id::create("m_rd_miss_seq");
-        m_rd_miss_seq.txn_addr = 32'h0000_1001;
+        m_rd_miss_seq.txn_addr = 32'h0000_1000;
         m_rd_miss_seq.txn_num  = 4;
 
         m_rd_miss_seq.start(p_sequencer.axi4_master_read_seqr_h[4]);
