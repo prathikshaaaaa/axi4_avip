@@ -3753,10 +3753,12 @@ task automatic axi4_scoreboard::axi4_read_data_comparison(
       wrap_start_addr = (longint'(exp_tx.araddr) / wrap_boundary) * wrap_boundary;
       wrap_end_addr   = wrap_start_addr + wrap_boundary;
       align_amount    = longint'(exp_tx.araddr) % bytes_per_beat;
-
-      foreach(act_tx.rdata[beat]) begin
-        int local_align = (beat == 0) ? align_amount : 0;
-        bit beat_ok = 1;
+foreach(act_tx.rdata[beat]) begin
+  int local_align    = (beat_num == 0) ? align_amount : 0;
+  longint beat_base  = (beat_num == 0) ? exp_tx.araddr
+                        : (exp_tx.araddr - align_amount) + longint'(beat_num) * bytes_per_beat;
+  longint temp_addr  = beat_base;
+  bit beat_ok = 1;
 
         for(int byte_idx = local_align; byte_idx < bytes_per_beat; byte_idx++) begin
           int line_offset;
