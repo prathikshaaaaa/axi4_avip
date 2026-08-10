@@ -779,6 +779,9 @@ function bit axi4_scoreboard::l3_cache_lookup(
   hit_way = -1;
   state   = L3_INVALID;
 
+  $display("[LOOKUP_ENTRY] time=%0t addr=0x%0h device=%0b cacheable=%0b read_allocate=%0b write_allocate=%0b",
+    $time, addr, policy.device, policy.cacheable, policy.read_allocate, policy.write_allocate);
+
   // AXI4 RULE — Device or Non-cacheable bypass
   if(policy.device || !policy.cacheable)
     return 0;
