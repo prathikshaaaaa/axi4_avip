@@ -798,6 +798,10 @@ function bit axi4_scoreboard::l3_cache_lookup(
     return 0;
   end
 
+  $display("[LOOKUP_DEBUG] time=%0t addr=0x%0h index=%0d tag=0x%0h valid=%0b state=%0s stored_tag=0x%0h",
+    $time, addr, index, tag, l3_cache[index][0].valid, l3_cache[index][0].state.name(), l3_cache[index][0].tag);
+
+
   // Search set
   for(int w = 0; w < L3_CACHE_ASSOCIATIVITY; w++) begin
     if(l3_cache[index][w].valid &&
