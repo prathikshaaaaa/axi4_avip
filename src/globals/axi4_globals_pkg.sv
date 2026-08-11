@@ -149,11 +149,16 @@ package axi4_globals_pkg;
   //Enum: arcache_e
   //Used to declare enum type for read cache access
 typedef enum bit [3:0] {
-  READ_BUFFERABLE      = 4'b0001,
-  READ_MODIFIABLE      = 4'b0010,
-  READ_OTHER_ALLOCATE  = 4'b0100,
-  READ_ALLOCATE        = 4'b1100   // read-allocate + write-allocate, typical cacheable value
+  ARCACHE_0000 = 4'h0, ARCACHE_0001 = 4'h1, ARCACHE_0010 = 4'h2, ARCACHE_0011 = 4'h3,
+  ARCACHE_0100 = 4'h4, ARCACHE_0101 = 4'h5, ARCACHE_0110 = 4'h6, ARCACHE_0111 = 4'h7,
+  ARCACHE_1000 = 4'h8, ARCACHE_1001 = 4'h9, ARCACHE_1010 = 4'hA, ARCACHE_1011 = 4'hB,
+  ARCACHE_1100 = 4'hC, ARCACHE_1101 = 4'hD, ARCACHE_1110 = 4'hE, ARCACHE_1111 = 4'hF
 } arcache_e;
+
+localparam arcache_e READ_BUFFERABLE     = ARCACHE_0001;
+localparam arcache_e READ_MODIFIABLE     = ARCACHE_0010;
+localparam arcache_e READ_OTHER_ALLOCATE = ARCACHE_0100;
+localparam arcache_e READ_ALLOCATE       = ARCACHE_1100;
 
   //Enum: endian_e
   //Used to declare enum type for the endians
