@@ -3634,44 +3634,41 @@ task automatic axi4_scoreboard::axi4_read_data_comparison(
   end
 
   // ------------------------------------------------------------------
-  // R26 — RRESP per beat
-  // ------------------------------------------------------------------
-  foreach(act_tx.rresp[beat]) begin
-    case(act_tx.rresp[beat])
-      2'b00: begin // OKAY
-        byte_data_cmp_verified_rresp_count++;
-      end
-      2'b01: begin // EXOKAY
-        if(exp_tx.arlock === 1'b1) begin
-          byte_data_cmp_verified_rresp_count++;
-        `uvm_info("R_CMP_RRESP_EXOKAY", $sformatf("M[%0d] S[%0d] Beat=%0d RRESP=EXOKAY for exclusive ARID=0x%0h - OK", master_id, slave_id, beat, exp_tx.arid), UVM_HIGH)
-        end
-        else begin
-          byte_data_cmp_failed_rresp_count++;
-          `uvm_error("R_CMP_RRESP_EXOKAY_ILLEGAL", $sformatf("M[%0d] S[%0d] Beat=%0d RRESP=EXOKAY but ARLOCK=NORMAL - AXI4 violation ARID=0x%0h", master_id, slave_id, beat, exp_tx.arid))
-        end
-      end
-      2'b10: begin // SLVERR
-        byte_data_cmp_failed_rresp_count++;
-        `uvm_error("R_CMP_RRESP_SLVERR",
-          $sformatf("M[%0d] S[%0d] Beat=%0d RRESP=SLVERR ARID=0x%0h",
-                    master_id, slave_id, beat, exp_tx.arid))
-      end
-      2'b11: begin // DECERR
-        byte_data_cmp_failed_rresp_count++;
-        `uvm_error("R_CMP_RRESP_DECERR",
-          $sformatf("M[%0d] S[%0d] Beat=%0d RRESP=DECERR ARID=0x%0h ARADDR=0x%0h",
-                    master_id, slave_id, beat, exp_tx.arid, exp_tx.araddr))
-      end
-      default: begin
-        byte_data_cmp_failed_rresp_count++;
-        `uvm_error("R_CMP_RRESP_UNKNOWN",
-          $sformatf("M[%0d] S[%0d] Beat=%0d Unknown RRESP=0x%0h",
-                    master_id, slave_id, beat, act_tx.rresp[beat]))
-      end
-    endcase
+// R26 — RRESP per beat
+// ------------------------------------------------------------------
+case(act_tx.rresp)
+  READ_OKAY: begin
+    byte_data_cmp_verified_rresp_count++;
   end
-
+  READ_EXOKAY: begin
+    if(exp_tx.arlock === 1'b1) begin
+      byte_data_cmp_verified_rresp_count++;
+      `uvm_info("R_CMP_RRESP_EXOKAY", $sformatf("M[%0d] S[%0d] Beat=%0d RRESP=EXOKAY for exclusive ARID=0x%0h - OK", master_id, slave_id, beat_num, exp_tx.arid), UVM_HIGH)
+    end
+    else begin
+      byte_data_cmp_failed_rresp_count++;
+      `uvm_error("R_CMP_RRESP_EXOKAY_ILLEGAL", $sformatf("M[%0d] S[%0d] Beat=%0d RRESP=EXOKAY but ARLOCK=NORMAL - AXI4 violation ARID=0x%0h", master_id, slave_id, beat_num, exp_tx.arid))
+    end
+  end
+  READ_SLVERR: begin
+    byte_data_cmp_failed_rresp_count++;
+    `uvm_error("R_CMP_RRESP_SLVERR",
+      $sformatf("M[%0d] S[%0d] Beat=%0d RRESP=SLVERR ARID=0x%0h",
+                master_id, slave_id, beat_num, exp_tx.arid))
+  end
+  READ_DECERR: begin
+    byte_data_cmp_failed_rresp_count++;
+    `uvm_error("R_CMP_RRESP_DECERR",
+      $sformatf("M[%0d] S[%0d] Beat=%0d RRESP=DECERR ARID=0x%0h ARADDR=0x%0h",
+                master_id, slave_id, beat_num, exp_tx.arid, exp_tx.araddr))
+  end
+  default: begin
+    byte_data_cmp_failed_rresp_count++;
+    `uvm_error("R_CMP_RRESP_UNKNOWN",
+      $sformatf("M[%0d] S[%0d] Beat=%0d Unknown RRESP=0x%0h",
+                master_id, slave_id, beat_num, act_tx.rresp))
+  end
+endcase
   // ------------------------------------------------------------------
   // R27 — RLAST
   // act_tx.rlast must be 1 only on the final beat (beat_num == arlen).
